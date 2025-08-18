@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PublishAot>true</PublishAot>
+        <InvariantGlobalization>true</InvariantGlobalization>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <!-- 建议固定 64 位。需要 32 位或 ARM64 时改这里即可 -->
+        <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
+
+    <!-- 按 OS + 架构选择对应文件夹 -->
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(PlatformTarget)'=='x64'">
+        <FnaNative Include="..\external\fnalibs\x64\*.dll" />
+    </ItemGroup>
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(PlatformTarget)'=='x86'">
+        <FnaNative Include="..\external\fnalibs\x86\*.dll" />
+    </ItemGroup>
+
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$(PlatformTarget)'=='x64'">
+        <FnaNative Include="..\external\fnalibs\lib64\*.so" />
+    </ItemGroup>
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$(PlatformTarget)'=='ARM64'">
+        <FnaNative Include="..\external\fnalibs\libaarch64\*.so" />
+    </ItemGroup>
+
+    <!-- 如果以后加了 macOS 包 -->
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(PlatformTarget)'=='x64'">
+        <FnaNative Include="..\external\fnalibs\osx-x64\*.dylib" />
+    </ItemGroup>
+    <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(PlatformTarget)'=='ARM64'">
+        <FnaNative Include="..\external\fnalibs\osx-arm64\*.dylib" />
+    </ItemGroup>
+
+    <Target Name="CopyFnaNative" AfterTargets="Build">
+        <Copy SourceFiles="@(FnaNative)"
+              DestinationFolder="$(OutDir)"
+              SkipUnchangedFiles="true" />
+    </Target>
+
+
+
+    <ItemGroup>
+      <ProjectReference Include="..\Astora.Engine\Astora.Engine.csproj" />
+      <ProjectReference Include="..\external\FNA\FNA.Core.csproj" />
+    </ItemGroup>
+
+</Project>
