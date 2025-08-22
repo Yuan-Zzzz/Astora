@@ -6,6 +6,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astora.Sandbox", "Astora.Sa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FNA.Core", "external\FNA\FNA.Core.csproj", "{81CA8765-E5E6-4A49-9003-2509CFA15CEB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astora.ECS", "Astora.ECS\Astora.ECS.csproj", "{3ECF6D52-3AF9-4F76-9652-7D0DBAF6D84A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astora.Benchmark", "Astora.Benchmark\Astora.Benchmark.csproj", "{CC708D2E-9E8C-44A4-BCFB-13C1B6D1C8EA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,5 +32,13 @@ Global
 		{81CA8765-E5E6-4A49-9003-2509CFA15CEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81CA8765-E5E6-4A49-9003-2509CFA15CEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81CA8765-E5E6-4A49-9003-2509CFA15CEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3ECF6D52-3AF9-4F76-9652-7D0DBAF6D84A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3ECF6D52-3AF9-4F76-9652-7D0DBAF6D84A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3ECF6D52-3AF9-4F76-9652-7D0DBAF6D84A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3ECF6D52-3AF9-4F76-9652-7D0DBAF6D84A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC708D2E-9E8C-44A4-BCFB-13C1B6D1C8EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC708D2E-9E8C-44A4-BCFB-13C1B6D1C8EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC708D2E-9E8C-44A4-BCFB-13C1B6D1C8EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC708D2E-9E8C-44A4-BCFB-13C1B6D1C8EA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
