@@ -6,7 +6,7 @@ public class World
     private Dictionary<Type, IComponentPool> _componentPools = new();
     private Entity nextEntity = 0;
     
-    public World(int pageSize) => _PageSize = pageSize;
+    public World(int pageSize = 4096) => _PageSize = pageSize;
 
     /// <summary>
     /// Ensure that a component pool for type T exists, creating it if necessary.

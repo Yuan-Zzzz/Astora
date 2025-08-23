@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astora.ECS", "Astora.ECS\As
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astora.Benchmark", "Astora.Benchmark\Astora.Benchmark.csproj", "{CC708D2E-9E8C-44A4-BCFB-13C1B6D1C8EA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Astora.Core", "Astora.Core\Astora.Core.csproj", "{23745B03-7BDD-453F-BF39-795F5FD14C7E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -40,5 +42,9 @@ Global
 		{CC708D2E-9E8C-44A4-BCFB-13C1B6D1C8EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CC708D2E-9E8C-44A4-BCFB-13C1B6D1C8EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CC708D2E-9E8C-44A4-BCFB-13C1B6D1C8EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23745B03-7BDD-453F-BF39-795F5FD14C7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23745B03-7BDD-453F-BF39-795F5FD14C7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23745B03-7BDD-453F-BF39-795F5FD14C7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23745B03-7BDD-453F-BF39-795F5FD14C7E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
