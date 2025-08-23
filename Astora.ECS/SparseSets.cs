@@ -79,6 +79,21 @@ public sealed class SparseSets
         if (bucket is null) return false;
         return bucket[ToOffset(t)] != Invalid;
     }
+    
+    public int IndexOf(int t)
+    {
+        if (t < 0) return Invalid;
+        var page = ToPage(t);
+        var bucket = TryPage(page);
+        if (bucket is null) return Invalid;
+        return bucket[ToOffset(t)];
+    }
+
+    public bool TryIndex(int t, out int index)
+    {
+        index = IndexOf(t);
+        return index != Invalid;
+    }
 
     public void Clear()
     {
