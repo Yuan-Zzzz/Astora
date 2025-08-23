@@ -4,3 +4,23 @@
 Astora is an open-source, MIT-licensed game engine based on FNA/MonoGame
 
 It aims to my own game development first.
+
+## Feature
+- Editor
+  - Scene Preview & Edit
+  - Game View
+  - AssetManager
+- UI
+  - WIP
+- 2D
+  - Sprite
+  - Animation
+  - TileMapp
+- Physics
+  - WIP
+- Fonts
+  - WIP
+- Audio
+  - WIP
+- AI
+  - WIP
