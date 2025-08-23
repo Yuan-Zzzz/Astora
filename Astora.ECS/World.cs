@@ -23,8 +23,16 @@ public class World
         return newStore;
     } 
     
+    /// <summary>
+    /// Create a new entity.
+    /// </summary>
+    /// <returns></returns>
     public Entity Create() => nextEntity++;
 
+    /// <summary>
+    /// Destroy an entity and remove all its components.
+    /// </summary>
+    /// <param name="e"></param>
     public void Destroy(Entity e)
     {
         foreach (var pool in _componentPools.Values)
@@ -33,18 +41,37 @@ public class World
         }
     }
     
+    /// <summary>
+    /// Add a component of type T to entity e.
+    /// </summary>
+    /// <param name="e"></param>
+    /// <param name="component"></param>
+    /// <typeparam name="T"></typeparam>
     public void AddComponent<T>(Entity e, T component)
     {
         var store = Check<T>();
         store.Add(e, component);
     }
     
+    /// <summary>
+    /// Get a reference to the component of type T for entity e.
+    /// </summary>
+    /// <param name="e"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
     public ref T GetComponent<T>(Entity e)
     {
         var store = Check<T>();
         return ref store.Get(e);
     }
 
+    /// <summary>
+    /// Try to get the component of type T for entity e. Returns true if found, false otherwise.
+    /// </summary>
+    /// <param name="e"></param>
+    /// <param name="component"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
     public bool TryGetComponent<T>(Entity e, ref T component)
     {
         var store = Check<T>();
@@ -57,10 +84,25 @@ public class World
         return false;
     }
     
+    /// <summary>
+    /// Remove the component of type T from entity e, if it exists.
+    /// </summary>
+    /// <param name="e"></param>
+    /// <typeparam name="T"></typeparam>
     public void RemoveComponent<T>(Entity e)
     {
         var store = Check<T>();
         store.RemoveIfContains(e);
     }
     
+}
+
+public static class WorldQueryExtensions
+{
+    public static Query<T> Query<T>(this World world) => new(world.Check<T>());
+
+    public static Query<T1, T2> Query<T1, T2>(this World world) => new(world.Check<T1>(), world.Check<T2>());
+
+    public static Query<T1, T2, T3> Query<T1, T2, T3>(this World world) =>
+        new(world.Check<T1>(), world.Check<T2>(), world.Check<T3>());
 }
