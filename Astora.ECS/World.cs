@@ -2,11 +2,11 @@
 using Entity = Int32;
 public class World
 {
-    private readonly int _maxEntities;
+    private readonly int _PageSize;
     private Dictionary<Type, IComponentPool> _componentPools = new();
     private Entity nextEntity = 0;
     
-    public World(int maxEntities) => _maxEntities = maxEntities;
+    public World(int pageSize) => _PageSize = pageSize;
 
     /// <summary>
     /// Ensure that a component pool for type T exists, creating it if necessary.
@@ -18,7 +18,7 @@ public class World
         var type = typeof(T);
         if (_componentPools.TryGetValue(type, out var store)) return (ComponentPool<T>)_componentPools[type];
         
-        var newStore = new ComponentPool<T>(_maxEntities);
+        var newStore = new ComponentPool<T>(_PageSize);
         _componentPools[type] = newStore;
         return newStore;
     } 
