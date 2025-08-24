@@ -1,7 +1,6 @@
 ﻿// Astora.Sandbox/Scenes/DemoScene.cs
 
 using Astora.Core.Diagnostics;
-using Astora.ECS;
 using Astora.Engine.Components;
 using Astora.Engine.Graphics;
 using Astora.Engine.Scene;
@@ -24,36 +23,44 @@ public sealed class DemoScene : Scene
     {
         var vp = ctx.GraphicsDevice.Viewport.Bounds;
 
-        _camera = World.Create();
-        World.AddComponent(_camera, new Camera2DComponent(vp) {
-            Primary = true, Zoom = 1.0f,
+        // 使用封装的 Entity API
+        var camera = ctx.CreateEntity();
+        ctx.AddComponent(camera, new Camera2DComponent(vp)
+        {
+            Primary = true,
+            Zoom = 1.0f,
             Position = new Vector2(vp.Width / 2f, vp.Height / 2f)
         });
 
         _pixel = new Texture2D(ctx.GraphicsDevice, 1, 1);
         _pixel.SetData(new[] { Color.White });
 
-        _player = World.Create();
-        World.AddComponent(_player, new Transform2D {
+        var player = ctx.CreateEntity();
+        ctx.AddComponent(player, new Transform2D
+        {
             LocalPosition = new System.Numerics.Vector2(200, 200),
-            LocalScale    = new System.Numerics.Vector2(32, 32),
+            LocalScale = new System.Numerics.Vector2(32, 32),
             LocalRotation = 0f,
-            Parent        = -1
+            Parent = -1
         });
-        World.AddComponent(_player, new SpriteRendererComponent(_pixel, Color.Salmon, RenderLayer.World)
+        ctx.AddComponent(player, new SpriteRendererComponent(_pixel, Color.Salmon, RenderLayer.World)
         {
             SortKey = 0.5f
         });
-        World.AddComponent(_player, new TagComponent("Player"));
-        World.AddComponent(_player, new ScriptComponent(() => new PlayerController()));
+        ctx.AddComponent(player, new TagComponent("Player"));
+        ctx.AddComponent(player, new ScriptComponent(() => new PlayerController()));
 
-        World.AddComponent(_camera, new ScriptComponent(() => new CameraFollow(_player)));
+        ctx.AddComponent(camera, new ScriptComponent(() => new CameraFollow(player)));
+
+        // 保存内部用的原始 id（如果后续系统仍旧直接依赖 int）
+        _camera = camera.Id;
+        _player = player.Id;
     }
 
     public override void RegisterSystems(SceneContext ctx)
     {
         ctx.Logic.Add(new TransformHierarchy2DSystem(World));                       
-        ctx.Logic.Add(new NativeScriptSystem(World));                     
+        ctx.Logic.Add(new ScriptSystem(World));                     
         ctx.Logic.Add(new Camera2DSystem(World));                           
 
         ctx.Render.Add(new ClearScreenSystem(ctx.GraphicsDevice){ ClearColor = Color.CornflowerBlue });
@@ -62,9 +69,9 @@ public sealed class DemoScene : Scene
 
     public override void OnViewportResize(SceneContext ctx, int width, int height)
     {
-        foreach (var e in World.Query<Camera2DComponent>())
+        foreach (var e in ctx.Query<Camera2DComponent>())
         {
-            ref var cam = ref World.GetComponent<Camera2DComponent>(e);
+            ref var cam = ref ctx.GetComponent<Camera2DComponent>(e);
             cam.Viewport = new Rectangle(0, 0, width, height);
         }
     }

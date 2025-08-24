@@ -7,14 +7,14 @@ namespace Astora.Sandbox.Scripts;
 
 public sealed class CameraFollow : Behaviour
 {
-    private readonly int _target;
+    private readonly Astora.Engine.Entity _target;
     public float LerpRate = 8f;
-    public CameraFollow(int target) => _target = target;
+    public CameraFollow(Astora.Engine.Entity target) => _target = target;
 
     public override void OnUpdate(ITime t)
     {
-        ref var cam = ref World!.GetComponent<Camera2DComponent>(Entity);
-        ref var tr  = ref World!.GetComponent<Transform2D>(_target);
+        ref var cam = ref GetComponent<Camera2DComponent>();
+        ref var tr  = ref GetComponentOf<Transform2D>(_target);
 
         var goal = new XnaVec2(tr.WorldPosition.X, tr.WorldPosition.Y);
         float alpha = 1f - System.MathF.Exp(-LerpRate * t.Delta);

@@ -23,7 +23,7 @@ public sealed class PlayerController : Behaviour
         var len = System.MathF.Sqrt(dx * dx + dy * dy);
         var dir = new System.Numerics.Vector2(dx / len, dy / len);
 
-        ref var tr = ref World!.GetComponent<Transform2D>(Entity);
+        ref var tr = ref GetComponent<Transform2D>();
         tr.LocalPosition += dir * (Speed * t.Delta);
     }
 }

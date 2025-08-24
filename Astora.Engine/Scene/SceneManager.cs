@@ -31,7 +31,7 @@ public sealed class SceneManager
         // 1) 卸载旧场景
         if (Current is not null && Current.IsLoaded)
         {
-            var oldCtx = new SceneContext(_gd, _logic, _render, _services);
+            var oldCtx = new SceneContext(_gd, _logic, _render, _services, Current.World);
             Current.OnUnload(oldCtx);
         }
 
@@ -41,7 +41,7 @@ public sealed class SceneManager
 
         // 3) 加载新场景 + 注册系统
         Current = scene;
-        var ctx = new SceneContext(_gd, _logic, _render, _services);
+        var ctx = new SceneContext(_gd, _logic, _render, _services, scene.World);
         scene.OnLoad(ctx);
         scene.RegisterSystems(ctx);
         scene.MarkLoaded(true);
@@ -57,7 +57,7 @@ public sealed class SceneManager
     public void OnViewportResize(int width, int height)
     {
         if (Current is null || !Current.IsLoaded) return;
-        var ctx = new SceneContext(_gd, _logic, _render, _services);
+        var ctx = new SceneContext(_gd, _logic, _render, _services, Current.World);
         Current.OnViewportResize(ctx, width, height);
     }
 }
