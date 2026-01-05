@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Astora.Editor.Project
 {
     /// <summary>
@@ -21,34 +19,53 @@ namespace Astora.Editor.Project
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Astora"
         );
-        private static string SettingsFile => Path.Combine(SettingsDirectory, "recent_projects.json");
+        private static string SettingsFile => Path.Combine(SettingsDirectory, "recent_projects.txt");
 
         /// <summary>
         /// 获取最近打开的项目列表
         /// </summary>
         public static List<RecentProjectInfo> GetRecentProjects()
         {
+            var projects = new List<RecentProjectInfo>();
+            
+            if (!File.Exists(SettingsFile))
+            {
+                return projects;
+            }
+
             try
             {
-                if (!File.Exists(SettingsFile))
+                var lines = File.ReadAllLines(SettingsFile);
+                foreach (var line in lines)
                 {
-                    return new List<RecentProjectInfo>();
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    
+                    var parts = line.Split('|');
+                    if (parts.Length >= 2)
+                    {
+                        projects.Add(new RecentProjectInfo
+                        {
+                            Path = parts[0],
+                            LastOpened = DateTime.TryParse(parts[1], out var date) ? date : DateTime.Now
+                        });
+                    }
+                    else if (parts.Length == 1)
+                    {
+                        // 兼容旧格式（只有路径）
+                        projects.Add(new RecentProjectInfo
+                        {
+                            Path = parts[0],
+                            LastOpened = DateTime.Now
+                        });
+                    }
                 }
-
-                var json = File.ReadAllText(SettingsFile);
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                };
-                
-                var data = JsonSerializer.Deserialize<Dictionary<string, List<RecentProjectInfo>>>(json, options);
-                return data?.GetValueOrDefault("recentProjects", new List<RecentProjectInfo>()) ?? new List<RecentProjectInfo>();
             }
             catch (Exception ex)
             {
                 System.Console.WriteLine($"Error loading recent projects: {ex.Message}");
-                return new List<RecentProjectInfo>();
             }
+            
+            return projects;
         }
 
         /// <summary>
@@ -103,18 +120,8 @@ namespace Astora.Editor.Project
                     Directory.CreateDirectory(SettingsDirectory);
                 }
 
-                var data = new Dictionary<string, List<RecentProjectInfo>>
-                {
-                    { "recentProjects", projects }
-                };
-
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                };
-
-                var json = JsonSerializer.Serialize(data, options);
-                File.WriteAllText(SettingsFile, json);
+                var lines = projects.Select(p => $"{p.Path}|{p.LastOpened:O}").ToArray();
+                File.WriteAllLines(SettingsFile, lines);
             }
             catch (Exception ex)
             {

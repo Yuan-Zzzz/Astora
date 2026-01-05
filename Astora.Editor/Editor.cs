@@ -23,6 +23,7 @@ namespace Astora.Editor
         private HierarchyPanel _hierarchyPanel;
         private InspectorPanel _inspectorPanel;
         private SceneViewPanel _sceneViewPanel;
+        private GameViewPanel? _gameViewPanel;
         private ProjectPanel? _projectPanel;
         private AssetPanel? _assetPanel;
         private ProjectLauncherPanel? _projectLauncherPanel;
@@ -63,8 +64,9 @@ namespace Astora.Editor
 
             // 初始化面板 - 传递 ImGuiRenderer 给 SceneViewPanel
             _hierarchyPanel = new HierarchyPanel(_sceneTree);
-            _inspectorPanel = new InspectorPanel();
-            _sceneViewPanel = new SceneViewPanel(_sceneTree, _imGuiRenderer);
+            _inspectorPanel = new InspectorPanel(_projectManager, _imGuiRenderer);
+            _sceneViewPanel = new SceneViewPanel(_sceneTree, _imGuiRenderer, this);
+            _gameViewPanel = new GameViewPanel(_sceneTree, _imGuiRenderer);
             _projectPanel = new ProjectPanel(_projectManager, _sceneManager, this);
             _assetPanel = new AssetPanel(_projectManager, this);
             _projectLauncherPanel = new ProjectLauncherPanel(this);
@@ -107,8 +109,8 @@ namespace Astora.Editor
             }
             else
             {
-                // 播放模式下的渲染（使用 Engine.Render）
-                Engine.Render();
+                // 播放模式下的渲染 - Game窗口使用自己的RenderTarget
+                _gameViewPanel?.Draw(_spriteBatch);
             }
             
             // 渲染 ImGui UI
@@ -144,12 +146,22 @@ namespace Astora.Editor
                 _assetPanel?.Render();
                 _hierarchyPanel.Render(ref _selectedNode);
                 _inspectorPanel.Render(_selectedNode);
-                _sceneViewPanel.RenderUI();
+                
+                // 根据播放模式显示不同的视图
+                if (_isPlaying)
+                {
+                    _gameViewPanel?.RenderUI();
+                }
+                else
+                {
+                    _sceneViewPanel.RenderUI();
+                }
             }
         }
         
         // 公共方法供面板调用
         public void SetSelectedNode(Node? node) => _selectedNode = node;
+        public Node? GetSelectedNode() => _selectedNode;
         public void SetPlaying(bool playing) => _isPlaying = playing;
         
         /// <summary>

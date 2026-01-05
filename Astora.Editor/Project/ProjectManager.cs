@@ -233,25 +233,8 @@ namespace Astora.Editor.Project
                 // 加载程序集
                 _loadedAssembly = _assemblyContext.LoadFromAssemblyPath(_currentProject.AssemblyPath);
 
-                // 确保程序集被加载到默认上下文中，以便序列化器能够找到类型
-                // 注意：这会导致程序集无法完全卸载，但可以确保类型查找正常工作
-                var defaultContext = AssemblyLoadContext.Default;
-                try
-                {
-                    // 尝试从默认上下文加载（如果已存在）
-                    var existingAssembly = defaultContext.Assemblies
-                        .FirstOrDefault(a => a.GetName().Name == _currentProject.AssemblyName);
-                    
-                    if (existingAssembly == null)
-                    {
-                        // 如果不存在，从文件加载到默认上下文
-                        defaultContext.LoadFromAssemblyPath(_currentProject.AssemblyPath);
-                    }
-                }
-                catch
-                {
-                    // 忽略加载到默认上下文的错误，使用 AssemblyLoadContext 即可
-                }
+                // 注意：不再加载到默认上下文，以避免无法完全卸载的问题
+                // 序列化器会通过 CreateNodeByReflection 在所有程序集中查找类型
 
                 _currentProject.IsLoaded = true;
                 System.Console.WriteLine($"程序集加载成功: {_currentProject.AssemblyName}");
@@ -274,6 +257,17 @@ namespace Astora.Editor.Project
             {
                 return false;
             }
+
+            // 先卸载旧程序集
+            UnloadAssembly();
+            
+            // 等待一段时间确保程序集完全卸载
+            System.Threading.Thread.Sleep(100);
+            
+            // 再次强制 GC
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
 
             // 先编译
             var compileResult = CompileProject();

@@ -49,7 +49,7 @@ public static class Engine
     }
     
     /// <summary>
-    /// 渲染方法（封装渲染逻辑）
+    /// 游戏循环渲染方法
     /// </summary>
     public static void Render(Color? clearColor = null)
     {

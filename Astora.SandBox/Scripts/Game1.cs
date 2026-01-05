@@ -24,7 +24,7 @@ namespace Astora.SandBox.Scripts
             Engine.Initialize(Content, GraphicsDevice, _spriteBatch);
             
             // 加载初始场景
-            var initialScene = "Scenes/Root.scene";
+            var initialScene = "Scenes/NewScene.scene";
             if (File.Exists(initialScene))
             {
                 Engine.LoadScene(initialScene);

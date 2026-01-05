@@ -123,6 +123,26 @@ namespace Astora.Editor.UI
                         HandleFileClick(filePath, extension);
                     }
 
+                    // 为图片文件添加拖拽源
+                    if (IsImageFile(extension))
+                    {
+                        if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
+                        {
+                            // 设置拖拽数据
+                            var pathBytes = System.Text.Encoding.UTF8.GetBytes(filePath);
+                            unsafe
+                            {
+                                fixed (byte* ptr = pathBytes)
+                                {
+                                    ImGui.SetDragDropPayload("TEXTURE_FILE_PATH", new IntPtr(ptr), (uint)pathBytes.Length);
+                                }
+                            }
+                            
+                            ImGui.Text($"拖拽纹理: {fileName}");
+                            ImGui.EndDragDropSource();
+                        }
+                    }
+
                     // 双击打开
                     if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                     {
@@ -196,6 +216,21 @@ namespace Astora.Editor.UI
                     FileOperations.OpenFileInExternalEditor(filePath);
                     break;
             }
+        }
+        
+        private bool IsImageFile(string extension)
+        {
+            return extension switch
+            {
+                ".png" => true,
+                ".jpg" => true,
+                ".jpeg" => true,
+                ".bmp" => true,
+                ".gif" => true,
+                ".tga" => true,
+                ".dds" => true,
+                _ => false
+            };
         }
     }
 }

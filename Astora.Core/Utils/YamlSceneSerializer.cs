@@ -315,12 +315,27 @@ namespace Astora.Core.Utils
         private Node CreateNodeByReflection(string typeName, string nodeName)
         {
             // 从所有已加载的程序集中查找类型
+            // 注意：AppDomain.CurrentDomain.GetAssemblies() 包含所有已加载的程序集，
+            // 包括 AssemblyLoadContext 中加载的程序集
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            
+            // 记录查找过程（用于调试）
+            var searchedAssemblies = new List<string>();
             
             foreach (var assembly in assemblies)
             {
                 try
                 {
+                    // 跳过动态程序集和系统程序集（提高性能）
+                    if (assembly.IsDynamic || assembly.FullName?.StartsWith("System.") == true || 
+                        assembly.FullName?.StartsWith("Microsoft.") == true)
+                    {
+                        continue;
+                    }
+                    
+                    searchedAssemblies.Add(assembly.GetName().Name ?? "Unknown");
+                    
+                    // 首先尝试直接按类型名查找
                     var type = assembly.GetType(typeName, false, true);
                     if (type == null)
                     {
@@ -357,7 +372,11 @@ namespace Astora.Core.Utils
                 }
             }
             
-            throw new NotSupportedException($"无法找到节点类型: {typeName}。请确保类型已加载并且继承自 Node。");
+            // 提供更详细的错误信息
+            var assemblyList = string.Join(", ", searchedAssemblies.Take(10));
+            throw new NotSupportedException(
+                $"无法找到节点类型: {typeName}。已搜索的程序集: {assemblyList}... " +
+                $"请确保类型已加载并且继承自 Node。如果这是项目中的自定义类型，请确保项目已编译并加载。");
         }
 
         /// <summary>

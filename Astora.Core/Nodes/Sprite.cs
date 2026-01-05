@@ -8,6 +8,10 @@ namespace Astora.Core.Nodes
         public Texture2D Texture { get; set; }
         public Vector2 Origin { get; set; }
         public Color Modulate { get; set; } = Color.White;
+        
+        // 默认白色矩形纹理（64x64）
+        private static Texture2D? _defaultWhiteTexture;
+        private const int DefaultSize = 64;
 
         public Sprite(string name, Texture2D texture) : base(name)
         {
@@ -15,12 +19,12 @@ namespace Astora.Core.Nodes
             //The default origin is the center of the texture
             if (texture != null)
                 Origin = new Vector2(texture.Width / 2f, texture.Height / 2f);
+            else
+                Origin = new Vector2(DefaultSize / 2f, DefaultSize / 2f);
         }
 
         public override void Draw(SpriteBatch spriteBatch)
         {
-            if (Texture == null) return;
-            
             var transform = GlobalTransform;
 
             Vector3 pos, scale;
@@ -33,8 +37,15 @@ namespace Astora.Core.Nodes
             // 这是一个简化的转换，假设我们只在 2D 平面旋转
             float rotation = 2.0f * (float)System.Math.Atan2(rotQ.Z, rotQ.W);
 
+            // 如果没有纹理，使用默认的64x64白色矩形
+            var textureToDraw = Texture;
+            if (textureToDraw == null)
+            {
+                textureToDraw = GetDefaultWhiteTexture(spriteBatch.GraphicsDevice);
+            }
+
             spriteBatch.Draw(
-                Texture,
+                textureToDraw,
                 new Vector2(pos.X, pos.Y),
                 null,
                 Modulate,
@@ -44,6 +55,21 @@ namespace Astora.Core.Nodes
                 SpriteEffects.None,
                 0f
             );
+        }
+
+        private static Texture2D GetDefaultWhiteTexture(GraphicsDevice graphicsDevice)
+        {
+            if (_defaultWhiteTexture == null || _defaultWhiteTexture.IsDisposed)
+            {
+                _defaultWhiteTexture = new Texture2D(graphicsDevice, DefaultSize, DefaultSize);
+                var colorData = new Color[DefaultSize * DefaultSize];
+                for (int i = 0; i < colorData.Length; i++)
+                {
+                    colorData[i] = Color.White;
+                }
+                _defaultWhiteTexture.SetData(colorData);
+            }
+            return _defaultWhiteTexture;
         }
     }
 }

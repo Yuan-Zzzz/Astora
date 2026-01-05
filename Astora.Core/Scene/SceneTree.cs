@@ -19,6 +19,17 @@ namespace Astora.Core.Scene
             if (Root != null)
             {
                 Root.Ready();
+                
+                // // 自动查找并设置Camera2D
+                var camera = GetNode<Camera2D>();
+                if (camera != null)
+                {
+                    ActiveCamera = camera;
+                }
+            }
+            else
+            {
+                ActiveCamera = null;
             }
         }
 
@@ -65,6 +76,32 @@ namespace Astora.Core.Scene
         public void SetCurrentCamera(Camera2D camera)
         {
             ActiveCamera = camera;
+        }
+        
+        /// <summary>
+        /// 清理标记删除的节点（用于编辑器模式）
+        /// </summary>
+        public void CleanupQueuedNodes()
+        {
+            if (Root != null)
+            {
+                CleanupNode(Root);
+            }
+        }
+        
+        private void CleanupNode(Node node)
+        {
+            // 先清理子节点
+            for (int i = node.Children.Count - 1; i >= 0; i--)
+            {
+                var child = node.Children[i];
+                CleanupNode(child);
+                
+                if (child.IsQueuedForDeletion)
+                {
+                    node.Children.RemoveAt(i);
+                }
+            }
         }
         
         /// <summary>
