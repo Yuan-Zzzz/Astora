@@ -278,6 +278,133 @@ namespace Astora.Editor.UI
             }
         }
         
+        /// <summary>
+        /// 递归查找场景中所有的 Camera2D 节点
+        /// </summary>
+        private List<Camera2D> GetAllCameras()
+        {
+            var cameras = new List<Camera2D>();
+            FindCameras(_sceneTree.Root, cameras);
+            return cameras;
+        }
+        
+        /// <summary>
+        /// 递归查找相机节点
+        /// </summary>
+        private void FindCameras(Node? node, List<Camera2D> cameras)
+        {
+            if (node == null) return;
+            
+            if (node is Camera2D camera)
+            {
+                cameras.Add(camera);
+            }
+            
+            foreach (var child in node.Children)
+            {
+                FindCameras(child, cameras);
+            }
+        }
+        
+        /// <summary>
+        /// 计算相机的世界坐标视口边界
+        /// </summary>
+        private RectangleF GetCameraViewportBounds(Camera2D camera)
+        {
+            // 获取设计分辨率（从项目配置）或使用默认值
+            int designWidth = 1920;
+            int designHeight = 1080;
+            
+            var projectManager = _editor.ProjectManager;
+            if (projectManager?.CurrentProject?.GameConfig != null)
+            {
+                var config = projectManager.CurrentProject.GameConfig;
+                designWidth = config.DesignWidth;
+                designHeight = config.DesignHeight;
+            }
+            else if (Engine.GraphicsDevice != null)
+            {
+                // 如果没有项目配置，使用 GraphicsDevice 的视口大小
+                var viewport = Engine.GraphicsDevice.Viewport;
+                designWidth = viewport.Width;
+                designHeight = viewport.Height;
+            }
+            
+            // 计算视口大小（考虑相机的 Zoom）
+            var viewportSize = new MXnaVector2(designWidth / camera.Zoom, designHeight / camera.Zoom);
+            
+            // 相机的世界位置
+            var cameraWorldPos = camera.GlobalPosition;
+            
+            // 根据 Camera2D.GetViewMatrix() 的变换逻辑：
+            // 1. Translate(-Position) - 将世界坐标转换为以相机位置为原点的坐标系
+            // 2. Rotate(-Rotation)
+            // 3. Scale(Zoom)
+            // 4. Translate(Origin) - 将结果平移到屏幕上的Origin位置
+            // 
+            // 这意味着相机的世界位置会被映射到屏幕上的Origin位置
+            // 屏幕左上角(0,0)对应的世界坐标 = Position - Origin / Zoom
+            // 屏幕中心(Origin)对应的世界坐标 = Position
+            
+            // 计算视口左上角的世界坐标
+            var viewportTopLeft = cameraWorldPos - camera.Origin / camera.Zoom;
+            
+            // 返回边界矩形
+            return new RectangleF(
+                viewportTopLeft.X,
+                viewportTopLeft.Y,
+                viewportSize.X,
+                viewportSize.Y
+            );
+        }
+        
+        /// <summary>
+        /// 绘制矩形边框
+        /// </summary>
+        private void DrawRectangle(SpriteBatch spriteBatch, Texture2D texture, RectangleF bounds, Color color, float thickness)
+        {
+            var topLeft = new MXnaVector2(bounds.X, bounds.Y);
+            var topRight = new MXnaVector2(bounds.X + bounds.Width, bounds.Y);
+            var bottomLeft = new MXnaVector2(bounds.X, bounds.Y + bounds.Height);
+            var bottomRight = new MXnaVector2(bounds.X + bounds.Width, bounds.Y + bounds.Height);
+            
+            // 绘制四条边
+            DrawLine(spriteBatch, texture, topLeft, topRight, color, thickness);      // 上边
+            DrawLine(spriteBatch, texture, topRight, bottomRight, color, thickness);  // 右边
+            DrawLine(spriteBatch, texture, bottomRight, bottomLeft, color, thickness); // 下边
+            DrawLine(spriteBatch, texture, bottomLeft, topLeft, color, thickness);     // 左边
+        }
+        
+        /// <summary>
+        /// 绘制所有相机的视口区域
+        /// </summary>
+        private void DrawCameraViewports(SpriteBatch spriteBatch)
+        {
+            var cameras = GetAllCameras();
+            if (cameras.Count == 0) return;
+            
+            var whitePixel = GetWhitePixelTexture();
+            var activeCamera = _sceneTree.ActiveCamera;
+            
+            foreach (var camera in cameras)
+            {
+                var bounds = GetCameraViewportBounds(camera);
+                var isActive = camera == activeCamera;
+                
+                // ActiveCamera 用绿色，其他用黄色
+                var color = isActive ? new Color(0, 255, 0, 200) : new Color(255, 255, 0, 150);
+                var thickness = isActive ? 3f / _cameraZoom : 2f / _cameraZoom;
+                
+                // 绘制视口边框
+                DrawRectangle(spriteBatch, whitePixel, bounds, color, thickness);
+                
+                // 在相机位置绘制一个小标记
+                var cameraPos = camera.GlobalPosition;
+                var markerSize = 8f / _cameraZoom;
+                DrawCircle(spriteBatch, whitePixel, cameraPos, markerSize, color, thickness);
+            }
+        }
+        
         public void Update(GameTime gameTime)
         {
             // 处理输入和交互逻辑在RenderUI中处理
@@ -308,6 +435,9 @@ namespace Astora.Editor.UI
             {
                 DrawGizmo(spriteBatch, node2d);
             }
+            
+            // 绘制所有相机的视口区域
+            DrawCameraViewports(spriteBatch);
             
             spriteBatch.End();
             

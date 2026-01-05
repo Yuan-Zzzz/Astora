@@ -2,6 +2,9 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Xml.Linq;
+using Astora.Core.Project;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace Astora.Editor.Project
 {
@@ -43,6 +46,9 @@ namespace Astora.Editor.Project
 
             // 解析 .csproj 文件
             ParseProjectFile(projectInfo);
+            
+            // 加载项目配置
+            LoadProjectConfig(projectInfo);
 
             _currentProject = projectInfo;
             
@@ -97,6 +103,9 @@ namespace Astora.Editor.Project
             // 创建 Scenes 文件夹
             var scenesDir = Path.Combine(projectRoot, "Scenes");
             Directory.CreateDirectory(scenesDir);
+            
+            // 创建默认项目配置文件
+            CreateDefaultProjectConfig(projectRoot);
 
             // 加载创建的项目
             var projectInfo = LoadProject(csprojPath);
@@ -117,6 +126,85 @@ namespace Astora.Editor.Project
             return name.Trim();
         }
 
+        /// <summary>
+        /// 加载项目配置
+        /// </summary>
+        private void LoadProjectConfig(ProjectInfo projectInfo)
+        {
+            var configPath = Path.Combine(projectInfo.ProjectRoot, "project.yaml");
+            
+            if (File.Exists(configPath))
+            {
+                try
+                {
+                    var deserializer = new DeserializerBuilder()
+                        .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                        .Build();
+                    
+                    var yaml = File.ReadAllText(configPath);
+                    projectInfo.GameConfig = deserializer.Deserialize<GameProjectConfig>(yaml) 
+                        ?? GameProjectConfig.CreateDefault();
+                }
+                catch (Exception ex)
+                {
+                    System.Console.WriteLine($"加载项目配置失败: {ex.Message}，使用默认配置");
+                    projectInfo.GameConfig = GameProjectConfig.CreateDefault();
+                }
+            }
+            else
+            {
+                // 如果配置文件不存在，使用默认配置
+                projectInfo.GameConfig = GameProjectConfig.CreateDefault();
+            }
+        }
+        
+        /// <summary>
+        /// 保存项目配置
+        /// </summary>
+        public bool SaveProjectConfig(ProjectInfo projectInfo)
+        {
+            if (projectInfo == null)
+                return false;
+            
+            try
+            {
+                var configPath = Path.Combine(projectInfo.ProjectRoot, "project.yaml");
+                
+                var serializer = new SerializerBuilder()
+                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                    .Build();
+                
+                var yaml = serializer.Serialize(projectInfo.GameConfig);
+                File.WriteAllText(configPath, yaml);
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"保存项目配置失败: {ex.Message}");
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// 创建默认项目配置文件
+        /// </summary>
+        private void CreateDefaultProjectConfig(string projectRoot)
+        {
+            var configPath = Path.Combine(projectRoot, "project.yaml");
+            
+            if (!File.Exists(configPath))
+            {
+                var defaultConfig = GameProjectConfig.CreateDefault();
+                var serializer = new SerializerBuilder()
+                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                    .Build();
+                
+                var yaml = serializer.Serialize(defaultConfig);
+                File.WriteAllText(configPath, yaml);
+            }
+        }
+        
         /// <summary>
         /// 解析 .csproj 文件
         /// </summary>

@@ -66,7 +66,7 @@ namespace Astora.Editor
             _hierarchyPanel = new HierarchyPanel(_sceneTree);
             _inspectorPanel = new InspectorPanel(_projectManager, _imGuiRenderer);
             _sceneViewPanel = new SceneViewPanel(_sceneTree, _imGuiRenderer, this);
-            _gameViewPanel = new GameViewPanel(_sceneTree, _imGuiRenderer);
+            _gameViewPanel = new GameViewPanel(_sceneTree, _imGuiRenderer, _projectManager);
             _projectPanel = new ProjectPanel(_projectManager, _sceneManager, this);
             _assetPanel = new AssetPanel(_projectManager, this);
             _projectLauncherPanel = new ProjectLauncherPanel(this);

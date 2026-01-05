@@ -1,3 +1,5 @@
+using Astora.Core.Project;
+
 namespace Astora.Editor.Project
 {
     /// <summary>
@@ -12,6 +14,11 @@ namespace Astora.Editor.Project
         public string AssemblyName { get; set; } = string.Empty;
         public List<string> Scenes { get; set; } = new();
         public bool IsLoaded { get; set; }
+        
+        /// <summary>
+        /// 游戏项目配置
+        /// </summary>
+        public GameProjectConfig GameConfig { get; set; } = GameProjectConfig.CreateDefault();
     }
 }
 

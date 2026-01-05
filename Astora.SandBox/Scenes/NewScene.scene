@@ -29,7 +29,7 @@ children:
 - type: Camera2D
   name: NewCamera
   properties:
-    Zoom: 3.7
+    Zoom: 1
     Origin:
       x: 960
       y: 540
