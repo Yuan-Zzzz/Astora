@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using YamlDotNet.Serialization;
 
 namespace Astora.Core
 {
@@ -13,7 +14,7 @@ namespace Astora.Core
         /// <summary>
         /// Parent node in the hierarchy
         /// </summary>
-        public Node Parent { get; private set; }
+        public Node Parent { get;private set; }
         
         /// <summary>
         /// Node children in the hierarchy
@@ -23,6 +24,10 @@ namespace Astora.Core
         // Mark if this node is queued for deletion
         public bool IsQueuedForDeletion { get; private set; } = false;
 
+        public Node()
+        {
+            Name = "Node";
+        }
         public Node(string name = "Node")
         {
             Name = name;
