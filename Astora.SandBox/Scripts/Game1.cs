@@ -38,28 +38,21 @@ namespace Astora.SandBox
             Engine.Content = Content;
             Engine.GraphicsDevice = GraphicsDevice;
             Engine.SpriteBatch = _spriteBatch;
-
-            // --- 3. 动态生成测试纹理 (避免处理文件路径) ---
             
-            // 生成一个白色方块 (玩家)
-            var playerTexture = new Texture2D(GraphicsDevice, 32, 32);
-            Color[] data = new Color[32 * 32];
-            for(int i=0; i<data.Length; ++i) data[i] = Color.White;
-            playerTexture.SetData(data);
-
-            // 生成一个红色方块 (武器)
-            var weaponTexture = new Texture2D(GraphicsDevice, 32, 32);
-            Color[] data2 = new Color[32 * 32];
-            for(int i=0; i<data2.Length; ++i) data2[i] = Color.Red;
-            weaponTexture.SetData(data2);
-
             // --- 4. 启动场景 ---
-            var mainScene = new MainScene(playerTexture, weaponTexture);
+            //var mainScene = new MainScene();
+            var mainScene = Engine.Serializer.Load("level_test.scene");
             _sceneTree.ChangeScene(mainScene);
         }
 
         protected override void Update(GameTime gameTime)
         {
+            // 按 F5 保存
+            if (Input.IsKeyPressed(Keys.F5))
+            {
+                Engine.Serializer.Save(_sceneTree.Root, "level_test.scene");
+                System.Console.WriteLine("Scene Saved!");
+            }
             // 5. 将 Update 委托给引擎
             _sceneTree.Update(gameTime);
             base.Update(gameTime);
@@ -116,15 +109,22 @@ namespace Astora.SandBox
         private Texture2D _playerTex;
         private Texture2D _weaponTex;
 
-        // 我们通过构造函数传入纹理，或者在 Ready 里加载
-        public MainScene(Texture2D playerTex, Texture2D weaponTex) : base("MainScene")
-        {
-            _playerTex = playerTex;
-            _weaponTex = weaponTex;
-        }
-
         public override void Ready()
         {
+            // 生成一个白色方块 (玩家)
+            var playerTexture = new Texture2D(Engine.GraphicsDevice, 32, 32);
+            Color[] data = new Color[32 * 32];
+            for(int i=0; i<data.Length; ++i) data[i] = Color.White;
+            playerTexture.SetData(data);
+
+            // 生成一个红色方块 (武器)
+            var weaponTexture = new Texture2D(Engine.GraphicsDevice, 32, 32);
+            Color[] data2 = new Color[32 * 32];
+            for(int i=0; i<data2.Length; ++i) data2[i] = Color.Red;
+            weaponTexture.SetData(data2);
+            
+            _playerTex = playerTexture;
+            _weaponTex = weaponTexture;
             // --- 1. 创建玩家 ---
             var player = new Player(_playerTex);
             player.Position = new Vector2(400, 300); // 屏幕中心

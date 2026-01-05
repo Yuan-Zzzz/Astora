@@ -1,5 +1,6 @@
 ﻿using Astora.Core;
 using Astora.Core.Scene;
+using Astora.Editor.Project;
 using Astora.Editor.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -14,16 +15,21 @@ namespace Astora.Editor
         private SceneTree _sceneTree;
         private ImGuiRenderer _imGuiRenderer;
         
+        // 项目管理和场景管理
+        private ProjectManager _projectManager;
+        private SceneManager _sceneManager;
+        
         // UI 面板
         private HierarchyPanel _hierarchyPanel;
         private InspectorPanel _inspectorPanel;
         private SceneViewPanel _sceneViewPanel;
+        private ProjectPanel? _projectPanel;
         private MenuBar _menuBar;
         
         // 编辑器状态
-        private Node _selectedNode;
+        private Node? _selectedNode;
         private bool _isPlaying = false;
-        private string _currentScenePath;
+        private string? _currentScenePath;
         
         public Editor()
         {
@@ -37,6 +43,10 @@ namespace Astora.Editor
             
             _sceneTree = new SceneTree();
             Engine.CurretScene = _sceneTree;
+            
+            // 初始化项目管理器
+            _projectManager = new ProjectManager();
+            _sceneManager = new SceneManager(_projectManager);
         }
 
         protected override void Initialize()
@@ -51,6 +61,7 @@ namespace Astora.Editor
             _hierarchyPanel = new HierarchyPanel(_sceneTree);
             _inspectorPanel = new InspectorPanel();
             _sceneViewPanel = new SceneViewPanel(_sceneTree, _imGuiRenderer);
+            _projectPanel = new ProjectPanel(_projectManager, _sceneManager, this);
             _menuBar = new MenuBar(this);
         }
 
@@ -122,15 +133,109 @@ namespace Astora.Editor
             ImGui.DockSpaceOverViewport(ImGui.GetMainViewport().ID);
             
             // 渲染各个面板
+            _projectPanel?.Render();
             _hierarchyPanel.Render(ref _selectedNode);
             _inspectorPanel.Render(_selectedNode);
             _sceneViewPanel.RenderUI();
         }
         
         // 公共方法供面板调用
-        public void SetSelectedNode(Node node) => _selectedNode = node;
+        public void SetSelectedNode(Node? node) => _selectedNode = node;
         public void SetPlaying(bool playing) => _isPlaying = playing;
-        public void LoadScene(string path) { /* 实现场景加载 */ }
-        public void SaveScene(string path) { /* 实现场景保存 */ }
+        
+        /// <summary>
+        /// 加载项目
+        /// </summary>
+        public bool LoadProject(string csprojPath)
+        {
+            try
+            {
+                var projectInfo = _projectManager.LoadProject(csprojPath);
+                
+                // 初始化场景管理器
+                _sceneManager.Initialize();
+                
+                // 扫描场景
+                _sceneManager.ScanScenes();
+                
+                // 编译并加载程序集
+                var compileResult = _projectManager.CompileProject();
+                if (compileResult.Success)
+                {
+                    _projectManager.LoadProjectAssembly();
+                }
+                else
+                {
+                    System.Console.WriteLine($"编译警告: {compileResult.ErrorMessage}");
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"加载项目失败: {ex.Message}");
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// 重新编译项目
+        /// </summary>
+        public bool RebuildProject()
+        {
+            if (!_projectManager.HasProject)
+            {
+                return false;
+            }
+            
+            return _projectManager.ReloadAssembly();
+        }
+        
+        /// <summary>
+        /// 加载场景
+        /// </summary>
+        public void LoadScene(string path)
+        {
+            var scene = _sceneManager.LoadScene(path);
+            if (scene != null)
+            {
+                _sceneTree.ChangeScene(scene);
+                _currentScenePath = path;
+            }
+        }
+        
+        /// <summary>
+        /// 保存场景
+        /// </summary>
+        public void SaveScene(string? path = null)
+        {
+            if (_sceneTree.Root == null)
+            {
+                return;
+            }
+            
+            var savePath = path ?? _currentScenePath;
+            if (string.IsNullOrEmpty(savePath))
+            {
+                // 如果没有路径，使用当前场景名称
+                savePath = _sceneManager.GetScenePath(_sceneTree.Root.Name);
+            }
+            
+            _sceneManager.SaveScene(savePath, _sceneTree.Root);
+            _currentScenePath = savePath;
+        }
+        
+        /// <summary>
+        /// 创建新场景
+        /// </summary>
+        public void CreateNewScene(string sceneName)
+        {
+            var scenePath = _sceneManager.CreateNewScene(sceneName);
+            LoadScene(scenePath);
+        }
+        
+        public ProjectManager ProjectManager => _projectManager;
+        public SceneManager SceneManager => _sceneManager;
+        public string? CurrentScenePath => _currentScenePath;
     }
 }

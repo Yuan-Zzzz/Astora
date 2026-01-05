@@ -1,0 +1,45 @@
+type: Node2D
+name: Root
+properties:
+  Position:
+    x: 0
+    y: 0
+  Rotation: 0
+  Scale:
+    x: 1
+    y: 1
+  GlobalPosition:
+    x: 0
+    y: 0
+  Name: Root
+children:
+- type: Node2D
+  name: NewNode2D
+  properties:
+    Position:
+      x: 0
+      y: 0
+    Rotation: 0
+    Scale:
+      x: 1
+      y: 1
+    GlobalPosition:
+      x: 0
+      y: 0
+    Name: NewNode2D
+  children: 
+- type: Node2D
+  name: NewNode
+  properties:
+    Position:
+      x: 0
+      y: 0
+    Rotation: 0
+    Scale:
+      x: 1
+      y: 1
+    GlobalPosition:
+      x: 0
+      y: 0
+    Name: NewNode
+  children: 

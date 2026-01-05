@@ -13,4 +13,8 @@
       <ProjectReference Include="..\Astora.Core\Astora.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Scenes\" />
+    </ItemGroup>
+
 </Project>

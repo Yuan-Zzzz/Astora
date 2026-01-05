@@ -1,0 +1,17 @@
+namespace Astora.Editor.Project
+{
+    /// <summary>
+    /// 项目信息
+    /// </summary>
+    public class ProjectInfo
+    {
+        public string ProjectPath { get; set; } = string.Empty;
+        public string ProjectRoot { get; set; } = string.Empty;
+        public string OutputPath { get; set; } = string.Empty;
+        public string AssemblyPath { get; set; } = string.Empty;
+        public string AssemblyName { get; set; } = string.Empty;
+        public List<string> Scenes { get; set; } = new();
+        public bool IsLoaded { get; set; }
+    }
+}
+
