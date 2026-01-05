@@ -169,6 +169,10 @@ namespace Astora.Editor
         {
             var io = ImGui.GetIO();
 
+            // Enable docking
+            io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
+            io.ConfigWindowsMoveFromTitleBarOnly = true;
+
             // MonoGame-specific //////////////////////
             _game.Window.TextInput += (s, a) =>
             {

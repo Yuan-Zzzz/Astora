@@ -24,12 +24,16 @@ namespace Astora.Editor
         private InspectorPanel _inspectorPanel;
         private SceneViewPanel _sceneViewPanel;
         private ProjectPanel? _projectPanel;
+        private AssetPanel? _assetPanel;
+        private ProjectLauncherPanel? _projectLauncherPanel;
+        private CreateProjectDialog? _createProjectDialog;
         private MenuBar _menuBar;
         
         // 编辑器状态
         private Node? _selectedNode;
         private bool _isPlaying = false;
         private string? _currentScenePath;
+        private bool _isProjectLoaded = false;
         
         public Editor()
         {
@@ -42,7 +46,7 @@ namespace Astora.Editor
             _graphics.PreferredBackBufferHeight = 1080;
             
             _sceneTree = new SceneTree();
-            Engine.CurretScene = _sceneTree;
+            Engine.CurrentScene = _sceneTree;
             
             // 初始化项目管理器
             _projectManager = new ProjectManager();
@@ -62,6 +66,9 @@ namespace Astora.Editor
             _inspectorPanel = new InspectorPanel();
             _sceneViewPanel = new SceneViewPanel(_sceneTree, _imGuiRenderer);
             _projectPanel = new ProjectPanel(_projectManager, _sceneManager, this);
+            _assetPanel = new AssetPanel(_projectManager, this);
+            _projectLauncherPanel = new ProjectLauncherPanel(this);
+            _createProjectDialog = new CreateProjectDialog(this);
             _menuBar = new MenuBar(this);
         }
 
@@ -69,9 +76,8 @@ namespace Astora.Editor
         protected override void LoadContent()
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
-            Engine.Content = Content;
-            Engine.GraphicsDevice = GraphicsDevice;
-            Engine.SpriteBatch = _spriteBatch;
+            Engine.Initialize(Content, GraphicsDevice, _spriteBatch);
+            Engine.CurrentScene = _sceneTree;
         }
         
         protected override void Update(GameTime gameTime)
@@ -79,7 +85,7 @@ namespace Astora.Editor
             // 只有在播放模式下才更新场景
             if (_isPlaying)
             {
-                _sceneTree.Update(gameTime);
+                Engine.Update(gameTime);
             }
             else
             {
@@ -101,19 +107,8 @@ namespace Astora.Editor
             }
             else
             {
-                // 播放模式下的渲染
-                Matrix viewMatrix = Matrix.Identity;
-                if (_sceneTree.ActiveCamera != null)
-                {
-                    viewMatrix = _sceneTree.ActiveCamera.GetViewMatrix();
-                }
-                
-                _spriteBatch.Begin(
-                    samplerState: SamplerState.PointClamp,
-                    transformMatrix: viewMatrix
-                );
-                _sceneTree.Draw(_spriteBatch);
-                _spriteBatch.End();
+                // 播放模式下的渲染（使用 Engine.Render）
+                Engine.Render();
             }
             
             // 渲染 ImGui UI
@@ -126,17 +121,31 @@ namespace Astora.Editor
         
         private void RenderUI()
         {
-            // 菜单栏
+            // 菜单栏（始终显示）
             _menuBar.Render();
             
-            // 主窗口布局（使用 ImGui 的 Docking）
-            ImGui.DockSpaceOverViewport(ImGui.GetMainViewport().ID);
-            
-            // 渲染各个面板
-            _projectPanel?.Render();
-            _hierarchyPanel.Render(ref _selectedNode);
-            _inspectorPanel.Render(_selectedNode);
-            _sceneViewPanel.RenderUI();
+            if (!_isProjectLoaded)
+            {
+                // 显示项目启动器
+                _projectLauncherPanel?.Render();
+                _createProjectDialog?.Render();
+            }
+            else
+            {
+                // 显示正常的编辑器界面
+                // 主窗口布局（使用 ImGui 的 Docking）
+                var viewport = ImGui.GetMainViewport();
+                
+                // 创建 DockSpace（允许窗口停靠）
+                ImGui.DockSpaceOverViewport(viewport.ID);
+                
+                // 渲染各个面板
+                _projectPanel?.Render();
+                _assetPanel?.Render();
+                _hierarchyPanel.Render(ref _selectedNode);
+                _inspectorPanel.Render(_selectedNode);
+                _sceneViewPanel.RenderUI();
+            }
         }
         
         // 公共方法供面板调用
@@ -169,6 +178,9 @@ namespace Astora.Editor
                     System.Console.WriteLine($"编译警告: {compileResult.ErrorMessage}");
                 }
                 
+                // 标记项目已加载
+                _isProjectLoaded = true;
+                
                 return true;
             }
             catch (Exception ex)
@@ -176,6 +188,27 @@ namespace Astora.Editor
                 System.Console.WriteLine($"加载项目失败: {ex.Message}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// 关闭当前项目
+        /// </summary>
+        public void CloseProject()
+        {
+            _projectManager.ClearProject();
+            _sceneTree.ChangeScene(null);
+            _currentScenePath = null;
+            _selectedNode = null;
+            _isPlaying = false;
+            _isProjectLoaded = false;
+        }
+
+        /// <summary>
+        /// 显示打开项目对话框
+        /// </summary>
+        public void ShowOpenProjectDialog()
+        {
+            _menuBar.ShowOpenProjectDialog();
         }
         
         /// <summary>
@@ -234,8 +267,31 @@ namespace Astora.Editor
             LoadScene(scenePath);
         }
         
+        /// <summary>
+        /// 显示创建项目对话框
+        /// </summary>
+        public void ShowCreateProjectDialog()
+        {
+            _createProjectDialog?.Show();
+        }
+
+        /// <summary>
+        /// 设置默认布局
+        /// </summary>
+        private void SetupDefaultLayout(uint dockSpaceId, ImGuiViewportPtr viewport)
+        {
+            // ImGui.NET 的 DockBuilder API 可能不可用或不同
+            // 使用 DockSpaceOverViewport 让用户手动拖拽窗口来设置布局
+            // ImGui 会自动保存布局到 imgui.ini 文件
+            
+            // 首次加载时，窗口会出现在默认位置
+            // 用户可以通过拖拽窗口标题栏来停靠窗口
+            // 布局会自动保存，下次启动时会恢复
+        }
+
         public ProjectManager ProjectManager => _projectManager;
         public SceneManager SceneManager => _sceneManager;
         public string? CurrentScenePath => _currentScenePath;
+        public bool IsProjectLoaded => _isProjectLoaded;
     }
 }

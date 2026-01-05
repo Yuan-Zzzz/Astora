@@ -24,41 +24,60 @@ namespace Astora.Editor.UI
             {
                 if (ImGui.BeginMenu("File"))
                 {
+                    if (ImGui.MenuItem("New Project...", "Ctrl+Shift+N"))
+                    {
+                        _editor.ShowCreateProjectDialog();
+                    }
+                    
                     if (ImGui.MenuItem("Open Project...", "Ctrl+O"))
                     {
-                        _showOpenProjectDialog = true;
-                        _projectPathInput = string.Empty;
+                        ShowOpenProjectDialog();
                     }
                     
-                    ImGui.Separator();
-                    
-                    if (ImGui.MenuItem("New Scene", "Ctrl+N"))
+                    if (_editor.IsProjectLoaded)
                     {
-                        _newSceneNameInput = "NewScene";
-                        ImGui.OpenPopup("NewSceneDialog");
+                        ImGui.Separator();
+                        if (ImGui.MenuItem("Close Project"))
+                        {
+                            _editor.CloseProject();
+                        }
+                        ImGui.Separator();
+                    }
+                    else
+                    {
+                        ImGui.Separator();
                     }
                     
-                    if (ImGui.MenuItem("Open Scene...", "Ctrl+Shift+O"))
+                    if (_editor.IsProjectLoaded)
                     {
-                        _showOpenSceneDialog = true;
-                        _scenePathInput = string.Empty;
-                    }
-                    
-                    if (ImGui.MenuItem("Save Scene", "Ctrl+S"))
-                    {
-                        _editor.SaveScene();
-                    }
-                    
-                    if (ImGui.MenuItem("Save Scene As...", "Ctrl+Shift+S"))
-                    {
-                        _showSaveSceneDialog = true;
-                        _scenePathInput = _editor.CurrentScenePath ?? string.Empty;
+                        if (ImGui.MenuItem("New Scene", "Ctrl+N"))
+                        {
+                            _newSceneNameInput = "NewScene";
+                            ImGui.OpenPopup("NewSceneDialog");
+                        }
+                        
+                        if (ImGui.MenuItem("Open Scene...", "Ctrl+Shift+O"))
+                        {
+                            _showOpenSceneDialog = true;
+                            _scenePathInput = string.Empty;
+                        }
+                        
+                        if (ImGui.MenuItem("Save Scene", "Ctrl+S"))
+                        {
+                            _editor.SaveScene();
+                        }
+                        
+                        if (ImGui.MenuItem("Save Scene As...", "Ctrl+Shift+S"))
+                        {
+                            _showSaveSceneDialog = true;
+                            _scenePathInput = _editor.CurrentScenePath ?? string.Empty;
+                        }
                     }
                     
                     ImGui.EndMenu();
                 }
                 
-                if (ImGui.BeginMenu("Project"))
+                if (_editor.IsProjectLoaded && ImGui.BeginMenu("Project"))
                 {
                     if (ImGui.MenuItem("Build Project", "Ctrl+B"))
                     {
@@ -239,6 +258,15 @@ namespace Astora.Editor.UI
                 
                 ImGui.EndPopup();
             }
+        }
+
+        /// <summary>
+        /// 显示打开项目对话框（公共方法供 Editor 调用）
+        /// </summary>
+        public void ShowOpenProjectDialog()
+        {
+            _showOpenProjectDialog = true;
+            _projectPathInput = string.Empty;
         }
 
         // Windows file dialog using native Windows API

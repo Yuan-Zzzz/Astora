@@ -1,0 +1,5 @@
+type: Node
+name: NewScene
+properties:
+  Name: NewScene
+children: 

@@ -15,7 +15,15 @@ namespace Astora.Editor.Project
         private Assembly? _loadedAssembly;
 
         public ProjectInfo? CurrentProject => _currentProject;
-        public bool HasProject => _currentProject != null && _currentProject.IsLoaded;
+        public bool HasProject => _currentProject != null;
+
+        /// <summary>
+        /// 获取最近打开的项目列表
+        /// </summary>
+        public List<RecentProjectInfo> GetRecentProjects()
+        {
+            return ProjectSettings.GetRecentProjects();
+        }
 
         /// <summary>
         /// 加载项目
@@ -37,7 +45,76 @@ namespace Astora.Editor.Project
             ParseProjectFile(projectInfo);
 
             _currentProject = projectInfo;
+            
+            // 添加到最近项目列表
+            ProjectSettings.AddRecentProject(csprojPath);
+            
             return projectInfo;
+        }
+
+        /// <summary>
+        /// 创建新项目
+        /// </summary>
+        public ProjectInfo CreateProject(string projectName, string projectLocation, ProjectTemplateType templateType)
+        {
+            // 验证项目名称
+            if (string.IsNullOrWhiteSpace(projectName))
+            {
+                throw new ArgumentException("项目名称不能为空", nameof(projectName));
+            }
+
+            // 清理项目名称（移除非法字符）
+            projectName = SanitizeProjectName(projectName);
+
+            // 创建项目目录
+            var projectRoot = Path.Combine(projectLocation, projectName);
+            if (Directory.Exists(projectRoot))
+            {
+                throw new InvalidOperationException($"项目目录已存在: {projectRoot}");
+            }
+
+            Directory.CreateDirectory(projectRoot);
+
+            // 创建项目文件
+            var csprojPath = Path.Combine(projectRoot, $"{projectName}.csproj");
+            var csprojContent = ProjectTemplate.GenerateCsproj(projectName, templateType);
+            File.WriteAllText(csprojPath, csprojContent);
+
+            // 创建 Scripts 文件夹
+            var scriptsDir = Path.Combine(projectRoot, "Scripts");
+            Directory.CreateDirectory(scriptsDir);
+
+            // 创建 Program.cs
+            var programCsPath = Path.Combine(projectRoot, "Program.cs");
+            var programCsContent = ProjectTemplate.GenerateProgramCs(projectName);
+            File.WriteAllText(programCsPath, programCsContent);
+
+            // 创建 Game1.cs
+            var game1CsPath = Path.Combine(scriptsDir, "Game1.cs");
+            var game1CsContent = ProjectTemplate.GenerateGame1Cs(projectName, templateType);
+            File.WriteAllText(game1CsPath, game1CsContent);
+
+            // 创建 Scenes 文件夹
+            var scenesDir = Path.Combine(projectRoot, "Scenes");
+            Directory.CreateDirectory(scenesDir);
+
+            // 加载创建的项目
+            var projectInfo = LoadProject(csprojPath);
+            
+            return projectInfo;
+        }
+
+        /// <summary>
+        /// 清理项目名称（移除非法字符）
+        /// </summary>
+        private string SanitizeProjectName(string name)
+        {
+            var invalidChars = Path.GetInvalidFileNameChars();
+            foreach (var c in invalidChars)
+            {
+                name = name.Replace(c, '_');
+            }
+            return name.Trim();
         }
 
         /// <summary>
@@ -245,6 +322,14 @@ namespace Astora.Editor.Project
         /// 清理资源
         /// </summary>
         public void Dispose()
+        {
+            UnloadAssembly();
+        }
+
+        /// <summary>
+        /// 清除当前项目
+        /// </summary>
+        public void ClearProject()
         {
             UnloadAssembly();
             _currentProject = null;

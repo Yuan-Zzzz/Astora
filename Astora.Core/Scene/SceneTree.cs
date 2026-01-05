@@ -22,6 +22,18 @@ namespace Astora.Core.Scene
             }
         }
 
+        /// <summary>
+        /// 从文件加载场景
+        /// </summary>
+        public void LoadScene(string scenePath)
+        {
+            if (Engine.Serializer == null)
+                throw new InvalidOperationException("Scene serializer not set.");
+            
+            var scene = Engine.Serializer.Load(scenePath);
+            ChangeScene(scene);
+        }
+
         public void Update(GameTime gameTime)
         {
             // Update Input
@@ -53,6 +65,50 @@ namespace Astora.Core.Scene
         public void SetCurrentCamera(Camera2D camera)
         {
             ActiveCamera = camera;
+        }
+        
+        /// <summary>
+        /// 按类型查找节点
+        /// </summary>
+        public T GetNode<T>() where T : Node
+        {
+            return FindNode<T>(Root);
+        }
+        
+        /// <summary>
+        /// 按名称查找节点
+        /// </summary>
+        public Node FindNode(string name)
+        {
+            return FindNodeByName(Root, name);
+        }
+        
+        private T FindNode<T>(Node node) where T : Node
+        {
+            if (node == null) return null;
+            if (node is T result) return result;
+            
+            foreach (var child in node.Children)
+            {
+                var found = FindNode<T>(child);
+                if (found != null) return found;
+            }
+            
+            return null;
+        }
+        
+        private Node FindNodeByName(Node node, string name)
+        {
+            if (node == null) return null;
+            if (node.Name == name) return node;
+            
+            foreach (var child in node.Children)
+            {
+                var found = FindNodeByName(child, name);
+                if (found != null) return found;
+            }
+            
+            return null;
         }
     }
 }

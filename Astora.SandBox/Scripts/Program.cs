@@ -1,4 +1,4 @@
-﻿namespace Astora.SandBox;
+﻿namespace Astora.SandBox.Scripts;
 
 class Program
 {

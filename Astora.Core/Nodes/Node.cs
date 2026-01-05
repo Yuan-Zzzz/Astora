@@ -80,6 +80,49 @@ namespace Astora.Core
         public virtual void Draw(SpriteBatch spriteBatch) { }
         #endregion
 
+        #region Node Search Methods
+        /// <summary>
+        /// 按类型查找子节点（递归）
+        /// </summary>
+        public T GetNode<T>() where T : Node
+        {
+            foreach (var child in Children)
+            {
+                if (child is T result) return result;
+                var found = child.GetNode<T>();
+                if (found != null) return found;
+            }
+            return null;
+        }
+        
+        /// <summary>
+        /// 按名称查找子节点（递归）
+        /// </summary>
+        public Node FindNode(string name)
+        {
+            foreach (var child in Children)
+            {
+                if (child.Name == name) return child;
+                var found = child.FindNode(name);
+                if (found != null) return found;
+            }
+            return null;
+        }
+        
+        /// <summary>
+        /// 获取所有指定类型的子节点（递归）
+        /// </summary>
+        public IEnumerable<T> GetChildren<T>() where T : Node
+        {
+            foreach (var child in Children)
+            {
+                if (child is T result) yield return result;
+                foreach (var grandchild in child.GetChildren<T>())
+                    yield return grandchild;
+            }
+        }
+        #endregion
+
         #region Internal Methods
         public void InternalUpdate(GameTime gameTime)
         {
