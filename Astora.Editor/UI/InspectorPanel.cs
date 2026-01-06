@@ -44,6 +44,13 @@ namespace Astora.Editor.UI
                 node.Name = name;
             }
             
+            // Display node type
+            ImGui.Text("Type:");
+            ImGui.SameLine();
+            ImGui.Text(node.GetType().Name);
+            
+            ImGui.Separator();
+            
             // If Node2D, show transform properties
             if (node is Node2D node2d)
             {
