@@ -51,6 +51,7 @@ namespace Astora.Core.Utils
         private readonly List<NodeTypeInfo> _nodeTypes = new List<NodeTypeInfo>();
         private readonly Dictionary<string, NodeTypeInfo> _nodeTypesByName = new Dictionary<string, NodeTypeInfo>();
         private bool _isDirty = true;
+        private Assembly? _priorityAssembly; // 优先扫描的程序集（通常是项目程序集）
         
         /// <summary>
         /// 获取所有可用的节点类型
@@ -77,6 +78,14 @@ namespace Astora.Core.Utils
         }
         
         /// <summary>
+        /// 设置优先扫描的程序集（通常是项目程序集）
+        /// </summary>
+        public void SetPriorityAssembly(Assembly? assembly)
+        {
+            _priorityAssembly = assembly;
+        }
+
+        /// <summary>
         /// 扫描并发现所有节点类型
         /// </summary>
         public void DiscoverNodeTypes()
@@ -86,9 +95,30 @@ namespace Astora.Core.Utils
             
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             var nodeBaseType = typeof(Node);
+            var seenTypeNames = new HashSet<string>(); // 用于去重
             
+            // 优先扫描项目程序集
+            if (_priorityAssembly != null)
+            {
+                try
+                {
+                    DiscoverTypesFromAssembly(_priorityAssembly, nodeBaseType, seenTypeNames, isPriority: true);
+                }
+                catch (Exception ex)
+                {
+                    System.Console.WriteLine($"扫描优先程序集失败: {ex.Message}");
+                }
+            }
+            
+            // 然后扫描其他程序集
             foreach (var assembly in assemblies)
             {
+                // 跳过优先程序集（已经扫描过了）
+                if (assembly == _priorityAssembly)
+                {
+                    continue;
+                }
+                
                 try
                 {
                     // 跳过系统程序集和动态程序集
@@ -102,31 +132,17 @@ namespace Astora.Core.Utils
                         continue;
                     }
                     
-                    var types = assembly.GetTypes()
-                        .Where(t => 
-                            !t.IsAbstract && 
-                            !t.IsInterface && 
-                            !t.IsGenericTypeDefinition &&
-                            nodeBaseType.IsAssignableFrom(t) &&
-                            t != nodeBaseType &&
-                            HasSuitableConstructor(t));
-                    
-                    foreach (var type in types)
-                    {
-                        var info = new NodeTypeInfo(type);
-                        _nodeTypes.Add(info);
-                        _nodeTypesByName[type.Name] = info;
-                        // 也支持完整类型名
-                        if (!string.IsNullOrEmpty(type.FullName))
-                        {
-                            _nodeTypesByName[type.FullName] = info;
-                        }
-                    }
+                    DiscoverTypesFromAssembly(assembly, nodeBaseType, seenTypeNames, isPriority: false);
                 }
                 catch (ReflectionTypeLoadException ex)
                 {
-                    // 某些程序集可能无法完全加载，忽略错误
+                    // 某些程序集可能无法完全加载（可能是已卸载的程序集），忽略错误
                     System.Console.WriteLine($"无法加载程序集 {assembly.FullName} 中的某些类型: {ex.Message}");
+                }
+                catch (InvalidOperationException)
+                {
+                    // 程序集来自已卸载的 AssemblyLoadContext，跳过
+                    continue;
                 }
                 catch (Exception ex)
                 {
@@ -147,6 +163,65 @@ namespace Astora.Core.Utils
             });
             
             _isDirty = false;
+        }
+        
+        /// <summary>
+        /// 从指定程序集中发现节点类型
+        /// </summary>
+        private void DiscoverTypesFromAssembly(Assembly assembly, Type nodeBaseType, HashSet<string> seenTypeNames, bool isPriority)
+        {
+            // 检查程序集是否来自已卸载的 AssemblyLoadContext
+            // 如果程序集来自可收集的上下文但上下文已卸载，GetTypes() 会抛出异常
+            // 我们通过捕获异常来跳过这些程序集
+            
+            var types = assembly.GetTypes()
+                .Where(t => 
+                    !t.IsAbstract && 
+                    !t.IsInterface && 
+                    !t.IsGenericTypeDefinition &&
+                    nodeBaseType.IsAssignableFrom(t) &&
+                    t != nodeBaseType &&
+                    HasSuitableConstructor(t));
+            
+            foreach (var type in types)
+            {
+                // 使用完整类型名作为唯一标识，避免重复
+                var fullTypeName = type.FullName ?? type.Name;
+                
+                if (seenTypeNames.Contains(fullTypeName))
+                {
+                    // 如果已存在，且当前是优先程序集，则替换（优先使用新程序集中的类型）
+                    if (isPriority)
+                    {
+                        // 移除旧的类型信息
+                        var oldInfo = _nodeTypes.FirstOrDefault(i => (i.Type.FullName ?? i.Type.Name) == fullTypeName);
+                        if (oldInfo != null)
+                        {
+                            _nodeTypes.Remove(oldInfo);
+                        }
+                    }
+                    else
+                    {
+                        // 如果不是优先程序集，跳过（保留已存在的）
+                        continue;
+                    }
+                }
+                seenTypeNames.Add(fullTypeName);
+                
+                var info = new NodeTypeInfo(type);
+                _nodeTypes.Add(info);
+                
+                // 使用完整类型名作为键，避免同名类型冲突
+                if (!string.IsNullOrEmpty(type.FullName))
+                {
+                    _nodeTypesByName[type.FullName] = info;
+                }
+                // 如果类型名不存在，或当前是优先程序集，则更新简单名称
+                if (isPriority || !_nodeTypesByName.ContainsKey(type.Name))
+                {
+                    _nodeTypesByName[type.Name] = info;
+                }
+            }
         }
         
         /// <summary>

@@ -60,6 +60,9 @@ namespace Astora.Editor
             _nodeTypeRegistry = new NodeTypeRegistry();
             _nodeTypeRegistry.DiscoverNodeTypes();
             
+            // 将节点类型注册表设置到序列化器，确保场景加载时使用最新的类型
+            YamlSceneSerializer.SetNodeTypeRegistry(_nodeTypeRegistry);
+            
             // 初始化项目管理器
             _projectManager = new ProjectManager();
             _sceneManager = new SceneManager(_projectManager);
@@ -300,9 +303,20 @@ namespace Astora.Editor
                 if (compileResult.Success)
                 {
                     _projectManager.LoadProjectAssembly();
+                    
+                    // 获取已加载的程序集
+                    var loadedAssembly = _projectManager.GetLoadedAssembly();
+                    
+                    // 设置优先程序集，确保优先使用项目程序集中的类型
+                    _nodeTypeRegistry.SetPriorityAssembly(loadedAssembly);
+                    YamlSceneSerializer.SetPriorityAssembly(loadedAssembly);
+                    
                     // 重新发现节点类型（包括项目中的自定义节点）
                     _nodeTypeRegistry.MarkDirty();
                     _nodeTypeRegistry.DiscoverNodeTypes();
+                    
+                    // 更新序列化器的节点类型注册表
+                    YamlSceneSerializer.SetNodeTypeRegistry(_nodeTypeRegistry);
                 }
                 else
                 {
@@ -369,16 +383,44 @@ namespace Astora.Editor
         {
             if (!_projectManager.HasProject)
             {
+                System.Console.WriteLine("没有加载的项目");
                 return false;
             }
             
+            // 保存当前场景路径，以便重新加载
+            var savedScenePath = _currentScenePath;
+            
+            System.Console.WriteLine("开始重新加载程序集...");
             var result = _projectManager.ReloadAssembly();
             
-            // 重新发现节点类型
             if (result)
             {
+                // 获取新加载的程序集
+                var loadedAssembly = _projectManager.GetLoadedAssembly();
+                
+                // 设置优先程序集，确保优先使用新程序集中的类型
+                _nodeTypeRegistry.SetPriorityAssembly(loadedAssembly);
+                
+                // 重新发现节点类型（优先扫描项目程序集）
                 _nodeTypeRegistry.MarkDirty();
                 _nodeTypeRegistry.DiscoverNodeTypes();
+                
+                // 更新序列化器的节点类型注册表和优先程序集，确保使用最新的类型
+                YamlSceneSerializer.SetNodeTypeRegistry(_nodeTypeRegistry);
+                YamlSceneSerializer.SetPriorityAssembly(loadedAssembly);
+                
+                // 重新加载场景，使用新的类型创建节点实例
+                if (!string.IsNullOrEmpty(savedScenePath) && File.Exists(savedScenePath))
+                {
+                    System.Console.WriteLine($"重新加载场景: {savedScenePath}");
+                    LoadScene(savedScenePath);
+                }
+                
+                System.Console.WriteLine("程序集重新加载成功");
+            }
+            else
+            {
+                System.Console.WriteLine("程序集重新加载失败，请查看上方的错误信息");
             }
             
             return result;

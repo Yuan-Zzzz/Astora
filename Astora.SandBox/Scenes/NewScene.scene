@@ -1,28 +1,29 @@
 type: Node
 name: NewScene
-properties:
-  Name: NewScene
+properties: {}
 children:
-- type: Sprite
-  name: NewSprite
+- type: ExampleCustomNode
+  name: NewExampleCustomNode
   properties:
-    Origin:
-      x: 32
-      y: 32
-    Modulate:
+    _speed: 100
+    _nodeColor:
       r: 255
-      g: 255
-      b: 255
+      g: 0
+      b: 0
       a: 255
-    Position:
-      x: 0
-      y: 0
-    Rotation: 0
-    Scale:
-      x: 1
-      y: 1
-    GlobalPosition:
-      x: 0
-      y: 0
-    Name: NewSprite
+    _autoRotate: false
+    _rotationSpeed: 1
+    _health: 100
+    _score: 0
+    _description: Example Custom Node
+    _tag: Default
+    _precisionValue: 3.141592653589793
+  children:
+  - type: Sprite
+    name: NewSprite
+    properties: {}
+    children: 
+- type: Camera2D
+  name: NewCamera2D
+  properties: {}
   children: 

@@ -16,6 +16,7 @@ namespace Astora.Editor.Project
         private ProjectInfo? _currentProject;
         private AssemblyLoadContext? _assemblyContext;
         private Assembly? _loadedAssembly;
+        private string? _tempAssemblyPath;
 
         public ProjectInfo? CurrentProject => _currentProject;
         public bool HasProject => _currentProject != null;
@@ -243,17 +244,6 @@ namespace Astora.Editor.Project
 
             try
             {
-                // 在编译前先卸载程序集，避免文件锁定问题
-                UnloadAssembly();
-                
-                // 等待一段时间确保程序集完全卸载
-                System.Threading.Thread.Sleep(100);
-                
-                // 强制垃圾回收
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                GC.Collect();
-                
                 var processInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
@@ -323,17 +313,26 @@ namespace Astora.Editor.Project
 
             try
             {
-                // 卸载旧的程序集上下文
-                UnloadAssembly();
+                // 如果已有程序集加载，先卸载
+                if (_assemblyContext != null)
+                {
+                    UnloadAssembly();
+                }
+
+                // 将程序集复制到临时位置，避免锁定原始文件
+                var tempDir = Path.Combine(Path.GetTempPath(), "Astora", _currentProject.AssemblyName);
+                Directory.CreateDirectory(tempDir);
+                
+                var tempFileName = $"{_currentProject.AssemblyName}_{Guid.NewGuid():N}.dll";
+                _tempAssemblyPath = Path.Combine(tempDir, tempFileName);
+                
+                File.Copy(_currentProject.AssemblyPath, _tempAssemblyPath, true);
 
                 // 创建新的可收集的程序集加载上下文
                 _assemblyContext = new AssemblyLoadContext($"Project_{_currentProject.AssemblyName}", isCollectible: true);
 
-                // 加载程序集
-                _loadedAssembly = _assemblyContext.LoadFromAssemblyPath(_currentProject.AssemblyPath);
-
-                // 注意：不再加载到默认上下文，以避免无法完全卸载的问题
-                // 序列化器会通过 CreateNodeByReflection 在所有程序集中查找类型
+                // 从临时位置加载程序集
+                _loadedAssembly = _assemblyContext.LoadFromAssemblyPath(_tempAssemblyPath);
 
                 _currentProject.IsLoaded = true;
                 System.Console.WriteLine($"程序集加载成功: {_currentProject.AssemblyName}");
@@ -354,29 +353,36 @@ namespace Astora.Editor.Project
         {
             if (_currentProject == null)
             {
+                System.Console.WriteLine("没有加载的项目");
                 return false;
             }
 
-            // 先卸载旧程序集
+            // 卸载旧程序集
             UnloadAssembly();
-            
-            // 等待一段时间确保程序集完全卸载
-            System.Threading.Thread.Sleep(100);
-            
-            // 再次强制 GC
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
 
-            // 先编译
+            // 编译项目
+            System.Console.WriteLine("开始编译项目...");
             var compileResult = CompileProject();
             if (!compileResult.Success)
             {
-                System.Console.WriteLine($"编译失败: {compileResult.ErrorMessage}");
+                System.Console.WriteLine("=== 编译失败 ===");
+                if (!string.IsNullOrEmpty(compileResult.Output))
+                {
+                    System.Console.WriteLine("编译输出:");
+                    System.Console.WriteLine(compileResult.Output);
+                }
+                if (!string.IsNullOrEmpty(compileResult.ErrorMessage))
+                {
+                    System.Console.WriteLine("错误信息:");
+                    System.Console.WriteLine(compileResult.ErrorMessage);
+                }
+                System.Console.WriteLine("================");
                 return false;
             }
 
-            // 再加载
+            System.Console.WriteLine("编译成功");
+
+            // 加载新程序集
             return LoadProjectAssembly();
         }
 
@@ -396,10 +402,19 @@ namespace Astora.Editor.Project
                     _currentProject.IsLoaded = false;
                 }
 
-                // 强制垃圾回收以释放程序集
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                GC.Collect();
+                // 清理临时文件
+                if (!string.IsNullOrEmpty(_tempAssemblyPath) && File.Exists(_tempAssemblyPath))
+                {
+                    try
+                    {
+                        File.Delete(_tempAssemblyPath);
+                    }
+                    catch
+                    {
+                        // 忽略删除失败，文件可能仍被锁定，会在下次清理时删除
+                    }
+                    _tempAssemblyPath = null;
+                }
             }
         }
 

@@ -295,14 +295,65 @@ namespace Astora.Core.Utils
         /// <summary>
         /// 通过反射动态创建节点实例
         /// </summary>
+        private static Assembly? _priorityAssembly; // 优先查找的程序集
+        
+        /// <summary>
+        /// 设置优先查找的程序集（通常是项目程序集）
+        /// </summary>
+        public static void SetPriorityAssembly(Assembly? assembly)
+        {
+            _priorityAssembly = assembly;
+        }
+        
         private Node CreateNodeByReflection(string typeName, string nodeName)
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-
             var searchedAssemblies = new List<string>();
 
+            // 优先从项目程序集中查找
+            if (_priorityAssembly != null)
+            {
+                try
+                {
+                    var type = _priorityAssembly.GetType(typeName, false, true);
+                    if (type == null)
+                    {
+                        type = _priorityAssembly.GetTypes()
+                            .FirstOrDefault(t => t.Name == typeName && typeof(Node).IsAssignableFrom(t));
+                    }
+
+                    if (type != null && typeof(Node).IsAssignableFrom(type))
+                    {
+                        var nameConstructor = type.GetConstructor(new[] { typeof(string) });
+                        if (nameConstructor != null)
+                        {
+                            return (Node)nameConstructor.Invoke(new object[] { nodeName });
+                        }
+
+                        var parameterlessConstructor = type.GetConstructor(Type.EmptyTypes);
+                        if (parameterlessConstructor != null)
+                        {
+                            var instance = (Node)parameterlessConstructor.Invoke(null);
+                            instance.Name = nodeName;
+                            return instance;
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // 如果优先程序集中找不到，继续在其他程序集中查找
+                }
+            }
+
+            // 然后从其他程序集中查找
             foreach (var assembly in assemblies)
             {
+                // 跳过优先程序集（已经查找过了）
+                if (assembly == _priorityAssembly)
+                {
+                    continue;
+                }
+                
                 try
                 {
                     if (assembly.IsDynamic || assembly.FullName?.StartsWith("System.") == true ||

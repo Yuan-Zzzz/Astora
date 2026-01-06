@@ -211,7 +211,7 @@ namespace Astora.Editor.UI
             ImGui.SameLine();
             if (ImGui.Button("Reload Assembly"))
             {
-                _projectManager.ReloadAssembly();
+                _editor.RebuildProject();
             }
 
             // Display build status
