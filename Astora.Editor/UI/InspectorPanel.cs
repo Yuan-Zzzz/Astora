@@ -5,6 +5,7 @@ using ImGuiNET;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Numerics;
+using System.Reflection;
 using Vector2 = System.Numerics.Vector2;
 using Vector4 = System.Numerics.Vector4;
 
@@ -190,6 +191,9 @@ namespace Astora.Editor.UI
                 }
             }
             
+            // Render serialized fields (properties that are not already displayed above)
+            RenderSerializedFields(node);
+            
             ImGui.End();
         }
         
@@ -294,6 +298,170 @@ namespace Astora.Editor.UI
             
             // 规范化路径分隔符（使用/而不是\）
             return pathWithoutExtension.Replace('\\', '/');
+        }
+        
+        /// <summary>
+        /// 渲染节点的序列化字段（只显示标记了 [SerializeField] 的字段）
+        /// </summary>
+        private void RenderSerializedFields(Node node)
+        {
+            // 与 YamlSceneSerializer 相同的忽略字段列表
+            var ignoredFields = new HashSet<string>
+            {
+                "_parent",
+                "_children",
+                "_isQueuedForDeletion"
+            };
+            
+            // 获取所有实例字段（包括私有和公共）
+            var type = node.GetType();
+            var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                .Where(f => !ignoredFields.Contains(f.Name));
+            
+            var serializedFields = new List<FieldInfo>();
+            
+            foreach (var field in fields)
+            {
+                // 只显示标记了 [SerializeField] 的字段
+                if (!field.IsDefined(typeof(SerializeFieldAttribute), false))
+                    continue;
+                
+                var value = field.GetValue(node);
+                if (value == null) continue;
+                
+                var fieldType = field.FieldType;
+                
+                // 检查是否是支持的类型
+                if (IsSerializableType(fieldType))
+                {
+                    serializedFields.Add(field);
+                }
+            }
+            
+            // 如果有序列化字段，显示它们
+            if (serializedFields.Count > 0)
+            {
+                ImGui.Separator();
+                ImGui.Text("Serialized Fields");
+                
+                foreach (var field in serializedFields)
+                {
+                    RenderField(node, field);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 检查类型是否可序列化（与 YamlSceneSerializer.SerializeField 的逻辑一致）
+        /// </summary>
+        private bool IsSerializableType(Type fieldType)
+        {
+            if (fieldType == typeof(Vector2))
+                return true;
+            
+            if (fieldType == typeof(Color))
+                return true;
+            
+            if (fieldType == typeof(Texture2D))
+                return false; // Texture2D 不序列化
+            
+            if (fieldType.IsPrimitive ||
+                fieldType == typeof(string) ||
+                fieldType == typeof(float) ||
+                fieldType == typeof(double) ||
+                fieldType == typeof(int) ||
+                fieldType == typeof(bool))
+            {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// 渲染单个字段
+        /// </summary>
+        private void RenderField(Node node, FieldInfo field)
+        {
+            var value = field.GetValue(node);
+            if (value == null) return;
+            
+            var fieldType = field.FieldType;
+            var fieldName = field.Name;
+            
+            // 根据类型渲染不同的控件
+            if (fieldType == typeof(float))
+            {
+                var floatValue = (float)value;
+                if (ImGui.DragFloat(fieldName, ref floatValue))
+                {
+                    field.SetValue(node, floatValue);
+                }
+            }
+            else if (fieldType == typeof(double))
+            {
+                var doubleValue = (double)value;
+                var floatValue = (float)doubleValue;
+                if (ImGui.DragFloat(fieldName, ref floatValue))
+                {
+                    field.SetValue(node, (double)floatValue);
+                }
+            }
+            else if (fieldType == typeof(int))
+            {
+                var intValue = (int)value;
+                if (ImGui.DragInt(fieldName, ref intValue))
+                {
+                    field.SetValue(node, intValue);
+                }
+            }
+            else if (fieldType == typeof(bool))
+            {
+                var boolValue = (bool)value;
+                if (ImGui.Checkbox(fieldName, ref boolValue))
+                {
+                    field.SetValue(node, boolValue);
+                }
+            }
+            else if (fieldType == typeof(string))
+            {
+                var stringValue = (string)value ?? string.Empty;
+                var buffer = stringValue.ToCharArray();
+                Array.Resize(ref buffer, 256);
+                var newString = new string(buffer);
+                if (ImGui.InputText(fieldName, ref newString, 256))
+                {
+                    field.SetValue(node, newString.TrimEnd('\0'));
+                }
+            }
+            else if (fieldType == typeof(Color))
+            {
+                var color = (Color)value;
+                var colorVec = new Vector4(
+                    color.R / 255f,
+                    color.G / 255f,
+                    color.B / 255f,
+                    color.A / 255f
+                );
+                if (ImGui.ColorEdit4(fieldName, ref colorVec))
+                {
+                    field.SetValue(node, new Color(
+                        (byte)(colorVec.X * 255),
+                        (byte)(colorVec.Y * 255),
+                        (byte)(colorVec.Z * 255),
+                        (byte)(colorVec.W * 255)
+                    ));
+                }
+            }
+            else if (fieldType == typeof(Vector2))
+            {
+                var vec = (Microsoft.Xna.Framework.Vector2)value;
+                var vec2 = new Vector2(vec.X, vec.Y);
+                if (ImGui.DragFloat2(fieldName, ref vec2))
+                {
+                    field.SetValue(node, new Microsoft.Xna.Framework.Vector2(vec2.X, vec2.Y));
+                }
+            }
         }
     }
 }

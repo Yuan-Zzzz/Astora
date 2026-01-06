@@ -33,11 +33,11 @@ namespace Astora.Core.Utils
             { nameof(Camera2D), name => new Camera2D(name) }
         };
 
-        private static readonly HashSet<string> IgnoredProperties = new()
+        private static readonly HashSet<string> IgnoredFields = new()
         {
-            nameof(Node.Parent),
-            nameof(Node.Children),
-            nameof(Node.IsQueuedForDeletion)
+            "_parent",
+            "_children",
+            "_isQueuedForDeletion"
         };
 
         public YamlSceneSerializer()
@@ -82,18 +82,23 @@ namespace Astora.Core.Utils
             };
 
             var type = node.GetType();
-            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.CanRead && !IgnoredProperties.Contains(p.Name));
+            // 获取所有实例字段（包括私有和公共）
+            var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                .Where(f => !IgnoredFields.Contains(f.Name));
 
-            foreach (var prop in properties)
+            foreach (var field in fields)
             {
-                var value = prop.GetValue(node);
+                // 只序列化标记了 [SerializeField] 的字段
+                if (!field.IsDefined(typeof(SerializeFieldAttribute), false))
+                    continue;
+
+                var value = field.GetValue(node);
                 if (value == null) continue;
 
-                var serializedValue = SerializeProperty(prop.PropertyType, value);
+                var serializedValue = SerializeField(field.FieldType, value);
                 if (serializedValue != null)
                 {
-                    serialized.Properties[prop.Name] = serializedValue;
+                    serialized.Properties[field.Name] = serializedValue;
                 }
             }
 
@@ -105,15 +110,15 @@ namespace Astora.Core.Utils
             return serialized;
         }
 
-        private object? SerializeProperty(Type propertyType, object value)
+        private object? SerializeField(Type fieldType, object value)
         {
-            if (propertyType == typeof(Vector2))
+            if (fieldType == typeof(Vector2))
             {
                 var vec = (Vector2)value;
                 return new Dictionary<string, float> { { "x", vec.X }, { "y", vec.Y } };
             }
 
-            if (propertyType == typeof(Color))
+            if (fieldType == typeof(Color))
             {
                 var color = (Color)value;
                 return new Dictionary<string, int>
@@ -125,17 +130,17 @@ namespace Astora.Core.Utils
                 };
             }
 
-            if (propertyType == typeof(Texture2D))
+            if (fieldType == typeof(Texture2D))
             {
                 return null;
             }
 
-            if (propertyType.IsPrimitive ||
-                propertyType == typeof(string) ||
-                propertyType == typeof(float) ||
-                propertyType == typeof(double) ||
-                propertyType == typeof(int) ||
-                propertyType == typeof(bool))
+            if (fieldType.IsPrimitive ||
+                fieldType == typeof(string) ||
+                fieldType == typeof(float) ||
+                fieldType == typeof(double) ||
+                fieldType == typeof(int) ||
+                fieldType == typeof(bool))
             {
                 return value;
             }
@@ -166,20 +171,25 @@ namespace Astora.Core.Utils
             if (serialized.Properties != null)
             {
                 var type = node.GetType();
-                var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(p => p.CanWrite && !IgnoredProperties.Contains(p.Name));
+                // 获取所有实例字段（包括私有和公共）
+                var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                    .Where(f => !IgnoredFields.Contains(f.Name));
 
-                foreach (var prop in properties)
+                foreach (var field in fields)
                 {
-                    if (!serialized.Properties.TryGetValue(prop.Name, out var value) || value == null)
+                    // 只反序列化标记了 [SerializeField] 的字段
+                    if (!field.IsDefined(typeof(SerializeFieldAttribute), false))
+                        continue;
+
+                    if (!serialized.Properties.TryGetValue(field.Name, out var value) || value == null)
                         continue;
 
                     try
                     {
-                        var deserializedValue = DeserializeProperty(prop.PropertyType, value, prop.Name);
+                        var deserializedValue = DeserializeField(field.FieldType, value, field.Name);
                         if (deserializedValue != null)
                         {
-                            prop.SetValue(node, deserializedValue);
+                            field.SetValue(node, deserializedValue);
                         }
                     }
                     catch
@@ -231,17 +241,17 @@ namespace Astora.Core.Utils
             return null;
         }
 
-        private object? DeserializeProperty(Type propertyType, object value, string propertyName)
+        private object? DeserializeField(Type fieldType, object value, string fieldName)
         {
             // Vector2
-            if (propertyType == typeof(Vector2) && value is IDictionary dict)
+            if (fieldType == typeof(Vector2) && value is IDictionary dict)
             {
                 var x = GetDictValue<float>(dict, "x") ?? 0f;
                 var y = GetDictValue<float>(dict, "y") ?? 0f;
                 return new Vector2(x, y);
             }
 
-            if (propertyType == typeof(Color) && value is IDictionary colorDict)
+            if (fieldType == typeof(Color) && value is IDictionary colorDict)
             {
                 var r = GetDictValue<int>(colorDict, "r") ?? 255;
                 var g = GetDictValue<int>(colorDict, "g") ?? 255;
@@ -250,7 +260,7 @@ namespace Astora.Core.Utils
                 return new Color(r, g, b, a);
             }
 
-            if (propertyType == typeof(Texture2D) && value is string texturePath)
+            if (fieldType == typeof(Texture2D) && value is string texturePath)
             {
                 if (Engine.Content != null && !string.IsNullOrEmpty(texturePath))
                 {
@@ -267,14 +277,14 @@ namespace Astora.Core.Utils
                 return null;
             }
 
-            if (propertyType.IsAssignableFrom(value.GetType()))
+            if (fieldType.IsAssignableFrom(value.GetType()))
             {
                 return value;
             }
 
             try
             {
-                return Convert.ChangeType(value, propertyType);
+                return Convert.ChangeType(value, fieldType);
             }
             catch
             {

@@ -12,24 +12,69 @@ namespace Astora.SandBox.Scripts
     public class ExampleCustomNode : Node2D
     {
         /// <summary>
-        /// 自定义属性：速度
+        /// 自定义字段：速度
         /// </summary>
-        public float Speed { get; set; } = 100.0f;
+        [SerializeField]
+        private float _speed = 100.0f;
         
         /// <summary>
-        /// 自定义属性：颜色
+        /// 自定义字段：颜色
         /// </summary>
-        public Color NodeColor { get; set; } = Color.Red;
+        [SerializeField]
+        private Color _nodeColor = Color.Red;
         
         /// <summary>
-        /// 自定义属性：是否自动旋转
+        /// 自定义字段：是否自动旋转
         /// </summary>
-        public bool AutoRotate { get; set; } = false;
+        [SerializeField]
+        private bool _autoRotate = false;
         
         /// <summary>
-        /// 自定义属性：旋转速度（弧度/秒）
+        /// 自定义字段：旋转速度（弧度/秒）
         /// </summary>
-        public float RotationSpeed { get; set; } = 1.0f;
+        [SerializeField]
+        private float _rotationSpeed = 1.0f;
+        
+        /// <summary>
+        /// 自定义字段：生命值（用于测试 int 类型）
+        /// </summary>
+        [SerializeField]
+        private int _health = 100;
+        
+        /// <summary>
+        /// 自定义字段：分数（用于测试 int 类型）
+        /// </summary>
+        [SerializeField]
+        private int _score = 0;
+        
+        /// <summary>
+        /// 自定义字段：描述（用于测试 string 类型）
+        /// </summary>
+        [SerializeField]
+        private string _description = "Example Custom Node";
+        
+        /// <summary>
+        /// 自定义字段：标签（用于测试 string 类型）
+        /// </summary>
+        [SerializeField]
+        private string _tag = "Default";
+        
+        /// <summary>
+        /// 自定义字段：精确值（用于测试 double 类型）
+        /// </summary>
+        [SerializeField]
+        private double _precisionValue = 3.141592653589793;
+        
+        // 公共属性访问器（可选，用于外部访问）
+        public float Speed { get => _speed; set => _speed = value; }
+        public Color NodeColor { get => _nodeColor; set => _nodeColor = value; }
+        public bool AutoRotate { get => _autoRotate; set => _autoRotate = value; }
+        public float RotationSpeed { get => _rotationSpeed; set => _rotationSpeed = value; }
+        public int Health { get => _health; set => _health = value; }
+        public int Score { get => _score; set => _score = value; }
+        public string Description { get => _description; set => _description = value; }
+        public string Tag { get => _tag; set => _tag = value; }
+        public double PrecisionValue { get => _precisionValue; set => _precisionValue = value; }
         
         public ExampleCustomNode(string name = "ExampleCustomNode") : base(name)
         {
@@ -55,8 +100,10 @@ namespace Astora.SandBox.Scripts
             base.Update(delta);
             
             // 示例：自动旋转
-       
+            if (AutoRotate)
+            {
                 Rotation += RotationSpeed * delta;
+            }
             
             // 可以在这里添加其他更新逻辑
         }
@@ -83,14 +130,20 @@ namespace Astora.SandBox.Scripts
     public class LogicNode : Node
     {
         /// <summary>
-        /// 自定义属性：是否启用
+        /// 自定义字段：是否启用
         /// </summary>
-        public bool Enabled { get; set; } = true;
+        [SerializeField]
+        private bool _enabled = true;
         
         /// <summary>
-        /// 自定义属性：计数器
+        /// 自定义字段：计数器
         /// </summary>
-        public int Counter { get; set; } = 0;
+        [SerializeField]
+        private int _counter = 0;
+        
+        // 公共属性访问器（可选，用于外部访问）
+        public bool Enabled { get => _enabled; set => _enabled = value; }
+        public int Counter { get => _counter; set => _counter = value; }
         
         public LogicNode(string name = "LogicNode") : base(name)
         {
@@ -100,9 +153,9 @@ namespace Astora.SandBox.Scripts
         {
             base.Update(delta);
             
-            if (Enabled)
+            if (_enabled)
             {
-                Counter++;
+                _counter++;
             }
         }
     }
