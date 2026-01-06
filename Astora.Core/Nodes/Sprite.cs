@@ -22,7 +22,7 @@ namespace Astora.Core.Nodes
             else
                 Origin = new Vector2(DefaultSize / 2f, DefaultSize / 2f);
         }
-
+    
         public override void Draw(SpriteBatch spriteBatch)
         {
             var transform = GlobalTransform;

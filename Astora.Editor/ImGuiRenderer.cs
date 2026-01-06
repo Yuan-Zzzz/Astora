@@ -3,6 +3,7 @@ using ImGuiNET;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Astora.Editor.UI;
 
 namespace Astora.Editor
 {
@@ -114,6 +115,9 @@ namespace Astora.Editor
             // Let ImGui know where to find the texture
             io.Fonts.SetTexID(_fontTextureId.Value);
             io.Fonts.ClearTexData(); // Clears CPU side texture data
+            
+            // Apply modern dark theme after font atlas is built
+            ImGuiStyleManager.ApplyModernDarkTheme();
         }
 
         /// <summary>

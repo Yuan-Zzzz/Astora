@@ -120,7 +120,7 @@ namespace Astora.Editor
         
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(new Color(45, 45, 48)); // ImGui 风格的背景色
+            GraphicsDevice.Clear(new Color(46, 46, 46)); // 现代深色主题背景色 (#2E2E2E)
             
             // 渲染场景（编辑器视图）
             if (!_isPlaying)
