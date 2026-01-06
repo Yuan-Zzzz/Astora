@@ -3,7 +3,7 @@ using Astora.Core.Nodes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace Astora.SandBox.Scripts.CustomNodes
+namespace Astora.SandBox.Scripts
 {
     /// <summary>
     /// 示例自定义节点 - 演示如何创建自定义节点类型
@@ -107,4 +107,5 @@ namespace Astora.SandBox.Scripts.CustomNodes
         }
     }
 }
+
 

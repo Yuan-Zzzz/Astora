@@ -12,6 +12,8 @@ namespace Astora.Core.Nodes
 
         public Camera2D(string name = "Camera2D") : base(name)
         {
+            // There create the origin at the center of the viewport
+            // TODO : Listen to viewport size changes
             if (Engine.GraphicsDevice != null)
             {
                 var vp = Engine.GraphicsDevice.Viewport;
@@ -31,8 +33,7 @@ namespace Astora.Core.Nodes
         {
             return Vector2.Transform(screenPosition, Matrix.Invert(GetViewMatrix()));
         }
-
-        // 世界坐标 -> 屏幕坐标 (UI显示)
+        
         public Vector2 WorldToScreen(Vector2 worldPosition)
         {
             return Vector2.Transform(worldPosition, GetViewMatrix());

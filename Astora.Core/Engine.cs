@@ -199,7 +199,7 @@ public static class Engine
     }
     
     /// <summary>
-    /// 便捷的资源加载方法
+    /// 
     /// </summary>
     public static T Load<T>(string path) where T : class
     {

@@ -38,15 +38,15 @@ children:
       AutoRotate: false
       RotationSpeed: 1
       Position:
-        x: 196
-        y: 21
+        x: -26.634247
+        y: 568.8567
       Rotation: 0
       Scale:
         x: 1
         y: 1
       GlobalPosition:
-        x: -26.634247
-        y: 568.8567
+        x: -1422.4363
+        y: -526.2019
       Name: NewExampleCustomNode
     children: 
 - type: Camera2D

@@ -11,6 +11,7 @@ namespace Astora.Editor.UI
         private SceneTree _sceneTree;
         private HashSet<Node> _expandedNodes = new HashSet<Node>();
         private NodeTypeRegistry? _nodeTypeRegistry;
+        private Node? _lastSelectedNode;
         
         public HierarchyPanel(SceneTree sceneTree, NodeTypeRegistry? nodeTypeRegistry = null)
         {
@@ -35,6 +36,25 @@ namespace Astora.Editor.UI
             foreach (var child in node.Children)
             {
                 RemoveNodeFromExpandedSet(child);
+            }
+        }
+        
+        /// <summary>
+        /// Expand to the target node by expanding all parent nodes
+        /// </summary>
+        private void ExpandToNode(Node targetNode)
+        {
+            if (targetNode == null) return;
+            
+            // Traverse from target node up to root, expanding all parent nodes
+            var current = targetNode;
+            while (current != null && current != _sceneTree.Root)
+            {
+                if (current.Parent != null)
+                {
+                    _expandedNodes.Add(current.Parent);
+                }
+                current = current.Parent;
             }
         }
         
@@ -71,6 +91,17 @@ namespace Astora.Editor.UI
         {
             ImGui.Begin("Hierarchy");
             
+            // If selected node changed, expand to that node
+            if (selectedNode != _lastSelectedNode && selectedNode != null)
+            {
+                ExpandToNode(selectedNode);
+                _lastSelectedNode = selectedNode;
+            }
+            else if (selectedNode == null)
+            {
+                _lastSelectedNode = null;
+            }
+            
             if (_sceneTree.Root != null)
             {
                 RenderNode(_sceneTree.Root, ref selectedNode);
@@ -84,10 +115,16 @@ namespace Astora.Editor.UI
                 }
             }
             
-            // Right-click context menu
-            if (ImGui.BeginPopupContextWindow())
+            // Right-click context menu for window background (only shows when clicking on empty area)
+            // BeginPopupContextWindow automatically handles the case where items are hovered/clicked
+            if (ImGui.BeginPopupContextWindow("", ImGuiPopupFlags.MouseButtonRight))
             {
-                RenderNodeCreationMenu(selectedNode ?? _sceneTree.Root, ref selectedNode);
+                // Window-level menu: create nodes at root or selected node
+                if (ImGui.BeginMenu("Create"))
+                {
+                    RenderNodeCreationMenu(selectedNode ?? _sceneTree.Root, ref selectedNode);
+                    ImGui.EndMenu();
+                }
                 ImGui.EndPopup();
             }
             
@@ -129,11 +166,17 @@ namespace Astora.Editor.UI
                 selectedNode = node;
             }
             
-            // 使用唯一标识符确保右键菜单正确绑定到节点项
-            if (ImGui.BeginPopupContextItem($"##node_{node.GetHashCode()}"))
+            // 检测右键释放事件（现代游戏引擎的标准行为：点击松开后才显示菜单）
+            if (ImGui.IsItemHovered() && ImGui.IsMouseReleased(ImGuiMouseButton.Right))
             {
-                // 创建子节点选项
-                if (ImGui.BeginMenu("Create Child"))
+                ImGui.OpenPopup($"##node_context_{node.GetHashCode()}");
+            }
+            
+            // 显示右键菜单（菜单会保持打开直到用户点击其他地方或选择菜单项）
+            if (ImGui.BeginPopup($"##node_context_{node.GetHashCode()}"))
+            {
+                // Create 子菜单
+                if (ImGui.BeginMenu("Create"))
                 {
                     RenderNodeCreationMenu(node, ref selectedNode);
                     ImGui.EndMenu();
@@ -141,6 +184,7 @@ namespace Astora.Editor.UI
                 
                 ImGui.Separator();
                 
+                // Delete 菜单项
                 if (ImGui.MenuItem("Delete"))
                 {
                     // 从展开集合中移除该节点及其所有子节点
@@ -163,11 +207,17 @@ namespace Astora.Editor.UI
                     {
                         selectedNode = null;
                     }
+                    
+                    ImGui.CloseCurrentPopup();
                 }
+                
+                // Copy 菜单项
                 if (ImGui.MenuItem("Copy"))
                 {
                     // Implement copy functionality
+                    ImGui.CloseCurrentPopup();
                 }
+                
                 ImGui.EndPopup();
             }
             

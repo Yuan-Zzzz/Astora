@@ -182,19 +182,18 @@ namespace Astora.Editor.UI
             // 根据文件类型添加图标标识（使用文本）
             return extension switch
             {
-                ".cs" => $"📄 {fileName}",
-                ".scene" => $"🎬 {fileName}",
-                ".csproj" => $"📦 {fileName}",
-                ".yaml" => $"📋 {fileName}",
-                ".png" => $"🖼️ {fileName}",
-                ".jpg" or ".jpeg" => $"🖼️ {fileName}",
-                _ => $"📄 {fileName}"
+                ".cs" => $"{fileName}",
+                ".scene" => $"{fileName}",
+                ".csproj" => $"{fileName}",
+                ".yaml" => $"{fileName}",
+                ".png" => $"{fileName}",
+                ".jpg" or ".jpeg" => $"{fileName}",
+                _ => $"{fileName}"
             };
         }
 
         private void HandleFileClick(string filePath, string extension)
         {
-            // 单击选择文件（可以用于预览等）
         }
 
         private void HandleFileDoubleClick(string filePath, string extension)
