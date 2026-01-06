@@ -1,4 +1,4 @@
-﻿using Astora.Core.Nodes;
+using Astora.Core.Nodes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Vector2 = Microsoft.Xna.Framework.Vector2;
@@ -6,13 +6,13 @@ using Vector2 = Microsoft.Xna.Framework.Vector2;
 namespace Astora.Editor.Tools;
 
 /// <summary>
-/// 移动工具，用于在场景中移动节点
+/// 旋转工具，用于在场景中旋转节点
 /// </summary>
-public class MoveTool : ITool
+public class RotateTool : ITool
 {
     private bool _isDragging = false;
     private Node2D? _draggedNode;
-    private Vector2 _dragStartPos;
+    private float _rotateStartAngle;
     
     public bool OnMouseDown(Vector2 worldPos, Node2D? selectedNode)
     {
@@ -20,7 +20,9 @@ public class MoveTool : ITool
         {
             _isDragging = true;
             _draggedNode = selectedNode;
-            _dragStartPos = worldPos;
+            var nodeWorldPos = selectedNode.GlobalPosition;
+            var toMouse = worldPos - nodeWorldPos;
+            _rotateStartAngle = (float)Math.Atan2(toMouse.Y, toMouse.X);
             return true;
         }
         return false;
@@ -30,9 +32,19 @@ public class MoveTool : ITool
     {
         if (_isDragging && _draggedNode != null)
         {
-            var delta = worldPos - _dragStartPos;
-            _draggedNode.Position += delta;
-            _dragStartPos = worldPos;
+            var nodeWorldPos = _draggedNode.GlobalPosition;
+            var toMouse = worldPos - nodeWorldPos;
+            var currentAngle = (float)Math.Atan2(toMouse.Y, toMouse.X);
+            var angleDelta = currentAngle - _rotateStartAngle;
+            
+            // 如果父节点是Node2D，需要考虑父节点的旋转
+            if (_draggedNode.Parent is Node2D parent2d)
+            {
+                angleDelta -= parent2d.Rotation;
+            }
+            
+            _draggedNode.Rotation += angleDelta;
+            _rotateStartAngle = currentAngle;
             return true;
         }
         return false;
@@ -51,6 +63,7 @@ public class MoveTool : ITool
     
     public void DrawGizmo(SpriteBatch spriteBatch, GizmoRenderer gizmoRenderer, Node2D node, float cameraZoom)
     {
-        gizmoRenderer.DrawMoveGizmo(spriteBatch, node, cameraZoom);
+        gizmoRenderer.DrawRotateGizmo(spriteBatch, node, cameraZoom);
     }
 }
+
