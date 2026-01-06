@@ -391,6 +391,11 @@ namespace Astora.Editor
             var savedScenePath = _currentScenePath;
             
             System.Console.WriteLine("开始重新加载程序集...");
+            
+            // 先清除优先程序集，确保不会扫描到旧程序集的类型
+            _nodeTypeRegistry.SetPriorityAssembly(null);
+            YamlSceneSerializer.SetPriorityAssembly(null);
+            
             var result = _projectManager.ReloadAssembly();
             
             if (result)
@@ -401,7 +406,7 @@ namespace Astora.Editor
                 // 设置优先程序集，确保优先使用新程序集中的类型
                 _nodeTypeRegistry.SetPriorityAssembly(loadedAssembly);
                 
-                // 重新发现节点类型（优先扫描项目程序集）
+                // 重新发现节点类型（只扫描 Core 和项目程序集，忽略其他程序集）
                 _nodeTypeRegistry.MarkDirty();
                 _nodeTypeRegistry.DiscoverNodeTypes();
                 

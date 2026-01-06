@@ -110,11 +110,34 @@ namespace Astora.Core.Utils
                 }
             }
             
-            // 然后扫描其他程序集
+            // 然后扫描 Core 程序集（Astora.Core）
+            var coreAssembly = typeof(Node).Assembly;
+            if (coreAssembly != _priorityAssembly)
+            {
+                try
+                {
+                    DiscoverTypesFromAssembly(coreAssembly, nodeBaseType, seenTypeNames, isPriority: false);
+                }
+                catch (Exception ex)
+                {
+                    System.Console.WriteLine($"扫描 Core 程序集失败: {ex.Message}");
+                }
+            }
+            
+            // 如果设置了优先程序集，只扫描 Core 和优先程序集，忽略其他程序集
+            // 这样可以避免扫描到已卸载程序集中的类型
+            if (_priorityAssembly != null)
+            {
+                // 只扫描 Core 和项目程序集，忽略其他程序集
+                // 这样可以确保只显示当前有效的类型
+                return;
+            }
+            
+            // 如果没有优先程序集，扫描其他程序集（向后兼容）
             foreach (var assembly in assemblies)
             {
                 // 跳过优先程序集（已经扫描过了）
-                if (assembly == _priorityAssembly)
+                if (assembly == _priorityAssembly || assembly == coreAssembly)
                 {
                     continue;
                 }
