@@ -818,7 +818,7 @@ namespace Astora.Editor.UI
                     {
                         var currentMousePos = new XnaVector2(mousePos.X, mousePos.Y);
                         var delta = (currentMousePos - _lastMousePos) / _cameraZoom;
-                        _cameraPosition += delta;
+                        _cameraPosition -= delta;
                         _lastMousePos = currentMousePos;
                     }
                 }
