@@ -1,5 +1,6 @@
 ﻿using Astora.Core;
 using Astora.Core.Scene;
+using Astora.Core.Utils;
 using Astora.Editor.Project;
 using Astora.Editor.UI;
 using Microsoft.Xna.Framework;
@@ -18,6 +19,9 @@ namespace Astora.Editor
         // 项目管理和场景管理
         private ProjectManager _projectManager;
         private SceneManager _sceneManager;
+        
+        // 节点类型注册表
+        private NodeTypeRegistry _nodeTypeRegistry;
         
         // UI 面板
         private HierarchyPanel _hierarchyPanel;
@@ -49,6 +53,10 @@ namespace Astora.Editor
             _sceneTree = new SceneTree();
             Engine.CurrentScene = _sceneTree;
             
+            // 初始化节点类型注册表
+            _nodeTypeRegistry = new NodeTypeRegistry();
+            _nodeTypeRegistry.DiscoverNodeTypes();
+            
             // 初始化项目管理器
             _projectManager = new ProjectManager();
             _sceneManager = new SceneManager(_projectManager);
@@ -58,12 +66,18 @@ namespace Astora.Editor
         {
             base.Initialize();
 
+            // 启用窗口缩放
+            Window.AllowUserResizing = true;
+            
+            // 设置最小窗口大小
+            Window.ClientSizeChanged += OnClientSizeChanged;
+
             // 初始化 ImGui
             _imGuiRenderer = new ImGuiRenderer(this);
             _imGuiRenderer.RebuildFontAtlas();
 
             // 初始化面板 - 传递 ImGuiRenderer 给 SceneViewPanel
-            _hierarchyPanel = new HierarchyPanel(_sceneTree);
+            _hierarchyPanel = new HierarchyPanel(_sceneTree, _nodeTypeRegistry);
             _inspectorPanel = new InspectorPanel(_projectManager, _imGuiRenderer);
             _sceneViewPanel = new SceneViewPanel(_sceneTree, _imGuiRenderer, this);
             _gameViewPanel = new GameViewPanel(_sceneTree, _imGuiRenderer, _projectManager);
@@ -184,6 +198,9 @@ namespace Astora.Editor
                 if (compileResult.Success)
                 {
                     _projectManager.LoadProjectAssembly();
+                    // 重新发现节点类型（包括项目中的自定义节点）
+                    _nodeTypeRegistry.MarkDirty();
+                    _nodeTypeRegistry.DiscoverNodeTypes();
                 }
                 else
                 {
@@ -233,7 +250,16 @@ namespace Astora.Editor
                 return false;
             }
             
-            return _projectManager.ReloadAssembly();
+            var result = _projectManager.ReloadAssembly();
+            
+            // 重新发现节点类型
+            if (result)
+            {
+                _nodeTypeRegistry.MarkDirty();
+                _nodeTypeRegistry.DiscoverNodeTypes();
+            }
+            
+            return result;
         }
         
         /// <summary>
@@ -299,6 +325,19 @@ namespace Astora.Editor
             // 首次加载时，窗口会出现在默认位置
             // 用户可以通过拖拽窗口标题栏来停靠窗口
             // 布局会自动保存，下次启动时会恢复
+        }
+
+        /// <summary>
+        /// 处理窗口大小改变事件
+        /// </summary>
+        private void OnClientSizeChanged(object? sender, EventArgs e)
+        {
+            if (Window.ClientBounds.Width > 0 && Window.ClientBounds.Height > 0)
+            {
+                _graphics.PreferredBackBufferWidth = Window.ClientBounds.Width;
+                _graphics.PreferredBackBufferHeight = Window.ClientBounds.Height;
+                _graphics.ApplyChanges();
+            }
         }
 
         public ProjectManager ProjectManager => _projectManager;

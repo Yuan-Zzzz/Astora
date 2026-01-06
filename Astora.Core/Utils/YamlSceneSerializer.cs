@@ -24,7 +24,7 @@ namespace Astora.Core.Utils
     {
         private readonly IDeserializer _deserializer;
         private readonly ISerializer _serializer;
-        
+
         private static readonly Dictionary<string, Func<string, Node>> NodeFactories = new()
         {
             { nameof(Node), name => new Node(name) },
@@ -32,7 +32,7 @@ namespace Astora.Core.Utils
             { nameof(Sprite), name => new Sprite(name, null) },
             { nameof(Camera2D), name => new Camera2D(name) }
         };
-        
+
         private static readonly HashSet<string> IgnoredProperties = new()
         {
             nameof(Node.Parent),
@@ -71,7 +71,7 @@ namespace Astora.Core.Utils
             var serializedNode = _deserializer.Deserialize<SerializedNode>(yaml);
             return DeserializeNode(serializedNode);
         }
-        
+
         private SerializedNode SerializeNode(Node node)
         {
             var serialized = new SerializedNode
@@ -80,7 +80,7 @@ namespace Astora.Core.Utils
                 Name = node.Name,
                 Properties = new Dictionary<string, object?>()
             };
-            
+
             var type = node.GetType();
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.CanRead && !IgnoredProperties.Contains(p.Name));
@@ -89,14 +89,14 @@ namespace Astora.Core.Utils
             {
                 var value = prop.GetValue(node);
                 if (value == null) continue;
-                
+
                 var serializedValue = SerializeProperty(prop.PropertyType, value);
                 if (serializedValue != null)
                 {
                     serialized.Properties[prop.Name] = serializedValue;
                 }
             }
-            
+
             if (node.Children.Count > 0)
             {
                 serialized.Children = node.Children.Select(SerializeNode).ToList();
@@ -104,6 +104,7 @@ namespace Astora.Core.Utils
 
             return serialized;
         }
+
         private object? SerializeProperty(Type propertyType, object value)
         {
             if (propertyType == typeof(Vector2))
@@ -111,7 +112,7 @@ namespace Astora.Core.Utils
                 var vec = (Vector2)value;
                 return new Dictionary<string, float> { { "x", vec.X }, { "y", vec.Y } };
             }
-            
+
             if (propertyType == typeof(Color))
             {
                 var color = (Color)value;
@@ -123,17 +124,17 @@ namespace Astora.Core.Utils
                     { "a", color.A }
                 };
             }
-            
+
             if (propertyType == typeof(Texture2D))
             {
                 return null;
             }
-            
-            if (propertyType.IsPrimitive || 
-                propertyType == typeof(string) || 
-                propertyType == typeof(float) || 
-                propertyType == typeof(double) || 
-                propertyType == typeof(int) || 
+
+            if (propertyType.IsPrimitive ||
+                propertyType == typeof(string) ||
+                propertyType == typeof(float) ||
+                propertyType == typeof(double) ||
+                propertyType == typeof(int) ||
                 propertyType == typeof(bool))
             {
                 return value;
@@ -141,20 +142,27 @@ namespace Astora.Core.Utils
 
             return null;
         }
-        
+
         private Node DeserializeNode(SerializedNode serialized)
         {
             Node node;
-            
+
+            // 首先尝试使用工厂字典
             if (NodeFactories.TryGetValue(serialized.Type, out var factory))
             {
                 node = factory(serialized.Name);
             }
+            // 然后尝试使用 NodeTypeRegistry（如果已设置）
+            else if ((node = TryCreateNodeWithRegistry(serialized.Type, serialized.Name)) != null)
+            {
+                // 节点已通过注册表创建
+            }
+            // 最后回退到反射创建
             else
             {
                 node = CreateNodeByReflection(serialized.Type, serialized.Name);
             }
-            
+
             if (serialized.Properties != null)
             {
                 var type = node.GetType();
@@ -191,7 +199,7 @@ namespace Astora.Core.Utils
 
             return node;
         }
-        
+
         private T? GetDictValue<T>(IDictionary dict, string key) where T : struct
         {
             // 尝试不同的键格式
@@ -200,7 +208,7 @@ namespace Astora.Core.Utils
             {
                 keys.Add(char.ToUpper(key[0]) + (key.Length > 1 ? key.Substring(1) : ""));
             }
-            
+
             foreach (var k in keys)
             {
                 if (dict.Contains(k))
@@ -219,9 +227,10 @@ namespace Astora.Core.Utils
                     }
                 }
             }
+
             return null;
         }
-        
+
         private object? DeserializeProperty(Type propertyType, object value, string propertyName)
         {
             // Vector2
@@ -231,7 +240,7 @@ namespace Astora.Core.Utils
                 var y = GetDictValue<float>(dict, "y") ?? 0f;
                 return new Vector2(x, y);
             }
-            
+
             if (propertyType == typeof(Color) && value is IDictionary colorDict)
             {
                 var r = GetDictValue<int>(colorDict, "r") ?? 255;
@@ -240,7 +249,7 @@ namespace Astora.Core.Utils
                 var a = GetDictValue<int>(colorDict, "a") ?? 255;
                 return new Color(r, g, b, a);
             }
-            
+
             if (propertyType == typeof(Texture2D) && value is string texturePath)
             {
                 if (Engine.Content != null && !string.IsNullOrEmpty(texturePath))
@@ -254,14 +263,15 @@ namespace Astora.Core.Utils
                         return null;
                     }
                 }
+
                 return null;
             }
-            
+
             if (propertyType.IsAssignableFrom(value.GetType()))
             {
                 return value;
             }
-            
+
             try
             {
                 return Convert.ChangeType(value, propertyType);
@@ -278,28 +288,28 @@ namespace Astora.Core.Utils
         private Node CreateNodeByReflection(string typeName, string nodeName)
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-            
+
             var searchedAssemblies = new List<string>();
-            
+
             foreach (var assembly in assemblies)
             {
                 try
                 {
-                    if (assembly.IsDynamic || assembly.FullName?.StartsWith("System.") == true || 
+                    if (assembly.IsDynamic || assembly.FullName?.StartsWith("System.") == true ||
                         assembly.FullName?.StartsWith("Microsoft.") == true)
                     {
                         continue;
                     }
-                    
+
                     searchedAssemblies.Add(assembly.GetName().Name ?? "Unknown");
-                    
+
                     var type = assembly.GetType(typeName, false, true);
                     if (type == null)
                     {
                         type = assembly.GetTypes()
                             .FirstOrDefault(t => t.Name == typeName && typeof(Node).IsAssignableFrom(t));
                     }
-                    
+
                     if (type != null && typeof(Node).IsAssignableFrom(type))
                     {
                         var nameConstructor = type.GetConstructor(new[] { typeof(string) });
@@ -307,7 +317,7 @@ namespace Astora.Core.Utils
                         {
                             return (Node)nameConstructor.Invoke(new object[] { nodeName });
                         }
-                        
+
                         var parameterlessConstructor = type.GetConstructor(Type.EmptyTypes);
                         if (parameterlessConstructor != null)
                         {
@@ -315,8 +325,9 @@ namespace Astora.Core.Utils
                             instance.Name = nodeName;
                             return instance;
                         }
-                        
-                        throw new NotSupportedException($"Cannot create instance of type: {typeName}. No suitable constructor found.");
+
+                        throw new NotSupportedException(
+                            $"Cannot create instance of type: {typeName}. No suitable constructor found.");
                     }
                 }
                 catch (Exception ex) when (ex is not NotSupportedException)
@@ -324,16 +335,47 @@ namespace Astora.Core.Utils
                     continue;
                 }
             }
-            
+
             var assemblyList = string.Join(", ", searchedAssemblies.Take(10));
             throw new NotSupportedException(
                 $"Node type '{typeName}' is not registered and could not be found via reflection. " +
                 $"Searched assemblies: {assemblyList}...");
         }
-        
+
         public static void RegisterNodeType(string typeName, Func<string, Node> factory)
         {
             NodeFactories[typeName] = factory;
+        }
+
+        /// <summary>
+        /// 使用 NodeTypeRegistry 创建节点（如果可用）
+        /// 这提供了更好的性能和类型发现支持
+        /// </summary>
+        private static NodeTypeRegistry? _nodeTypeRegistry;
+
+        /// <summary>
+        /// 设置节点类型注册表（可选，用于优化自定义节点创建）
+        /// </summary>
+        public static void SetNodeTypeRegistry(NodeTypeRegistry? registry)
+        {
+            _nodeTypeRegistry = registry;
+        }
+
+        /// <summary>
+        /// 尝试使用 NodeTypeRegistry 创建节点，如果失败则回退到反射
+        /// </summary>
+        private Node? TryCreateNodeWithRegistry(string typeName, string nodeName)
+        {
+            if (_nodeTypeRegistry != null)
+            {
+                var node = _nodeTypeRegistry.CreateNode(typeName, nodeName);
+                if (node != null)
+                {
+                    return node;
+                }
+            }
+
+            return null;
         }
     }
 }

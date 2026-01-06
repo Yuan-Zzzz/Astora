@@ -1,6 +1,7 @@
 ﻿using Astora.Core;
 using Astora.Core.Nodes;
 using Astora.Core.Scene;
+using Astora.Core.Utils;
 using ImGuiNET;
 
 namespace Astora.Editor.UI
@@ -9,10 +10,20 @@ namespace Astora.Editor.UI
     {
         private SceneTree _sceneTree;
         private HashSet<Node> _expandedNodes = new HashSet<Node>();
+        private NodeTypeRegistry? _nodeTypeRegistry;
         
-        public HierarchyPanel(SceneTree sceneTree)
+        public HierarchyPanel(SceneTree sceneTree, NodeTypeRegistry? nodeTypeRegistry = null)
         {
             _sceneTree = sceneTree;
+            _nodeTypeRegistry = nodeTypeRegistry;
+        }
+        
+        /// <summary>
+        /// 设置节点类型注册表
+        /// </summary>
+        public void SetNodeTypeRegistry(NodeTypeRegistry registry)
+        {
+            _nodeTypeRegistry = registry;
         }
         
         /// <summary>
@@ -76,56 +87,7 @@ namespace Astora.Editor.UI
             // Right-click context menu
             if (ImGui.BeginPopupContextWindow())
             {
-                if (ImGui.MenuItem("Create Node2D"))
-                {
-                    Node parentNode = selectedNode ?? _sceneTree.Root;
-                    var name = GenerateUniqueNodeName(parentNode, "NewNode2D");
-                    var newNode = new Node2D(name);
-                    if (parentNode != null)
-                    {
-                        parentNode.AddChild(newNode);
-                        _expandedNodes.Add(parentNode); // 自动展开父节点以显示新子节点
-                    }
-                    else
-                        _sceneTree.ChangeScene(newNode);
-                    selectedNode = newNode; // 自动选中新节点
-                }
-                if (ImGui.MenuItem("Create Sprite"))
-                {
-                    Node parentNode = selectedNode ?? _sceneTree.Root;
-                    var name = GenerateUniqueNodeName(parentNode, "NewSprite");
-                    var newNode = new Sprite(name, null);
-                    if (parentNode != null)
-                    {
-                        parentNode.AddChild(newNode);
-                        _expandedNodes.Add(parentNode); // 自动展开父节点以显示新子节点
-                    }
-                    else
-                        _sceneTree.ChangeScene(newNode);
-                    selectedNode = newNode; // 自动选中新节点
-                }
-                if (ImGui.MenuItem("Create Camera2D"))
-                {
-                    Node parentNode = selectedNode ?? _sceneTree.Root;
-                    var name = GenerateUniqueNodeName(parentNode, "NewCamera");
-                    var newNode = new Camera2D(name);
-                    if (parentNode != null)
-                    {
-                        parentNode.AddChild(newNode);
-                        _expandedNodes.Add(parentNode); // 自动展开父节点以显示新子节点
-                        // 如果父节点是根节点，设置为活动摄像机
-                        if (parentNode == _sceneTree.Root)
-                        {
-                            _sceneTree.SetCurrentCamera(newNode);
-                        }
-                    }
-                    else
-                    {
-                        _sceneTree.ChangeScene(newNode);
-                        _sceneTree.SetCurrentCamera(newNode);
-                    }
-                    selectedNode = newNode; // 自动选中新节点
-                }
+                RenderNodeCreationMenu(selectedNode ?? _sceneTree.Root, ref selectedNode);
                 ImGui.EndPopup();
             }
             
@@ -173,35 +135,7 @@ namespace Astora.Editor.UI
                 // 创建子节点选项
                 if (ImGui.BeginMenu("Create Child"))
                 {
-                    if (ImGui.MenuItem("Node2D"))
-                    {
-                        var name = GenerateUniqueNodeName(node, "NewNode2D");
-                        var newNode = new Node2D(name);
-                        node.AddChild(newNode);
-                        _expandedNodes.Add(node); // 自动展开父节点以显示新子节点
-                        selectedNode = newNode; // 自动选中新节点
-                    }
-                    if (ImGui.MenuItem("Sprite"))
-                    {
-                        var name = GenerateUniqueNodeName(node, "NewSprite");
-                        var newNode = new Sprite(name, null);
-                        node.AddChild(newNode);
-                        _expandedNodes.Add(node); // 自动展开父节点以显示新子节点
-                        selectedNode = newNode; // 自动选中新节点
-                    }
-                    if (ImGui.MenuItem("Camera2D"))
-                    {
-                        var name = GenerateUniqueNodeName(node, "NewCamera");
-                        var newNode = new Camera2D(name);
-                        node.AddChild(newNode);
-                        _expandedNodes.Add(node); // 自动展开父节点以显示新子节点
-                        // 如果当前节点是根节点，设置为活动摄像机
-                        if (node == _sceneTree.Root)
-                        {
-                            _sceneTree.SetCurrentCamera(newNode);
-                        }
-                        selectedNode = newNode; // 自动选中新节点
-                    }
+                    RenderNodeCreationMenu(node, ref selectedNode);
                     ImGui.EndMenu();
                 }
                 
@@ -247,6 +181,145 @@ namespace Astora.Editor.UI
             }
             
             ImGui.PopID();
+        }
+        
+        /// <summary>
+        /// 渲染节点创建菜单
+        /// </summary>
+        private void RenderNodeCreationMenu(Node? parentNode, ref Node? selectedNode)
+        {
+            if (_nodeTypeRegistry == null)
+            {
+                // 如果没有注册表，使用硬编码的默认节点类型
+                RenderDefaultNodeMenu(parentNode, ref selectedNode);
+                return;
+            }
+            
+            var nodeTypesByCategory = _nodeTypeRegistry.GetNodeTypesByCategory();
+            
+            // 优先显示 Core 分类的节点
+            if (nodeTypesByCategory.TryGetValue("Core", out var coreNodes))
+            {
+                foreach (var nodeTypeInfo in coreNodes)
+                {
+                    if (ImGui.MenuItem(nodeTypeInfo.DisplayName))
+                    {
+                        CreateNodeFromType(nodeTypeInfo, parentNode, ref selectedNode);
+                    }
+                }
+                
+                if (coreNodes.Count > 0 && nodeTypesByCategory.Count > 1)
+                {
+                    ImGui.Separator();
+                }
+            }
+            
+            // 显示其他分类的节点
+            foreach (var category in nodeTypesByCategory.Keys)
+            {
+                if (category == "Core") continue;
+                
+                var nodeTypes = nodeTypesByCategory[category];
+                if (nodeTypes.Count == 0) continue;
+                
+                // 如果有命名空间，可以按命名空间分组
+                if (!string.IsNullOrEmpty(category) && category != "Other")
+                {
+                    if (ImGui.BeginMenu(category))
+                    {
+                        foreach (var nodeTypeInfo in nodeTypes)
+                        {
+                            if (ImGui.MenuItem(nodeTypeInfo.DisplayName))
+                            {
+                                CreateNodeFromType(nodeTypeInfo, parentNode, ref selectedNode);
+                            }
+                        }
+                        ImGui.EndMenu();
+                    }
+                }
+                else
+                {
+                    // 直接显示节点
+                    foreach (var nodeTypeInfo in nodeTypes)
+                    {
+                        if (ImGui.MenuItem(nodeTypeInfo.DisplayName))
+                        {
+                            CreateNodeFromType(nodeTypeInfo, parentNode, ref selectedNode);
+                        }
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 渲染默认节点菜单（当没有注册表时使用）
+        /// </summary>
+        private void RenderDefaultNodeMenu(Node? parentNode, ref Node? selectedNode)
+        {
+            if (ImGui.MenuItem("Node2D"))
+            {
+                var name = GenerateUniqueNodeName(parentNode, "NewNode2D");
+                var newNode = new Node2D(name);
+                CreateNodeInternal(newNode, parentNode, ref selectedNode);
+            }
+            if (ImGui.MenuItem("Sprite"))
+            {
+                var name = GenerateUniqueNodeName(parentNode, "NewSprite");
+                var newNode = new Sprite(name, null);
+                CreateNodeInternal(newNode, parentNode, ref selectedNode);
+            }
+            if (ImGui.MenuItem("Camera2D"))
+            {
+                var name = GenerateUniqueNodeName(parentNode, "NewCamera");
+                var newNode = new Camera2D(name);
+                CreateNodeInternal(newNode, parentNode, ref selectedNode);
+                
+                // 如果父节点是根节点，设置为活动摄像机
+                if (parentNode == _sceneTree.Root)
+                {
+                    _sceneTree.SetCurrentCamera(newNode);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 从类型信息创建节点
+        /// </summary>
+        private void CreateNodeFromType(NodeTypeInfo nodeTypeInfo, Node? parentNode, ref Node? selectedNode)
+        {
+            if (_nodeTypeRegistry == null) return;
+            
+            var baseName = $"New{nodeTypeInfo.DisplayName}";
+            var name = GenerateUniqueNodeName(parentNode, baseName);
+            var newNode = _nodeTypeRegistry.CreateNode(nodeTypeInfo.TypeName, name);
+            
+            if (newNode != null)
+            {
+                CreateNodeInternal(newNode, parentNode, ref selectedNode);
+                
+                // 特殊处理：如果是 Camera2D，设置为活动摄像机
+                if (newNode is Camera2D camera && parentNode == _sceneTree.Root)
+                {
+                    _sceneTree.SetCurrentCamera(camera);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 创建节点的内部逻辑
+        /// </summary>
+        private void CreateNodeInternal(Node newNode, Node? parentNode, ref Node? selectedNode)
+        {
+            if (parentNode != null)
+            {
+                parentNode.AddChild(newNode);
+                _expandedNodes.Add(parentNode); // 自动展开父节点以显示新子节点
+            }
+            else
+            {
+                _sceneTree.ChangeScene(newNode);
+            }
+            selectedNode = newNode; // 自动选中新节点
         }
     }
 }

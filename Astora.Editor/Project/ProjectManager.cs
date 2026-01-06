@@ -243,6 +243,17 @@ namespace Astora.Editor.Project
 
             try
             {
+                // 在编译前先卸载程序集，避免文件锁定问题
+                UnloadAssembly();
+                
+                // 等待一段时间确保程序集完全卸载
+                System.Threading.Thread.Sleep(100);
+                
+                // 强制垃圾回收
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                
                 var processInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
