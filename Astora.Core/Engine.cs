@@ -184,6 +184,10 @@ public static class Engine
         {
             viewMatrix = CurrentScene.ActiveCamera.GetViewMatrix();
         }
+        else
+        {
+            return;
+        }
         
         // 组合变换矩阵：缩放 * 视图
         Matrix transformMatrix = scaleMatrix * viewMatrix;

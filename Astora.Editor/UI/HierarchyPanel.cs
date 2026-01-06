@@ -12,6 +12,7 @@ namespace Astora.Editor.UI
         private HashSet<Node> _expandedNodes = new HashSet<Node>();
         private NodeTypeRegistry? _nodeTypeRegistry;
         private Node? _lastSelectedNode;
+        private Queue<Node> _nodesToDelete = new Queue<Node>();
         
         public HierarchyPanel(SceneTree sceneTree, NodeTypeRegistry? nodeTypeRegistry = null)
         {
@@ -116,8 +117,8 @@ namespace Astora.Editor.UI
             }
             
             // Right-click context menu for window background (only shows when clicking on empty area)
-            // BeginPopupContextWindow automatically handles the case where items are hovered/clicked
-            if (ImGui.BeginPopupContextWindow("", ImGuiPopupFlags.MouseButtonRight))
+            // Use NoOpenOverItems flag to ensure window menu doesn't show when hovering over nodes
+            if (ImGui.BeginPopupContextWindow("", ImGuiPopupFlags.MouseButtonRight | ImGuiPopupFlags.NoOpenOverItems))
             {
                 // Window-level menu: create nodes at root or selected node
                 if (ImGui.BeginMenu("Create"))
@@ -126,6 +127,25 @@ namespace Astora.Editor.UI
                     ImGui.EndMenu();
                 }
                 ImGui.EndPopup();
+            }
+            
+            // Process all pending node deletions after rendering is complete
+            // This prevents "Collection was modified during enumeration" exceptions
+            while (_nodesToDelete.Count > 0)
+            {
+                var nodeToDelete = _nodesToDelete.Dequeue();
+                
+                // Perform the actual deletion
+                if (nodeToDelete.Parent != null)
+                {
+                    nodeToDelete.Parent.RemoveChild(nodeToDelete);
+                }
+                else if (nodeToDelete == _sceneTree.Root)
+                {
+                    // If it's the root node, clear the scene
+                    _sceneTree.ChangeScene(null);
+                    _expandedNodes.Clear(); // Clear expanded set
+                }
             }
             
             ImGui.End();
@@ -182,27 +202,21 @@ namespace Astora.Editor.UI
                     ImGui.EndMenu();
                 }
                 
+                // Separator
                 ImGui.Separator();
                 
-                // Delete 菜单项
-                if (ImGui.MenuItem("Delete"))
+                // Delete 菜单项 - 确保总是显示
+                bool deleteClicked = ImGui.MenuItem("Delete");
+                if (deleteClicked)
                 {
-                    // 从展开集合中移除该节点及其所有子节点
+                    // 将节点添加到删除队列，延迟到渲染完成后删除
+                    // 这样可以避免在遍历集合时修改集合导致的异常
+                    _nodesToDelete.Enqueue(node);
+                    
+                    // 从展开集合中移除该节点及其所有子节点（立即执行，不影响遍历）
                     RemoveNodeFromExpandedSet(node);
                     
-                    // 在编辑器模式下直接删除
-                    if (node.Parent != null)
-                    {
-                        node.Parent.RemoveChild(node);
-                    }
-                    else if (node == _sceneTree.Root)
-                    {
-                        // 如果是根节点，清空场景
-                        _sceneTree.ChangeScene(null);
-                        _expandedNodes.Clear(); // 清空展开集合
-                    }
-                    
-                    // 如果删除的是选中的节点，清除选择
+                    // 如果删除的是选中的节点，清除选择（立即执行）
                     if (selectedNode == node)
                     {
                         selectedNode = null;
@@ -211,8 +225,9 @@ namespace Astora.Editor.UI
                     ImGui.CloseCurrentPopup();
                 }
                 
-                // Copy 菜单项
-                if (ImGui.MenuItem("Copy"))
+                // Copy 菜单项 - 确保总是显示
+                bool copyClicked = ImGui.MenuItem("Copy");
+                if (copyClicked)
                 {
                     // Implement copy functionality
                     ImGui.CloseCurrentPopup();
