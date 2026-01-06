@@ -124,7 +124,7 @@ namespace Astora.Core
         #endregion
 
         #region Internal Methods
-        public void InternalUpdate(GameTime gameTime)
+        internal void InternalUpdate(GameTime gameTime)
         {
             if (IsQueuedForDeletion) return;
             float delta = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -137,7 +137,7 @@ namespace Astora.Core
             
             Children.RemoveAll(c => c.IsQueuedForDeletion);
         }
-        public void InternalDraw(SpriteBatch spriteBatch)
+        internal void InternalDraw(SpriteBatch spriteBatch)
         {
             if (IsQueuedForDeletion) return;
             

@@ -17,22 +17,22 @@ namespace Astora.SandBox.Scripts
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
+            
+        
         }
 
-        protected override void LoadContent()
+        protected override void Initialize()
         {
+            base.Initialize();
+            
             _spriteBatch = new SpriteBatch(GraphicsDevice);
-            
-            // 统一初始化引擎
             Engine.Initialize(Content, GraphicsDevice, _spriteBatch);
-            
-            // 加载项目配置并应用设计分辨率
             LoadAndApplyProjectConfig();
             
-            // 加载初始场景
             var initialScene = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Scenes", "NewScene.scene");
             if (File.Exists(initialScene))
             {
+                Console.WriteLine($"加载初始场景: {initialScene}");
                 Engine.LoadScene(initialScene);
             }
         }
@@ -69,6 +69,12 @@ namespace Astora.SandBox.Scripts
                 {
                     Engine.SetDesignResolution(config);
                     System.Console.WriteLine($"已加载设计分辨率: {config.DesignWidth}x{config.DesignHeight}, 缩放模式: {config.ScalingMode}");
+                    
+                    // 设置窗口大小为设计分辨率，使直接运行时的渲染与 GameViewPanel 一致
+                    _graphics.PreferredBackBufferWidth = config.DesignWidth;
+                    _graphics.PreferredBackBufferHeight = config.DesignHeight;
+                    _graphics.ApplyChanges();
+                    System.Console.WriteLine($"窗口大小已设置为: {config.DesignWidth}x{config.DesignHeight}");
                 }
             }
             catch (Exception ex)

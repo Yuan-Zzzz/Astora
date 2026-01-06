@@ -15,8 +15,8 @@ children:
       b: 58
       a: 207
     Position:
-      x: 196
-      y: 21
+      x: 0
+      y: 0
     Rotation: 1.850049
     Scale:
       x: 3
@@ -34,14 +34,14 @@ children:
       x: 960
       y: 540
     Position:
-      x: 165
-      y: 18
+      x: 0
+      y: 0
     Rotation: 0
     Scale:
       x: 1
       y: 1
     GlobalPosition:
-      x: 165
-      y: 18
+      x: 0
+      y: 0
     Name: NewCamera
   children: 

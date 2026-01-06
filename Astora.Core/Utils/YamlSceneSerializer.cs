@@ -10,7 +10,7 @@ using YamlDotNet.Serialization.NamingConventions;
 namespace Astora.Core.Utils
 {
     /// <summary>
-    /// 序列化的节点数据 - 使用字典存储属性，更灵活
+    /// Serialized representation of a Node for YAML serialization
     /// </summary>
     public class SerializedNode
     {
@@ -25,7 +25,6 @@ namespace Astora.Core.Utils
         private readonly IDeserializer _deserializer;
         private readonly ISerializer _serializer;
         
-        // 节点类型注册表，支持扩展
         private static readonly Dictionary<string, Func<string, Node>> NodeFactories = new()
         {
             { nameof(Node), name => new Node(name) },
@@ -33,8 +32,7 @@ namespace Astora.Core.Utils
             { nameof(Sprite), name => new Sprite(name, null) },
             { nameof(Camera2D), name => new Camera2D(name) }
         };
-
-        // 需要特殊处理的属性（不直接序列化）
+        
         private static readonly HashSet<string> IgnoredProperties = new()
         {
             nameof(Node.Parent),
@@ -66,17 +64,14 @@ namespace Astora.Core.Utils
         {
             if (!File.Exists(path))
             {
-                throw new FileNotFoundException($"场景文件不存在: {path}");
+                throw new FileNotFoundException($"There is no scene file at path: {path}");
             }
 
             var yaml = File.ReadAllText(path);
             var serializedNode = _deserializer.Deserialize<SerializedNode>(yaml);
             return DeserializeNode(serializedNode);
         }
-
-        /// <summary>
-        /// 序列化节点树 - 使用反射自动处理属性
-        /// </summary>
+        
         private SerializedNode SerializeNode(Node node)
         {
             var serialized = new SerializedNode
@@ -85,8 +80,7 @@ namespace Astora.Core.Utils
                 Name = node.Name,
                 Properties = new Dictionary<string, object?>()
             };
-
-            // 使用反射自动序列化所有公共属性
+            
             var type = node.GetType();
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.CanRead && !IgnoredProperties.Contains(p.Name));
@@ -95,16 +89,14 @@ namespace Astora.Core.Utils
             {
                 var value = prop.GetValue(node);
                 if (value == null) continue;
-
-                // 处理特殊类型
+                
                 var serializedValue = SerializeProperty(prop.PropertyType, value);
                 if (serializedValue != null)
                 {
                     serialized.Properties[prop.Name] = serializedValue;
                 }
             }
-
-            // 序列化子节点
+            
             if (node.Children.Count > 0)
             {
                 serialized.Children = node.Children.Select(SerializeNode).ToList();
@@ -112,20 +104,14 @@ namespace Astora.Core.Utils
 
             return serialized;
         }
-
-        /// <summary>
-        /// 序列化属性值，处理特殊类型
-        /// </summary>
         private object? SerializeProperty(Type propertyType, object value)
         {
-            // Vector2 -> 字典
             if (propertyType == typeof(Vector2))
             {
                 var vec = (Vector2)value;
                 return new Dictionary<string, float> { { "x", vec.X }, { "y", vec.Y } };
             }
-
-            // Color -> 字典
+            
             if (propertyType == typeof(Color))
             {
                 var color = (Color)value;
@@ -137,16 +123,12 @@ namespace Astora.Core.Utils
                     { "a", color.A }
                 };
             }
-
-            // Texture2D -> 路径字符串（需要外部资源管理器支持）
+            
             if (propertyType == typeof(Texture2D))
             {
-                // 这里可以扩展为从资源管理器获取路径
-                // 暂时返回 null，表示不序列化纹理对象本身
                 return null;
             }
-
-            // 基本类型直接返回
+            
             if (propertyType.IsPrimitive || 
                 propertyType == typeof(string) || 
                 propertyType == typeof(float) || 
@@ -159,27 +141,20 @@ namespace Astora.Core.Utils
 
             return null;
         }
-
-        /// <summary>
-        /// 反序列化节点树
-        /// </summary>
+        
         private Node DeserializeNode(SerializedNode serialized)
         {
-            // 创建节点实例
             Node node;
             
             if (NodeFactories.TryGetValue(serialized.Type, out var factory))
             {
-                // 使用注册的工厂方法
                 node = factory(serialized.Name);
             }
             else
             {
-                // 尝试通过反射动态查找类型
                 node = CreateNodeByReflection(serialized.Type, serialized.Name);
             }
-
-            // 使用反射恢复属性
+            
             if (serialized.Properties != null)
             {
                 var type = node.GetType();
@@ -201,12 +176,10 @@ namespace Astora.Core.Utils
                     }
                     catch
                     {
-                        // 忽略无法反序列化的属性
                     }
                 }
             }
 
-            // 恢复子节点
             if (serialized.Children != null)
             {
                 foreach (var childSerialized in serialized.Children)
@@ -218,10 +191,7 @@ namespace Astora.Core.Utils
 
             return node;
         }
-
-        /// <summary>
-        /// 从字典中获取值（支持不同的字典类型）
-        /// </summary>
+        
         private T? GetDictValue<T>(IDictionary dict, string key) where T : struct
         {
             // 尝试不同的键格式
@@ -251,10 +221,7 @@ namespace Astora.Core.Utils
             }
             return null;
         }
-
-        /// <summary>
-        /// 反序列化属性值，处理特殊类型
-        /// </summary>
+        
         private object? DeserializeProperty(Type propertyType, object value, string propertyName)
         {
             // Vector2
@@ -264,8 +231,7 @@ namespace Astora.Core.Utils
                 var y = GetDictValue<float>(dict, "y") ?? 0f;
                 return new Vector2(x, y);
             }
-
-            // Color
+            
             if (propertyType == typeof(Color) && value is IDictionary colorDict)
             {
                 var r = GetDictValue<int>(colorDict, "r") ?? 255;
@@ -274,8 +240,7 @@ namespace Astora.Core.Utils
                 var a = GetDictValue<int>(colorDict, "a") ?? 255;
                 return new Color(r, g, b, a);
             }
-
-            // Texture2D - 从路径加载
+            
             if (propertyType == typeof(Texture2D) && value is string texturePath)
             {
                 if (Engine.Content != null && !string.IsNullOrEmpty(texturePath))
@@ -291,14 +256,12 @@ namespace Astora.Core.Utils
                 }
                 return null;
             }
-
-            // 基本类型转换
+            
             if (propertyType.IsAssignableFrom(value.GetType()))
             {
                 return value;
             }
-
-            // 尝试类型转换
+            
             try
             {
                 return Convert.ChangeType(value, propertyType);
@@ -314,19 +277,14 @@ namespace Astora.Core.Utils
         /// </summary>
         private Node CreateNodeByReflection(string typeName, string nodeName)
         {
-            // 从所有已加载的程序集中查找类型
-            // 注意：AppDomain.CurrentDomain.GetAssemblies() 包含所有已加载的程序集，
-            // 包括 AssemblyLoadContext 中加载的程序集
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             
-            // 记录查找过程（用于调试）
             var searchedAssemblies = new List<string>();
             
             foreach (var assembly in assemblies)
             {
                 try
                 {
-                    // 跳过动态程序集和系统程序集（提高性能）
                     if (assembly.IsDynamic || assembly.FullName?.StartsWith("System.") == true || 
                         assembly.FullName?.StartsWith("Microsoft.") == true)
                     {
@@ -335,25 +293,21 @@ namespace Astora.Core.Utils
                     
                     searchedAssemblies.Add(assembly.GetName().Name ?? "Unknown");
                     
-                    // 首先尝试直接按类型名查找
                     var type = assembly.GetType(typeName, false, true);
                     if (type == null)
                     {
-                        // 尝试在命名空间中查找（处理完全限定名）
                         type = assembly.GetTypes()
                             .FirstOrDefault(t => t.Name == typeName && typeof(Node).IsAssignableFrom(t));
                     }
                     
                     if (type != null && typeof(Node).IsAssignableFrom(type))
                     {
-                        // 尝试使用带 name 参数的构造函数
                         var nameConstructor = type.GetConstructor(new[] { typeof(string) });
                         if (nameConstructor != null)
                         {
                             return (Node)nameConstructor.Invoke(new object[] { nodeName });
                         }
                         
-                        // 尝试使用无参构造函数，然后设置 Name 属性
                         var parameterlessConstructor = type.GetConstructor(Type.EmptyTypes);
                         if (parameterlessConstructor != null)
                         {
@@ -362,26 +316,21 @@ namespace Astora.Core.Utils
                             return instance;
                         }
                         
-                        throw new NotSupportedException($"类型 {typeName} 没有找到合适的构造函数（需要无参构造函数或带 string 参数的构造函数）");
+                        throw new NotSupportedException($"Cannot create instance of type: {typeName}. No suitable constructor found.");
                     }
                 }
                 catch (Exception ex) when (ex is not NotSupportedException)
                 {
-                    // 忽略程序集加载错误，继续查找
                     continue;
                 }
             }
             
-            // 提供更详细的错误信息
             var assemblyList = string.Join(", ", searchedAssemblies.Take(10));
             throw new NotSupportedException(
-                $"无法找到节点类型: {typeName}。已搜索的程序集: {assemblyList}... " +
-                $"请确保类型已加载并且继承自 Node。如果这是项目中的自定义类型，请确保项目已编译并加载。");
+                $"Node type '{typeName}' is not registered and could not be found via reflection. " +
+                $"Searched assemblies: {assemblyList}...");
         }
-
-        /// <summary>
-        /// 注册自定义节点类型（用于扩展）
-        /// </summary>
+        
         public static void RegisterNodeType(string typeName, Func<string, Node> factory)
         {
             NodeFactories[typeName] = factory;

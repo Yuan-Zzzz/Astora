@@ -5,14 +5,17 @@ namespace Astora.Core.Inputs
 {
     public static class Input
     {
-        // 键盘状态
+        // Keyboard State
         private static KeyboardState _currentKey;
         private static KeyboardState _previousKey;
         
-        // 鼠标状态
+        // Mouse State
         private static MouseState _currentMouse;
         private static MouseState _previousMouse;
 
+        /// <summary>
+        /// Tick Update Input States
+        /// </summary>
         public static void Update()
         {
             _previousKey = _currentKey;
@@ -22,17 +25,34 @@ namespace Astora.Core.Inputs
             _currentMouse = Mouse.GetState();
         }
         
-        // 键盘方法
+        #region Keyboard methods
+        
+        /// <summary>
+        /// Check if a key is currently down
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
         public static bool IsKeyDown(Keys key)
         {
             return _currentKey.IsKeyDown(key);
         }
         
+        /// <summary>
+        /// Check if a key was just pressed this frame
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
         public static bool IsKeyPressed(Keys key)
         {
             return _currentKey.IsKeyDown(key) && !_previousKey.IsKeyDown(key);
         }
 
+        /// <summary>
+        /// Get axis value based on negative and positive keys
+        /// </summary>
+        /// <param name="negative"></param>
+        /// <param name="positive"></param>
+        /// <returns></returns>
         public static int GetAxis(Keys negative, Keys positive)
         {
             int val = 0;
@@ -41,7 +61,9 @@ namespace Astora.Core.Inputs
             return val;
         }
         
-        // 鼠标方法
+        #endregion
+        
+        #region Mouse properties and methods
         public static Vector2 MousePosition => new Vector2(_currentMouse.X, _currentMouse.Y);
         
         public static bool IsMouseButtonDown(ButtonState buttonState)
@@ -83,5 +105,6 @@ namespace Astora.Core.Inputs
         }
         
         public static int MouseScrollDelta => _currentMouse.ScrollWheelValue - _previousMouse.ScrollWheelValue;
+        #endregion
     }
 }

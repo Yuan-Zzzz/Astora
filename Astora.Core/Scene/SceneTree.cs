@@ -7,7 +7,13 @@ namespace Astora.Core.Scene
 {
     public class SceneTree
     {
+        /// <summary>
+        /// Root Node of the Scene
+        /// </summary>
         public Node Root { get; private set; }
+        /// <summary>
+        /// Currently Active Camera
+        /// </summary>
         public Camera2D ActiveCamera { get; set; }
 
         public void ChangeScene(Node newSceneRoot)
@@ -34,7 +40,7 @@ namespace Astora.Core.Scene
         }
 
         /// <summary>
-        /// 从文件加载场景
+        /// Load Scene from file
         /// </summary>
         public void LoadScene(string scenePath)
         {
@@ -45,6 +51,10 @@ namespace Astora.Core.Scene
             ChangeScene(scene);
         }
 
+        /// <summary>
+        /// Update Nodes
+        /// </summary>
+        /// <param name="gameTime"></param>
         public void Update(GameTime gameTime)
         {
             // Update Input
@@ -105,7 +115,7 @@ namespace Astora.Core.Scene
         }
         
         /// <summary>
-        /// 按类型查找节点
+        /// Get Node by Type
         /// </summary>
         public T GetNode<T>() where T : Node
         {
@@ -113,13 +123,19 @@ namespace Astora.Core.Scene
         }
         
         /// <summary>
-        /// 按名称查找节点
+        /// Find Node by Name
         /// </summary>
         public Node FindNode(string name)
         {
             return FindNodeByName(Root, name);
         }
         
+        /// <summary>
+        /// Find Node by Type (recursive)
+        /// </summary>
+        /// <param name="node">Start Node</param>
+        /// <typeparam name="T">Node Type</typeparam>
+        /// <returns></returns>
         private T FindNode<T>(Node node) where T : Node
         {
             if (node == null) return null;
@@ -134,6 +150,12 @@ namespace Astora.Core.Scene
             return null;
         }
         
+        /// <summary>
+        /// Find Node by Name (recursive)
+        /// </summary>
+        /// <param name="node">Start Node</param>
+        /// <param name="name">Target Name</param>
+        /// <returns></returns>
         private Node FindNodeByName(Node node, string name)
         {
             if (node == null) return null;

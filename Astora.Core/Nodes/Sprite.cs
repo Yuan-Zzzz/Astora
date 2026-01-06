@@ -9,7 +9,7 @@ namespace Astora.Core.Nodes
         public Vector2 Origin { get; set; }
         public Color Modulate { get; set; } = Color.White;
         
-        // 默认白色矩形纹理（64x64）
+        // Default white texture for sprites without assigned texture
         private static Texture2D? _defaultWhiteTexture;
         private const int DefaultSize = 64;
 
@@ -57,6 +57,11 @@ namespace Astora.Core.Nodes
             );
         }
 
+        /// <summary>
+        /// Default white texture generator
+        /// </summary>
+        /// <param name="graphicsDevice"></param>
+        /// <returns></returns>
         private static Texture2D GetDefaultWhiteTexture(GraphicsDevice graphicsDevice)
         {
             if (_defaultWhiteTexture == null || _defaultWhiteTexture.IsDisposed)

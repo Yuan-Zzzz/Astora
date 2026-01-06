@@ -12,7 +12,6 @@ namespace Astora.Core.Nodes
 
         public Camera2D(string name = "Camera2D") : base(name)
         {
-            // 默认将原点设置为屏幕中心
             if (Engine.GraphicsDevice != null)
             {
                 var vp = Engine.GraphicsDevice.Viewport;
