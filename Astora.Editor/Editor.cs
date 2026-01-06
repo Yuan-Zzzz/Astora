@@ -40,6 +40,9 @@ namespace Astora.Editor
         private string? _currentScenePath;
         private bool _isProjectLoaded = false;
         
+        // 场景快照：用于在播放前保存场景状态，停止时恢复
+        private string? _savedSceneSnapshotPath;
+        
         public Editor()
         {
             _graphics = new GraphicsDeviceManager(this);
@@ -176,7 +179,106 @@ namespace Astora.Editor
         // 公共方法供面板调用
         public void SetSelectedNode(Node? node) => _selectedNode = node;
         public Node? GetSelectedNode() => _selectedNode;
-        public void SetPlaying(bool playing) => _isPlaying = playing;
+        
+        /// <summary>
+        /// 设置播放状态
+        /// </summary>
+        public void SetPlaying(bool playing)
+        {
+            if (playing && !_isPlaying)
+            {
+                // 开始播放：保存当前场景状态
+                SaveSceneSnapshot();
+            }
+            else if (!playing && _isPlaying)
+            {
+                // 停止播放：恢复场景到初始状态
+                RestoreSceneSnapshot();
+            }
+            
+            _isPlaying = playing;
+        }
+        
+        /// <summary>
+        /// 保存场景快照（播放前调用）
+        /// </summary>
+        private void SaveSceneSnapshot()
+        {
+            if (_sceneTree.Root == null)
+            {
+                // 没有场景，无需保存
+                return;
+            }
+            
+            try
+            {
+                // 创建临时文件路径
+                var tempDir = Path.GetTempPath();
+                var tempFileName = $"astora_scene_snapshot_{Guid.NewGuid()}.scene";
+                _savedSceneSnapshotPath = Path.Combine(tempDir, tempFileName);
+                
+                // 保存场景到临时文件
+                Engine.Serializer.Save(_sceneTree.Root, _savedSceneSnapshotPath);
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"保存场景快照失败: {ex.Message}");
+                _savedSceneSnapshotPath = null;
+            }
+        }
+        
+        /// <summary>
+        /// 恢复场景快照（停止时调用）
+        /// </summary>
+        private void RestoreSceneSnapshot()
+        {
+            if (string.IsNullOrEmpty(_savedSceneSnapshotPath) || !File.Exists(_savedSceneSnapshotPath))
+            {
+                // 没有快照或文件不存在，无需恢复
+                return;
+            }
+            
+            try
+            {
+                // 从临时文件加载场景
+                var restoredScene = Engine.Serializer.Load(_savedSceneSnapshotPath);
+                
+                // 恢复场景
+                _sceneTree.ChangeScene(restoredScene);
+                
+                // 清除选中的节点（因为节点对象已改变）
+                _selectedNode = null;
+                
+                // 清理临时文件
+                try
+                {
+                    File.Delete(_savedSceneSnapshotPath);
+                }
+                catch
+                {
+                    // 忽略删除失败的错误
+                }
+                
+                _savedSceneSnapshotPath = null;
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"恢复场景快照失败: {ex.Message}");
+                // 清理临时文件
+                try
+                {
+                    if (File.Exists(_savedSceneSnapshotPath))
+                    {
+                        File.Delete(_savedSceneSnapshotPath);
+                    }
+                }
+                catch
+                {
+                    // 忽略删除失败的错误
+                }
+                _savedSceneSnapshotPath = null;
+            }
+        }
         
         /// <summary>
         /// 加载项目
@@ -224,6 +326,26 @@ namespace Astora.Editor
         /// </summary>
         public void CloseProject()
         {
+            // 如果正在播放，先停止
+            if (_isPlaying)
+            {
+                SetPlaying(false);
+            }
+            
+            // 清理临时快照文件
+            if (!string.IsNullOrEmpty(_savedSceneSnapshotPath) && File.Exists(_savedSceneSnapshotPath))
+            {
+                try
+                {
+                    File.Delete(_savedSceneSnapshotPath);
+                }
+                catch
+                {
+                    // 忽略删除失败的错误
+                }
+                _savedSceneSnapshotPath = null;
+            }
+            
             _projectManager.ClearProject();
             _sceneTree.ChangeScene(null);
             _currentScenePath = null;
