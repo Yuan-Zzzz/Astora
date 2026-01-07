@@ -5,6 +5,7 @@ obj/
 .idea/
 *.user
 *.suo
+site/
 
 # 发布产物
 publish/
@@ -13,9 +14,4 @@ publish/
 .DS_Store
 Thumbs.db
 
-# 我们的运行时 Content（可选忽略或纳入版控）
-# 若你希望 Content 构建时再生成，且不手改 Content，请忽略：
-# Content/
-
-# 依赖缓存/工具
 packages/
