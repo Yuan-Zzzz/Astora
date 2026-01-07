@@ -541,7 +541,7 @@
 Currently, some progress has been made: I can successfully render MSDF (Multi-channel Signed Distance Field) maps, and they can also be scaled up or down without loss of quality. 
 This will serve as an underlying function of the engine, facilitating support for text rendering or other more exciting features in the future.</p>
 <p>Here is the simple shader code I used for rendering MSDF maps:</p>
-<pre><code class="language-hlsl">#if OPENGL
+<pre><code class="language-c++">#if OPENGL
 #define SV_POSITION POSITION
 #define VS_SHADERMODEL vs_3_0
 #define PS_SHADERMODEL ps_3_0
@@ -588,7 +588,7 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 technique SpriteDrawing{
     pass P0{
         PixelShader = compile PS_SHADERMODEL MainPS();
-}
+    }
 }
 ;
 </code></pre>
