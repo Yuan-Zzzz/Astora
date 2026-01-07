@@ -17,8 +17,6 @@ namespace Astora.SandBox.Scripts
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
-            
-        
         }
 
         protected override void Initialize()
@@ -29,12 +27,13 @@ namespace Astora.SandBox.Scripts
             Engine.Initialize(Content, GraphicsDevice, _spriteBatch);
             LoadAndApplyProjectConfig();
             
-            var initialScene = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Scenes", "NewScene.scene");
-            if (File.Exists(initialScene))
-            {
-                Console.WriteLine($"加载初始场景: {initialScene}");
-                Engine.LoadScene(initialScene);
-            }
+             var initialScene = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Scenes", "NewScene.scene");
+             if (File.Exists(initialScene))
+             {
+                 Console.WriteLine($"加载初始场景: {initialScene}");
+                 Engine.LoadScene(initialScene);
+             }
+            
         }
         
         /// <summary>
@@ -42,8 +41,6 @@ namespace Astora.SandBox.Scripts
         /// </summary>
         private void LoadAndApplyProjectConfig()
         {
-            try
-            {
                 // 尝试从当前目录或上级目录查找 project.yaml
                 var configPath = "project.yaml";
                 if (!File.Exists(configPath))
@@ -68,30 +65,64 @@ namespace Astora.SandBox.Scripts
                 if (config != null)
                 {
                     Engine.SetDesignResolution(config);
-                    System.Console.WriteLine($"已加载设计分辨率: {config.DesignWidth}x{config.DesignHeight}, 缩放模式: {config.ScalingMode}");
-                    
-                    // 设置窗口大小为设计分辨率，使直接运行时的渲染与 GameViewPanel 一致
                     _graphics.PreferredBackBufferWidth = config.DesignWidth;
                     _graphics.PreferredBackBufferHeight = config.DesignHeight;
                     _graphics.ApplyChanges();
-                    System.Console.WriteLine($"窗口大小已设置为: {config.DesignWidth}x{config.DesignHeight}");
                 }
-            }
-            catch (Exception ex)
-            {
-                System.Console.WriteLine($"加载项目配置失败: {ex.Message}，使用默认设计分辨率");
-            }
         }
 
         protected override void Update(GameTime gameTime)
         {
             Engine.Update(gameTime);
+            
+            //根据按键调整Scale
+            if (Microsoft.Xna.Framework.Input.Keyboard.GetState().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.W))
+            {
+                scale += new Vector2(1, 1);
+            }
+            if (Microsoft.Xna.Framework.Input.Keyboard.GetState().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.D))
+            {
+                scale -= new Vector2(1, 1);
+            }
             base.Update(gameTime);
+        }
+
+        Texture2D msdfTex;
+        Effect MSDFshader;
+        Vector2 scale = new Vector2(1, 1) * 100;
+
+        protected override void LoadContent()
+        {
+            base.LoadContent();
+            var bytes = File.ReadAllBytes("../../../Content/Shaders/MSDF.xnb");
+            MSDFshader = new Effect(this.GraphicsDevice, bytes);
+            
+            msdfTex = Texture2D.FromFile(GraphicsDevice, "../../../Content/MSDFTEST.png");
         }
 
         protected override void Draw(GameTime gameTime)
         {
-            Engine.Render();
+            GraphicsDevice.Clear(Color.White);
+            var screenCenter = new Vector2(GraphicsDevice.Viewport.Width / 2f, GraphicsDevice.Viewport.Height / 2f);
+            
+           // Engine.Render();
+            _spriteBatch.Begin(effect:MSDFshader);
+            
+            MSDFshader.Parameters["pxRange"].SetValue(5);                             //best value is 5.
+            MSDFshader.Parameters["textureSize"].SetValue(msdfTex.Height);                 //MSDF shader needs texture size.
+
+            //MSDF shader will lerping with this colors.
+            MSDFshader.Parameters["bgColor"].SetValue(new Vector4(0, 0, 0, 0));
+            MSDFshader.Parameters["fgColor"].SetValue(new Vector4(0, 0.5f, 0, 1));
+
+            _spriteBatch.Draw(msdfTex,
+                new Rectangle((int)(screenCenter.X - scale.X / 2),
+                    (int)(screenCenter.Y - scale.Y / 2),
+                    (int)scale.X,
+                    (int)scale.Y),
+                Color.White);
+
+            _spriteBatch.End();
             base.Draw(gameTime);
         }
     }
