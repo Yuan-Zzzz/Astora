@@ -37,19 +37,28 @@ namespace Astora.SandBox.Scripts
                  Engine.LoadScene(initialScene);
              }
              
-     
-             TextureAtlas2D atlas = new TextureAtlas2D(ani);
-             atlas.Slice(16, 16); 
+             var magicVortex = new CPUParticles2D("MagicVortex", 500);
+           //  magicVortex.Texture = Content.Load<Texture2D>("star_particle");
+             magicVortex.Position = new Vector2(400, 300);
+
+// 1. 设置发射形状为圆形 (半径 100)
+             magicVortex.EmissionShape = CPUParticles2D.ParticleEmissionShape.Sphere;
+             magicVortex.EmissionBoxExtents = new Vector2(100, 0); // Y 在 Sphere 模式下忽略
+
+// 2. 设置物理：无重力，无初速度，纯靠切线加速度旋转
+             magicVortex.Gravity = Vector2.Zero;
+             magicVortex.InitialVelocityMin = 0f;
+             magicVortex.InitialVelocityMax = 0f;
+             magicVortex.TangentialAccel = 150f; // 正值逆时针旋转，负值顺时针
              
-             SpriteFrames frames = new SpriteFrames(ani);
-             
-             frames.AddAnimation("idle", fps: 8f, loop: true);
-             frames.AddFramesFromAtlas("idle", atlas, new[] { "0", "1", "2", "3", "4", "5", "6", "7" });
-             AnimatedSprite player = new AnimatedSprite("Player", frames);
-             player.Scale = new Vector2(4f, 4f);
-             player.Play("idle");
-                Engine.CurrentScene.Root.AddChild(player);
-            
+             magicVortex.ScaleStart = 1.5f; // 曲线最大值时的倍率
+
+// 4. 颜色
+             magicVortex.ColorStart = Color.Cyan;
+             magicVortex.ColorEnd = Color.Transparent;
+             magicVortex.Lifetime = 2.0f;
+
+             Engine.CurrentScene.Root.AddChild(magicVortex);
         }
         
         /// <summary>
@@ -98,7 +107,7 @@ namespace Astora.SandBox.Scripts
         protected override void LoadContent()
         {
             base.LoadContent();
-            ani = Texture2D.FromFile(GraphicsDevice, "../../../Content/Animated.png");
+            ani = Texture2D.FromFile(GraphicsDevice, "../../../Content/Test.png");
         }
 
         protected override void Draw(GameTime gameTime)
