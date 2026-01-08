@@ -9,6 +9,7 @@ namespace Astora.Core;
 
 public static class Engine
 {
+    public static SamplerState DefaultSamplerState { get; } = SamplerState.PointClamp;
     public static ContentManager Content { get; private set; }
     public static GraphicsDevice GraphicsDevice { get; private set; }
     public static SpriteBatch SpriteBatch { get; private set; }
@@ -16,17 +17,31 @@ public static class Engine
     public static ISceneSerializer Serializer { get; set; } = new YamlSceneSerializer();
     
     /// <summary>
-    /// 设计分辨率
+    /// Design Resolution
     /// </summary>
     public static Point DesignResolution { get; private set; } = new Point(1920, 1080);
     
     /// <summary>
-    /// 缩放模式
+    /// Scaling Mode
     /// </summary>
     public static ScalingMode ScalingMode { get; private set; } = ScalingMode.Fit;
     
     /// <summary>
-    /// 统一初始化引擎
+    /// Current View Matrix
+    /// </summary>
+    public static Matrix CurrentViewMatrix { get; private set; } = Matrix.Identity;
+    
+    /// <summary>
+    /// Current Global Transform Matrix
+    /// </summary>
+    public static Matrix CurrentGlobalTransformMatrix { get; private set; } = Matrix.Identity;
+    
+    private static BlendState _currentBlendState = BlendState.AlphaBlend;
+    private static Effect _currentEffect = null;
+    private static Matrix _currentTransformMatrix = Matrix.Identity;
+    
+    /// <summary>
+    /// Initialize the Engine
     /// </summary>
     public static void Initialize(ContentManager content, GraphicsDevice graphicsDevice, SpriteBatch spriteBatch)
     {
@@ -85,27 +100,27 @@ public static class Engine
                 break;
                 
             case ScalingMode.Fit:
-                // 保持宽高比，完整显示（可能有黑边）
+                // Hold aspect ratio, fit within the screen
                 scaleX = scaleY = Math.Min((float)actualWidth / designWidth, (float)actualHeight / designHeight);
                 offsetX = (actualWidth - designWidth * scaleX) * 0.5f;
                 offsetY = (actualHeight - designHeight * scaleY) * 0.5f;
                 break;
                 
             case ScalingMode.Fill:
-                // 保持宽高比，填满屏幕（可能裁剪）
+                // Hold aspect ratio, fill the screen (may crop)
                 scaleX = scaleY = Math.Max((float)actualWidth / designWidth, (float)actualHeight / designHeight);
                 offsetX = (actualWidth - designWidth * scaleX) * 0.5f;
                 offsetY = (actualHeight - designHeight * scaleY) * 0.5f;
                 break;
                 
             case ScalingMode.Stretch:
-                // 拉伸填满屏幕
+                // Stretch to fill the screen (ignore aspect ratio)
                 scaleX = (float)actualWidth / designWidth;
                 scaleY = (float)actualHeight / designHeight;
                 break;
                 
             case ScalingMode.PixelPerfect:
-                // 像素完美缩放（整数倍缩放）
+                // Scale by integer multiples only
                 var scale = Math.Min((float)actualWidth / designWidth, (float)actualHeight / designHeight);
                 var pixelScale = Math.Max(1, (int)Math.Floor(scale));
                 scaleX = scaleY = pixelScale;
@@ -122,7 +137,7 @@ public static class Engine
     }
     
     /// <summary>
-    /// 获取缩放后的视口
+    /// return the scaled viewport according to the design resolution and scaling mode
     /// </summary>
     public static Viewport GetScaledViewport()
     {
@@ -145,7 +160,7 @@ public static class Engine
     }
     
     /// <summary>
-    /// 便捷的场景加载方法
+    /// Load scene from file
     /// </summary>
     public static void LoadScene(string scenePath)
     {
@@ -167,9 +182,6 @@ public static class Engine
         CurrentScene?.Update(gameTime);
     }
     
-    /// <summary>
-    /// 游戏循环渲染方法
-    /// </summary>
     public static void Render(Color? clearColor = null)
     {
         if (GraphicsDevice == null || SpriteBatch == null || CurrentScene == null)
@@ -177,24 +189,29 @@ public static class Engine
         
         GraphicsDevice.Clear(clearColor ?? Color.Black);
         
-        // 计算变换矩阵：先应用缩放，再应用相机视图
         Matrix scaleMatrix = GetScaleMatrix();
-        Matrix viewMatrix = Matrix.Identity;
+        CurrentViewMatrix = Matrix.Identity;
+        
         if (CurrentScene.ActiveCamera != null)
         {
-            viewMatrix = CurrentScene.ActiveCamera.GetViewMatrix();
-        }
-        else
-        {
-            return;
+            CurrentViewMatrix = CurrentScene.ActiveCamera.GetViewMatrix();
         }
         
-        // 组合变换矩阵：缩放 * 视图
-        Matrix transformMatrix = scaleMatrix * viewMatrix;
+        CurrentGlobalTransformMatrix = scaleMatrix * CurrentViewMatrix;
         
+        _currentBlendState = BlendState.AlphaBlend;
+        _currentEffect = null;
+        _currentTransformMatrix = CurrentGlobalTransformMatrix;
+       
+        // Begin SpriteBatch with proper settings
         SpriteBatch.Begin(
-            samplerState: SamplerState.PointClamp,
-            transformMatrix: transformMatrix
+            sortMode: SpriteSortMode.Deferred, 
+            blendState: BlendState.AlphaBlend, 
+            samplerState: DefaultSamplerState,
+            depthStencilState: null, 
+            rasterizerState: null, 
+            effect: null, 
+            transformMatrix: CurrentGlobalTransformMatrix
         );
         
         CurrentScene.Draw(SpriteBatch);
@@ -202,13 +219,34 @@ public static class Engine
         SpriteBatch.End();
     }
     
-    /// <summary>
-    /// 
-    /// </summary>
-    public static T Load<T>(string path) where T : class
+    public static void SetRenderState(BlendState blendState = null, Effect effect = null, Matrix? transformMatrix = null)
     {
-        if (Content == null)
-            throw new InvalidOperationException("Engine not initialized. Call Engine.Initialize() first.");
-        return Content.Load<T>(path);
+        var targetBlend = blendState ?? BlendState.AlphaBlend;
+        var targetEffect = effect;
+        var targetMatrix = transformMatrix ?? CurrentGlobalTransformMatrix;
+        
+        bool stateChanged = false;
+
+        if (_currentBlendState != targetBlend) stateChanged = true;
+        else if (_currentEffect != targetEffect) stateChanged = true;
+        else if (_currentTransformMatrix != targetMatrix) stateChanged = true;
+        
+        if (!stateChanged) return;
+        
+        SpriteBatch.End();
+
+        SpriteBatch.Begin(
+            sortMode: SpriteSortMode.Deferred,
+            blendState: targetBlend,
+            samplerState: SamplerState.PointClamp,
+            depthStencilState: null,
+            rasterizerState: null,
+            effect: targetEffect,
+            transformMatrix: targetMatrix
+        );
+        
+        _currentBlendState = targetBlend;
+        _currentEffect = targetEffect;
+        _currentTransformMatrix = targetMatrix;
     }
 }

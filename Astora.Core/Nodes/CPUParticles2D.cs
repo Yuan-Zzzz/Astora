@@ -114,6 +114,11 @@ namespace Astora.Core.Nodes
         /// </summary>
         public float ScaleEnd { get; set; } = 1.0f;
 
+        /// <summary>
+        /// Blend state used for rendering particles
+        /// </summary>
+        public BlendState BlendState { get; set; } = BlendState.AlphaBlend;
+
         private Particle[] _particles;
         private Random _random;
         private float _timeSinceLastEmission;
@@ -278,6 +283,7 @@ namespace Astora.Core.Nodes
         /// <param name="spriteBatch"></param>
         public override void Draw(SpriteBatch spriteBatch)
         {
+            Engine.SetRenderState(BlendState); 
             var tex = Texture ?? GetDefaultTexture(spriteBatch.GraphicsDevice);
             Vector2 origin = new Vector2(tex.Width / 2f, tex.Height / 2f);
             
