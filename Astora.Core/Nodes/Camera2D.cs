@@ -9,16 +9,12 @@ namespace Astora.Core.Nodes
 
         public Camera2D(string name = "Camera2D") : base(name)
         {
-            // There create the origin at the center of the viewport
-            if (Engine.GraphicsDevice != null)
-            {
-                var vp = Engine.GraphicsDevice.Viewport;
-                Origin = new Vector2(vp.Width / 2f, vp.Height / 2f);
-            }
+            ResizeViewport();
         }
         public Matrix GetViewMatrix()
         {
-            var transform = Matrix.CreateTranslation(new Vector3(-Position, 0)) *
+            var transform = 
+                            Matrix.CreateTranslation(new Vector3(-Position, 0)) *
                             Matrix.CreateRotationZ(-Rotation) *
                             Matrix.CreateScale(new Vector3(Zoom, Zoom, 1)) *
                             Matrix.CreateTranslation(new Vector3(Origin, 0));
@@ -33,6 +29,30 @@ namespace Astora.Core.Nodes
         public Vector2 WorldToScreen(Vector2 worldPosition)
         {
             return Vector2.Transform(worldPosition, GetViewMatrix());
+        }
+        
+        public Vector2 GetCameraBounds()
+        {
+            if (Engine.GraphicsDevice == null)
+                return Vector2.Zero;
+
+            var vp = Engine.GraphicsDevice.Viewport;
+            var width = vp.Width / Zoom;
+            var height = vp.Height / Zoom;
+            return new Vector2(width, height);
+        }
+        
+        /// <summary>
+        /// Resize the viewport and update the camera origin by GraphicsDevice viewport size 
+        /// </summary>
+        public void ResizeViewport()
+        {
+            // There create the origin at the center of the viewport
+            if (Engine.GraphicsDevice != null)
+            {
+                var vp = Engine.GraphicsDevice.Viewport;
+                Origin = new Vector2(vp.Width / 2f, vp.Height / 2f);
+            }
         }
     }
 }
