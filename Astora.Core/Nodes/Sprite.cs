@@ -9,13 +9,10 @@ namespace Astora.Core.Nodes
         public Texture2D Texture { get; set; }
         public Vector2 Origin { get; set; }
         public Color Modulate { get; set; } = Color.White;
-        
-        /// <summary>
-        /// 可选的渲染效果。如果设置，Sprite将使用此Effect进行渲染。
-        /// 注意：使用Effect时，Sprite会在独立的SpriteBatch批次中绘制。
-        /// </summary>
         public Effect? Effect { get; set; }
-        
+        public Rectangle? Region { get; set; }
+        public Vector2 Offset { get; set; } = Vector2.Zero;
+
         // Default white texture for sprites without assigned texture
         private static Texture2D? _defaultWhiteTexture;
         private const int DefaultSize = 64;
@@ -29,7 +26,7 @@ namespace Astora.Core.Nodes
             else
                 Origin = new Vector2(DefaultSize / 2f, DefaultSize / 2f);
         }
-    
+
         public override void Draw(SpriteBatch spriteBatch)
         {
             var transform = GlobalTransform;
@@ -37,50 +34,40 @@ namespace Astora.Core.Nodes
             Vector3 pos, scale;
             Quaternion rotQ;
 
-            // 分解矩阵
             transform.Decompose(out scale, out rotQ, out pos);
 
-            // 将四元数转换为 Z 轴旋转 (弧度)
-            // 这是一个简化的转换，假设我们只在 2D 平面旋转
             float rotation = 2.0f * (float)System.Math.Atan2(rotQ.Z, rotQ.W);
 
-            // 如果没有纹理，使用默认的64x64白色矩形
             var textureToDraw = Texture;
             if (textureToDraw == null)
             {
                 textureToDraw = GetDefaultWhiteTexture(spriteBatch.GraphicsDevice);
             }
+            
+            Rectangle srcRect = Region ?? new Rectangle(0, 0, textureToDraw.Width, textureToDraw.Height);
 
-            // 如果Sprite有Effect，使用独立的SpriteBatch批次进行绘制
             if (Effect != null)
             {
-                // 计算变换矩阵（缩放矩阵 * 视图矩阵）
                 Matrix scaleMatrix = Engine.GetScaleMatrix();
                 Matrix viewMatrix = Matrix.Identity;
                 if (Engine.CurrentScene?.ActiveCamera != null)
                 {
                     viewMatrix = Engine.CurrentScene.ActiveCamera.GetViewMatrix();
                 }
+
                 Matrix transformMatrix = scaleMatrix * viewMatrix;
 
-                // 保存当前批次状态：先结束当前批次（如果已经开始）
-                // 注意：MonoGame的SpriteBatch不允许嵌套Begin()，所以我们需要先End
-                // 由于MonoGame没有提供检查SpriteBatch状态的方法，我们使用try-catch来处理
                 bool wasBatchActive = false;
                 try
                 {
-                    // 尝试结束当前批次（如果已经开始）
                     spriteBatch.End();
                     wasBatchActive = true;
                 }
                 catch (InvalidOperationException)
                 {
-                    // 如果批次未开始，InvalidOperationException会被抛出
-                    // 这是正常情况，说明SpriteBatch未开始，我们不需要恢复
                     wasBatchActive = false;
                 }
 
-                // 使用Effect开始新的批次
                 spriteBatch.Begin(
                     effect: Effect,
                     samplerState: SamplerState.PointClamp,
@@ -89,8 +76,8 @@ namespace Astora.Core.Nodes
 
                 spriteBatch.Draw(
                     textureToDraw,
-                    new Vector2(pos.X, pos.Y),
-                    null,
+                    new Vector2(pos.X, pos.Y) + Offset,
+                    srcRect,
                     Modulate,
                     rotation,
                     Origin,
@@ -100,8 +87,6 @@ namespace Astora.Core.Nodes
                 );
 
                 spriteBatch.End();
-
-                // 如果之前有批次在运行，重新开始原来的批次
                 if (wasBatchActive)
                 {
                     spriteBatch.Begin(
@@ -112,11 +97,10 @@ namespace Astora.Core.Nodes
             }
             else
             {
-                // 没有Effect时，使用原有的绘制方式（在当前的SpriteBatch批次中绘制）
                 spriteBatch.Draw(
                     textureToDraw,
-                    new Vector2(pos.X, pos.Y),
-                    null,
+                    new Vector2(pos.X, pos.Y) + Offset,
+                    srcRect,
                     Modulate,
                     rotation,
                     Origin,
@@ -142,8 +126,10 @@ namespace Astora.Core.Nodes
                 {
                     colorData[i] = Color.White;
                 }
+
                 _defaultWhiteTexture.SetData(colorData);
             }
+
             return _defaultWhiteTexture;
         }
     }
