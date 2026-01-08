@@ -12,8 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Physics\" />
-      <Folder Include="Resource\" />
+      <EmbeddedResource Include="Rendering\Shaders\Build\MSDF.fxc" />
     </ItemGroup>
 
 </Project>

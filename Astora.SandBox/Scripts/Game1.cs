@@ -1,5 +1,7 @@
 using Astora.Core;
+using Astora.Core.Nodes;
 using Astora.Core.Project;
+using Astora.Core.Rendering;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using YamlDotNet.Serialization;
@@ -33,6 +35,11 @@ namespace Astora.SandBox.Scripts
                  Console.WriteLine($"加载初始场景: {initialScene}");
                  Engine.LoadScene(initialScene);
              }
+             
+             // 创建Sprite并设置MSDFEffect
+             var sprite = new Sprite("MySprite", msdfTex);
+             sprite.Effect = MSDFEffect.Instance;
+             Engine.CurrentScene.Root.AddChild(sprite);
             
         }
         
@@ -94,35 +101,12 @@ namespace Astora.SandBox.Scripts
         protected override void LoadContent()
         {
             base.LoadContent();
-            var bytes = File.ReadAllBytes("../../../Content/Shaders/MSDF.xnb");
-            MSDFshader = new Effect(this.GraphicsDevice, bytes);
-            
             msdfTex = Texture2D.FromFile(GraphicsDevice, "../../../Content/MSDFTEST.png");
         }
 
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.White);
-            var screenCenter = new Vector2(GraphicsDevice.Viewport.Width / 2f, GraphicsDevice.Viewport.Height / 2f);
-            
-           // Engine.Render();
-            _spriteBatch.Begin(effect:MSDFshader);
-            
-            MSDFshader.Parameters["pxRange"].SetValue(5);                             //best value is 5.
-            MSDFshader.Parameters["textureSize"].SetValue(msdfTex.Height);                 //MSDF shader needs texture size.
-
-            //MSDF shader will lerping with this colors.
-            MSDFshader.Parameters["bgColor"].SetValue(new Vector4(0, 0, 0, 0));
-            MSDFshader.Parameters["fgColor"].SetValue(new Vector4(0, 0.5f, 0, 1));
-
-            _spriteBatch.Draw(msdfTex,
-                new Rectangle((int)(screenCenter.X - scale.X / 2),
-                    (int)(screenCenter.Y - scale.Y / 2),
-                    (int)scale.X,
-                    (int)scale.Y),
-                Color.White);
-
-            _spriteBatch.End();
+           Engine.Render();
             base.Draw(gameTime);
         }
     }
