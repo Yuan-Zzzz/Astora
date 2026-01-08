@@ -3,7 +3,7 @@
 The Astora Engine is designed to enhance the development efficiency of game developers. 
 It focuses on 2D game development, uses the C# programming language, and is built on MonoGame.
 
-> Astora Engine now is building with my own game.That means it will bring broken changes
+!!! waring Astora Engine now is building with my own game.That means it will bring broken changes
 ## Desgin Philosophy 
 Its design philosophy lies in enabling quick switching between two modes: pure code development and editor-based development. 
 
