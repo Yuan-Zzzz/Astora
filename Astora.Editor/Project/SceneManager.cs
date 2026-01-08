@@ -1,4 +1,5 @@
 using Astora.Core;
+using Astora.Core.Nodes;
 using Astora.Core.Utils;
 
 namespace Astora.Editor.Project

@@ -43,7 +43,7 @@ namespace Astora.Core.Rendering
         }
 
         /// <summary>
-        /// 像素范围，控制MSDF的平滑度。默认值为5.0
+        /// Pixel range for MSDF rendering
         /// </summary>
         public float PxRange
         {
@@ -56,7 +56,7 @@ namespace Astora.Core.Rendering
         }
 
         /// <summary>
-        /// 纹理尺寸，用于计算MSDF单位
+        /// Texture size (width, height)
         /// </summary>
         public Vector2 TextureSize
         {
@@ -69,7 +69,7 @@ namespace Astora.Core.Rendering
         }
 
         /// <summary>
-        /// 背景颜色（RGBA）
+        /// Background color (RGBA)
         /// </summary>
         public Vector4 BackgroundColor
         {
@@ -82,7 +82,7 @@ namespace Astora.Core.Rendering
         }
 
         /// <summary>
-        /// 前景颜色（RGBA）
+        /// Foreground color (RGBA)
         /// </summary>
         public Vector4 ForegroundColor
         {
@@ -95,10 +95,10 @@ namespace Astora.Core.Rendering
         }
 
         /// <summary>
-        /// 从字节数组创建MSDFEffect
+        /// Uses compiled effect code to create MSDFEffect
         /// </summary>
-        /// <param name="graphicsDevice">图形设备</param>
-        /// <param name="effectCode">编译后的着色器字节码</param>
+        /// <param name="graphicsDevice">graphics device</param>
+        /// <param name="effectCode">compiled effect bytecode</param>
         public MSDFEffect(GraphicsDevice graphicsDevice, byte[] effectCode)
             : base(graphicsDevice, effectCode)
         {
@@ -106,9 +106,9 @@ namespace Astora.Core.Rendering
         }
 
         /// <summary>
-        /// 从另一个Effect克隆创建MSDFEffect
+        /// Clone constructor
         /// </summary>
-        /// <param name="cloneSource">源Effect</param>
+        /// <param name="cloneSource">Source effect to clone</param>
         public MSDFEffect(Effect cloneSource)
             : base(cloneSource)
         {
@@ -117,7 +117,7 @@ namespace Astora.Core.Rendering
         
 
         /// <summary>
-        /// 初始化着色器参数引用
+        /// Initialize effect parameters
         /// </summary>
         private void Initialize()
         {
@@ -138,9 +138,9 @@ namespace Astora.Core.Rendering
         }
 
         /// <summary>
-        /// 根据纹理自动设置纹理尺寸
+        /// Sets texture size based on the provided texture
         /// </summary>
-        /// <param name="texture">纹理对象</param>
+        /// <param name="texture">Texture2D object</param>
         public void SetTextureSize(Texture2D texture)
         {
             if (texture != null)
@@ -150,9 +150,9 @@ namespace Astora.Core.Rendering
         }
 
         /// <summary>
-        /// 根据纹理的高度自动设置纹理尺寸（兼容旧代码）
+        /// Sets texture size assuming square texture
         /// </summary>
-        /// <param name="textureHeight">纹理高度</param>
+        /// <param name="textureHeight">Height of the square texture</param>
         public void SetTextureSize(int textureHeight)
         {
             TextureSize = new Vector2(textureHeight, textureHeight);

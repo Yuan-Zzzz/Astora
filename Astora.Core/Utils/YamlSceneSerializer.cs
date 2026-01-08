@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections;
 using System.Reflection;
+using Astora.Core.Attributes;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -82,13 +83,11 @@ namespace Astora.Core.Utils
             };
 
             var type = node.GetType();
-            // 获取所有实例字段（包括私有和公共）
             var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
                 .Where(f => !IgnoredFields.Contains(f.Name));
 
             foreach (var field in fields)
             {
-                // 只序列化标记了 [SerializeField] 的字段
                 if (!field.IsDefined(typeof(SerializeFieldAttribute), false))
                     continue;
 
@@ -151,18 +150,14 @@ namespace Astora.Core.Utils
         private Node DeserializeNode(SerializedNode serialized)
         {
             Node node;
-
-            // 首先尝试使用工厂字典
+            
             if (NodeFactories.TryGetValue(serialized.Type, out var factory))
             {
                 node = factory(serialized.Name);
             }
-            // 然后尝试使用 NodeTypeRegistry（如果已设置）
             else if ((node = TryCreateNodeWithRegistry(serialized.Type, serialized.Name)) != null)
             {
-                // 节点已通过注册表创建
             }
-            // 最后回退到反射创建
             else
             {
                 node = CreateNodeByReflection(serialized.Type, serialized.Name);
@@ -171,13 +166,11 @@ namespace Astora.Core.Utils
             if (serialized.Properties != null)
             {
                 var type = node.GetType();
-                // 获取所有实例字段（包括私有和公共）
                 var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
                     .Where(f => !IgnoredFields.Contains(f.Name));
 
                 foreach (var field in fields)
                 {
-                    // 只反序列化标记了 [SerializeField] 的字段
                     if (!field.IsDefined(typeof(SerializeFieldAttribute), false))
                         continue;
 
@@ -293,12 +286,12 @@ namespace Astora.Core.Utils
         }
 
         /// <summary>
-        /// 通过反射动态创建节点实例
+        /// For prioritizing assembly lookup (usually the project assembly)
         /// </summary>
-        private static Assembly? _priorityAssembly; // 优先查找的程序集
+        private static Assembly? _priorityAssembly;
         
         /// <summary>
-        /// 设置优先查找的程序集（通常是项目程序集）
+        /// Sets the priority assembly for node type lookup
         /// </summary>
         public static void SetPriorityAssembly(Assembly? assembly)
         {
@@ -309,8 +302,7 @@ namespace Astora.Core.Utils
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             var searchedAssemblies = new List<string>();
-
-            // 优先从项目程序集中查找
+            
             if (_priorityAssembly != null)
             {
                 try
@@ -341,14 +333,11 @@ namespace Astora.Core.Utils
                 }
                 catch (Exception)
                 {
-                    // 如果优先程序集中找不到，继续在其他程序集中查找
                 }
             }
-
-            // 然后从其他程序集中查找
+            
             foreach (var assembly in assemblies)
             {
-                // 跳过优先程序集（已经查找过了）
                 if (assembly == _priorityAssembly)
                 {
                     continue;
@@ -409,13 +398,12 @@ namespace Astora.Core.Utils
         }
 
         /// <summary>
-        /// 使用 NodeTypeRegistry 创建节点（如果可用）
-        /// 这提供了更好的性能和类型发现支持
+        /// Use a NodeTypeRegistry to optimize custom node creation
         /// </summary>
         private static NodeTypeRegistry? _nodeTypeRegistry;
 
         /// <summary>
-        /// 设置节点类型注册表（可选，用于优化自定义节点创建）
+        /// Sets the NodeTypeRegistry for custom node creation
         /// </summary>
         public static void SetNodeTypeRegistry(NodeTypeRegistry? registry)
         {
@@ -423,7 +411,7 @@ namespace Astora.Core.Utils
         }
 
         /// <summary>
-        /// 尝试使用 NodeTypeRegistry 创建节点，如果失败则回退到反射
+        /// Try to create a node using the NodeTypeRegistry
         /// </summary>
         private Node? TryCreateNodeWithRegistry(string typeName, string nodeName)
         {

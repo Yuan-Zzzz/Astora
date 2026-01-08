@@ -1,7 +1,4 @@
 ﻿using Microsoft.Xna.Framework;
-
-// 为了访问 EngineGlobals
-
 namespace Astora.Core.Nodes
 {
     public class Camera2D : Node2D
@@ -13,7 +10,6 @@ namespace Astora.Core.Nodes
         public Camera2D(string name = "Camera2D") : base(name)
         {
             // There create the origin at the center of the viewport
-            // TODO : Listen to viewport size changes
             if (Engine.GraphicsDevice != null)
             {
                 var vp = Engine.GraphicsDevice.Viewport;

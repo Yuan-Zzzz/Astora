@@ -1,10 +1,11 @@
 using System.Reflection;
 using Astora.Core;
+using Astora.Core.Nodes;
 
 namespace Astora.Core.Utils
 {
     /// <summary>
-    /// 节点类型信息
+    /// Node Information
     /// </summary>
     public class NodeTypeInfo
     {
@@ -25,36 +26,31 @@ namespace Astora.Core.Utils
         
         private static string GetNodeDisplayName(Type type)
         {
-            // 可以添加特性来支持自定义显示名称
-            // 目前直接使用类型名称
             return type.Name;
         }
         
         private static string? DetermineCategory(Type type)
         {
-            // 根据命名空间或基类确定分类
             if (type.Namespace?.Contains("Astora.Core.Nodes") == true)
             {
                 return "Core";
             }
-            
-            // 可以根据需要添加更多分类逻辑
             return type.Namespace;
         }
     }
     
     /// <summary>
-    /// 节点类型注册表 - 负责发现和管理所有可用的节点类型
+    /// Node Type Registry
     /// </summary>
     public class NodeTypeRegistry
     {
         private readonly List<NodeTypeInfo> _nodeTypes = new List<NodeTypeInfo>();
         private readonly Dictionary<string, NodeTypeInfo> _nodeTypesByName = new Dictionary<string, NodeTypeInfo>();
         private bool _isDirty = true;
-        private Assembly? _priorityAssembly; // 优先扫描的程序集（通常是项目程序集）
+        private Assembly? _priorityAssembly; 
         
         /// <summary>
-        /// 获取所有可用的节点类型
+        /// Get all available node types
         /// </summary>
         public IEnumerable<NodeTypeInfo> GetAvailableNodeTypes()
         {
@@ -66,7 +62,7 @@ namespace Astora.Core.Utils
         }
         
         /// <summary>
-        /// 根据类型名称获取节点类型信息
+        /// Get node type info by type name
         /// </summary>
         public NodeTypeInfo? GetNodeTypeInfo(string typeName)
         {
@@ -78,7 +74,7 @@ namespace Astora.Core.Utils
         }
         
         /// <summary>
-        /// 设置优先扫描的程序集（通常是项目程序集）
+        /// Set the priority assembly to scan for node types
         /// </summary>
         public void SetPriorityAssembly(Assembly? assembly)
         {
@@ -86,7 +82,7 @@ namespace Astora.Core.Utils
         }
 
         /// <summary>
-        /// 扫描并发现所有节点类型
+        /// Discover node types from loaded assemblies
         /// </summary>
         public void DiscoverNodeTypes()
         {
@@ -95,9 +91,8 @@ namespace Astora.Core.Utils
             
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             var nodeBaseType = typeof(Node);
-            var seenTypeNames = new HashSet<string>(); // 用于去重
+            var seenTypeNames = new HashSet<string>();
             
-            // 优先扫描项目程序集
             if (_priorityAssembly != null)
             {
                 try
@@ -106,11 +101,10 @@ namespace Astora.Core.Utils
                 }
                 catch (Exception ex)
                 {
-                    System.Console.WriteLine($"扫描优先程序集失败: {ex.Message}");
+                    System.Console.WriteLine($"Scanning priority assembly failed: {ex.Message}");
                 }
             }
             
-            // 然后扫描 Core 程序集（Astora.Core）
             var coreAssembly = typeof(Node).Assembly;
             if (coreAssembly != _priorityAssembly)
             {
@@ -120,23 +114,17 @@ namespace Astora.Core.Utils
                 }
                 catch (Exception ex)
                 {
-                    System.Console.WriteLine($"扫描 Core 程序集失败: {ex.Message}");
+                    System.Console.WriteLine($"Scanning core assembly failed: {ex.Message}");
                 }
             }
             
-            // 如果设置了优先程序集，只扫描 Core 和优先程序集，忽略其他程序集
-            // 这样可以避免扫描到已卸载程序集中的类型
             if (_priorityAssembly != null)
             {
-                // 只扫描 Core 和项目程序集，忽略其他程序集
-                // 这样可以确保只显示当前有效的类型
                 return;
             }
             
-            // 如果没有优先程序集，扫描其他程序集（向后兼容）
             foreach (var assembly in assemblies)
             {
-                // 跳过优先程序集（已经扫描过了）
                 if (assembly == _priorityAssembly || assembly == coreAssembly)
                 {
                     continue;
@@ -144,7 +132,6 @@ namespace Astora.Core.Utils
                 
                 try
                 {
-                    // 跳过系统程序集和动态程序集
                     if (assembly.IsDynamic || 
                         assembly.FullName?.StartsWith("System.") == true || 
                         assembly.FullName?.StartsWith("Microsoft.") == true ||
@@ -159,29 +146,23 @@ namespace Astora.Core.Utils
                 }
                 catch (ReflectionTypeLoadException ex)
                 {
-                    // 某些程序集可能无法完全加载（可能是已卸载的程序集），忽略错误
-                    System.Console.WriteLine($"无法加载程序集 {assembly.FullName} 中的某些类型: {ex.Message}");
+                    System.Console.WriteLine($"Failed to load types from assembly {assembly.FullName}: {ex.Message}");
                 }
                 catch (InvalidOperationException)
                 {
-                    // 程序集来自已卸载的 AssemblyLoadContext，跳过
                     continue;
                 }
                 catch (Exception ex)
                 {
-                    // 忽略无法访问的程序集
-                    System.Console.WriteLine($"扫描程序集 {assembly.FullName} 时出错: {ex.Message}");
+                    System.Console.WriteLine($"Scanning assembly {assembly.FullName} failed: {ex.Message}");
                 }
             }
             
-            // 按分类和名称排序
             _nodeTypes.Sort((a, b) =>
             {
-                // 先按分类排序
                 var categoryCompare = string.Compare(a.Category ?? "", b.Category ?? "", StringComparison.Ordinal);
                 if (categoryCompare != 0) return categoryCompare;
                 
-                // 再按显示名称排序
                 return string.Compare(a.DisplayName, b.DisplayName, StringComparison.Ordinal);
             });
             
@@ -189,14 +170,10 @@ namespace Astora.Core.Utils
         }
         
         /// <summary>
-        /// 从指定程序集中发现节点类型
+        /// Find and register node types from a specific assembly
         /// </summary>
         private void DiscoverTypesFromAssembly(Assembly assembly, Type nodeBaseType, HashSet<string> seenTypeNames, bool isPriority)
         {
-            // 检查程序集是否来自已卸载的 AssemblyLoadContext
-            // 如果程序集来自可收集的上下文但上下文已卸载，GetTypes() 会抛出异常
-            // 我们通过捕获异常来跳过这些程序集
-            
             var types = assembly.GetTypes()
                 .Where(t => 
                     !t.IsAbstract && 
@@ -208,15 +185,12 @@ namespace Astora.Core.Utils
             
             foreach (var type in types)
             {
-                // 使用完整类型名作为唯一标识，避免重复
                 var fullTypeName = type.FullName ?? type.Name;
                 
                 if (seenTypeNames.Contains(fullTypeName))
                 {
-                    // 如果已存在，且当前是优先程序集，则替换（优先使用新程序集中的类型）
                     if (isPriority)
                     {
-                        // 移除旧的类型信息
                         var oldInfo = _nodeTypes.FirstOrDefault(i => (i.Type.FullName ?? i.Type.Name) == fullTypeName);
                         if (oldInfo != null)
                         {
@@ -225,7 +199,6 @@ namespace Astora.Core.Utils
                     }
                     else
                     {
-                        // 如果不是优先程序集，跳过（保留已存在的）
                         continue;
                     }
                 }
@@ -234,12 +207,10 @@ namespace Astora.Core.Utils
                 var info = new NodeTypeInfo(type);
                 _nodeTypes.Add(info);
                 
-                // 使用完整类型名作为键，避免同名类型冲突
                 if (!string.IsNullOrEmpty(type.FullName))
                 {
                     _nodeTypesByName[type.FullName] = info;
                 }
-                // 如果类型名不存在，或当前是优先程序集，则更新简单名称
                 if (isPriority || !_nodeTypesByName.ContainsKey(type.Name))
                 {
                     _nodeTypesByName[type.Name] = info;
@@ -248,28 +219,23 @@ namespace Astora.Core.Utils
         }
         
         /// <summary>
-        /// 检查类型是否有合适的构造函数
+        /// Get whether the type has a suitable constructor
         /// </summary>
         private bool HasSuitableConstructor(Type type)
         {
-            // 检查是否有接受 string 参数的构造函数
             var nameConstructor = type.GetConstructor(new[] { typeof(string) });
             if (nameConstructor != null) return true;
             
-            // 检查是否有接受 string 和其他参数（可为null类型）的构造函数
-            // 例如：Sprite(string name, Texture2D texture) 其中 texture 可以为 null
             var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
             foreach (var constructor in constructors)
             {
                 var parameters = constructor.GetParameters();
                 if (parameters.Length > 0 && parameters[0].ParameterType == typeof(string))
                 {
-                    // 检查后续参数是否都可以为null（引用类型或可空值类型）
                     bool allOptional = true;
                     for (int i = 1; i < parameters.Length; i++)
                     {
                         var param = parameters[i];
-                        // 引用类型可以为null，可空值类型也可以为null
                         if (!param.ParameterType.IsClass && 
                             !(param.ParameterType.IsGenericType && 
                               param.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>)))
@@ -282,7 +248,6 @@ namespace Astora.Core.Utils
                 }
             }
             
-            // 检查是否有无参构造函数
             var parameterlessConstructor = type.GetConstructor(Type.EmptyTypes);
             if (parameterlessConstructor != null) return true;
             
@@ -290,7 +255,7 @@ namespace Astora.Core.Utils
         }
         
         /// <summary>
-        /// 创建节点实例
+        /// Create node instance (by type name)
         /// </summary>
         public Node? CreateNode(string typeName, string nodeName)
         {
@@ -304,7 +269,7 @@ namespace Astora.Core.Utils
         }
         
         /// <summary>
-        /// 创建节点实例（通过类型）
+        /// Create node instance (by Type)
         /// </summary>
         public Node? CreateNode(Type nodeType, string nodeName)
         {
@@ -315,22 +280,18 @@ namespace Astora.Core.Utils
             
             try
             {
-                // 首先尝试使用接受 string 参数的构造函数
                 var nameConstructor = nodeType.GetConstructor(new[] { typeof(string) });
                 if (nameConstructor != null)
                 {
                     return (Node)nameConstructor.Invoke(new object[] { nodeName });
                 }
                 
-                // 然后尝试接受 string 和其他可选参数的构造函数
-                // 例如：Sprite(string name, Texture2D texture) 其中 texture 可以为 null
                 var constructors = nodeType.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
                 foreach (var constructor in constructors)
                 {
                     var parameters = constructor.GetParameters();
                     if (parameters.Length > 0 && parameters[0].ParameterType == typeof(string))
                     {
-                        // 检查后续参数是否都可以为null（引用类型或可空值类型）
                         bool allOptional = true;
                         for (int i = 1; i < parameters.Length; i++)
                         {
@@ -346,19 +307,17 @@ namespace Astora.Core.Utils
                         
                         if (allOptional)
                         {
-                            // 构建参数数组：第一个是 nodeName，其余为 null
                             var args = new object[parameters.Length];
                             args[0] = nodeName;
                             for (int i = 1; i < parameters.Length; i++)
                             {
-                                args[i] = null!; // 引用类型或可空值类型可以为 null
+                                args[i] = null!;
                             }
                             return (Node)constructor.Invoke(args);
                         }
                     }
                 }
                 
-                // 如果没有，尝试无参构造函数
                 var parameterlessConstructor = nodeType.GetConstructor(Type.EmptyTypes);
                 if (parameterlessConstructor != null)
                 {
@@ -369,7 +328,7 @@ namespace Astora.Core.Utils
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"创建节点 {nodeType.Name} 失败: {ex.Message}");
+                System.Console.WriteLine($"Creating node of type {nodeType.FullName} failed: {ex.Message}");
                 return null;
             }
             
@@ -377,7 +336,7 @@ namespace Astora.Core.Utils
         }
         
         /// <summary>
-        /// 标记为需要重新发现（当程序集重新加载时调用）
+        /// Mark the registry as dirty to trigger re-discovery
         /// </summary>
         public void MarkDirty()
         {
@@ -385,7 +344,7 @@ namespace Astora.Core.Utils
         }
         
         /// <summary>
-        /// 按分类获取节点类型
+        /// Get node types grouped by category
         /// </summary>
         public Dictionary<string, List<NodeTypeInfo>> GetNodeTypesByCategory()
         {

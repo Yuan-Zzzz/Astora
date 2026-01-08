@@ -1,8 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using YamlDotNet.Serialization;
 
-namespace Astora.Core
+namespace Astora.Core.Nodes
 {
     public class Node
     {

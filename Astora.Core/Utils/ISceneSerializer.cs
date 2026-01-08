@@ -1,4 +1,6 @@
-﻿namespace Astora.Core.Utils;
+﻿using Astora.Core.Nodes;
+
+namespace Astora.Core.Utils;
 
 public interface ISceneSerializer
 {
