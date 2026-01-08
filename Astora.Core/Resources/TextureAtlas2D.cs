@@ -7,34 +7,55 @@ public class TextureAtlas2D
 {
     public Texture2D SourceTexture { get; private set; }
 
-    private Rectangle[] _frames;
+    private Dictionary<string, Rectangle> _frames = new Dictionary<string, Rectangle>();
 
     public TextureAtlas2D(Texture2D sourceTexture)
     {
         SourceTexture = sourceTexture;
-        _frames = Array.Empty<Rectangle>();
+        _frames = new Dictionary<string, Rectangle>();
+    }
+    
+    public void AddFrame(string name, Rectangle region)
+    {
+        _frames[name] = region;
+    }
+    
+    public Rectangle? GetFrame(string name)
+    {
+        if (_frames.TryGetValue(name, out var rect))
+        {
+            return rect;
+        }
+        return null;
     }
 
+    /// <summary>
+    /// Slice the texture atlas into uniform frames
+    /// </summary>
+    /// <param name="frameWidth"></param>
+    /// <param name="frameHeight"></param>
     public void Slice(int frameWidth, int frameHeight)
     {
         int columns = SourceTexture.Width / frameWidth;
         int rows = SourceTexture.Height / frameHeight;
-        _frames = new Rectangle[columns * rows];
-
+        _frames.Clear();
         for (int y = 0; y < rows; y++)
         {
             for (int x = 0; x < columns; x++)
             {
-                _frames[y * columns + x] = new Rectangle(x * frameWidth, y * frameHeight, frameWidth, frameHeight);
+                int index = y * columns + x;
+                Rectangle frameRect = new Rectangle(x * frameWidth, y * frameHeight, frameWidth, frameHeight);
+                _frames.Add(index.ToString(), frameRect);
             }
         }
     }
 
-    public Rectangle GetFrame(int index)
+    /// <summary>
+    /// Slice the texture atlas using custom JSON definitions
+    /// </summary>
+    /// <param name="jsonContent">JSON string defining frame regions</param>
+    public void Slice(string jsonContent)
     {
-        if (index < 0 || index >= _frames.Length)
-            throw new IndexOutOfRangeException("Frame index out of range.");
-
-        return _frames[index];
+        //TOOD : Implement JSON parsing for custom frame definitions
     }
 }

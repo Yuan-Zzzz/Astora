@@ -2,6 +2,7 @@ using Astora.Core;
 using Astora.Core.Nodes;
 using Astora.Core.Project;
 using Astora.Core.Rendering;
+using Astora.Core.Resources;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using YamlDotNet.Serialization;
@@ -36,10 +37,18 @@ namespace Astora.SandBox.Scripts
                  Engine.LoadScene(initialScene);
              }
              
-             // 创建Sprite并设置MSDFEffect
-             var sprite = new Sprite("MySprite", msdfTex);
-             sprite.Effect = MSDFEffect.Instance;
-             Engine.CurrentScene.Root.AddChild(sprite);
+     
+             TextureAtlas2D atlas = new TextureAtlas2D(ani);
+             atlas.Slice(16, 16); 
+             
+             SpriteFrames frames = new SpriteFrames(ani);
+             
+             frames.AddAnimation("idle", fps: 8f, loop: true);
+             frames.AddFramesFromAtlas("idle", atlas, new[] { "0", "1", "2", "3", "4", "5", "6", "7" });
+             AnimatedSprite player = new AnimatedSprite("Player", frames);
+             player.Scale = new Vector2(4f, 4f);
+             player.Play("idle");
+                Engine.CurrentScene.Root.AddChild(player);
             
         }
         
@@ -81,27 +90,15 @@ namespace Astora.SandBox.Scripts
         protected override void Update(GameTime gameTime)
         {
             Engine.Update(gameTime);
-            
-            //根据按键调整Scale
-            if (Microsoft.Xna.Framework.Input.Keyboard.GetState().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.W))
-            {
-                scale += new Vector2(1, 1);
-            }
-            if (Microsoft.Xna.Framework.Input.Keyboard.GetState().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.D))
-            {
-                scale -= new Vector2(1, 1);
-            }
             base.Update(gameTime);
         }
 
-        Texture2D msdfTex;
-        Effect MSDFshader;
-        Vector2 scale = new Vector2(1, 1) * 100;
+        Texture2D ani;
 
         protected override void LoadContent()
         {
             base.LoadContent();
-            msdfTex = Texture2D.FromFile(GraphicsDevice, "../../../Content/MSDFTEST.png");
+            ani = Texture2D.FromFile(GraphicsDevice, "../../../Content/Animated.png");
         }
 
         protected override void Draw(GameTime gameTime)
