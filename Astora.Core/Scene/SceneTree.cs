@@ -1,6 +1,6 @@
 ﻿using Astora.Core.Inputs;
 using Astora.Core.Nodes;
-using Astora.Core.Renderer;
+using Astora.Core.Rendering.RenderPipeline;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 

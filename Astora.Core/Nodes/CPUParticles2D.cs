@@ -1,5 +1,5 @@
 ﻿using System;
-using Astora.Core.Renderer;
+using Astora.Core.Rendering.RenderPipeline;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 

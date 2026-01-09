@@ -1,5 +1,4 @@
-﻿using Astora.Core.Renderer;
-using Astora.Core.Rendering.RenderPipeline.RenderPass;
+﻿using Astora.Core.Rendering.RenderPipeline.RenderPass;
 using Astora.Core.Scene;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;

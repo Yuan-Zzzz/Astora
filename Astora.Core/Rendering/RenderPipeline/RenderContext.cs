@@ -1,5 +1,4 @@
 ﻿using Astora.Core.Nodes;
-using Astora.Core.Renderer;
 using Astora.Core.Scene;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
