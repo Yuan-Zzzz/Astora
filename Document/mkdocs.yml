@@ -1,7 +1,7 @@
 site_name: Astora Engine Docs
 site_description: A 2D game engine for C# developers built on MonoGame
 repo_url: https://github.com/Yuan-Zzzz/Astora
-repo_name: Yuan-Zzzz/Astora
+repo_name: Astora
 
 theme:
   name: material
