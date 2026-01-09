@@ -751,7 +751,7 @@ namespace Astora.Editor.UI
             // 绘制坐标轴（在网格之上，场景内容之下）
             DrawCoordinateAxes(spriteBatch);
             
-            _sceneTree.Draw(spriteBatch);
+            //_sceneTree.Draw();
             
             // 绘制选中节点的Gizmo
             var selectedNode = _editor.GetSelectedNode();

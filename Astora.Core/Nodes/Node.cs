@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Astora.Core.Renderer;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace Astora.Core.Nodes
@@ -76,7 +77,7 @@ namespace Astora.Core.Nodes
         #region Lifecycle Methods
         public virtual void Ready() { }
         public virtual void Update(float delta) { }
-        public virtual void Draw(SpriteBatch spriteBatch) { }
+        public virtual void Draw(RenderBatcher renderBatcher) { }
         #endregion
 
         #region Node Search Methods
@@ -136,15 +137,15 @@ namespace Astora.Core.Nodes
             
             Children.RemoveAll(c => c.IsQueuedForDeletion);
         }
-        internal void InternalDraw(SpriteBatch spriteBatch)
+        internal void InternalDraw(RenderBatcher renderBatcher)
         {
             if (IsQueuedForDeletion) return;
             
-            Draw(spriteBatch);
+            Draw(renderBatcher);
             
             foreach (var child in Children)
             {
-                child.InternalDraw(spriteBatch);
+                child.InternalDraw(renderBatcher);
             }
         }
         #endregion

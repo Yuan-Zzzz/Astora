@@ -1,4 +1,6 @@
 ﻿using Astora.Core.Project;
+using Astora.Core.Rendering.RenderPipeline;
+using Astora.Core.Rendering.RenderPipeline.RenderPass;
 using Astora.Core.Scene;
 using Astora.Core.Utils;
 using Microsoft.Xna.Framework;
@@ -9,11 +11,30 @@ namespace Astora.Core;
 
 public static class Engine
 {
+    /// <summary>
+    /// Default Sampler State
+    /// </summary>
     public static SamplerState DefaultSamplerState { get; } = SamplerState.PointClamp;
+    
+    /// <summary>
+    /// Content Manager
+    /// </summary>
     public static ContentManager Content { get; private set; }
+    /// <summary>
+    /// Graphics Device
+    /// </summary>
     public static GraphicsDevice GraphicsDevice { get; private set; }
+    /// <summary>
+    /// Default Sprite Batch
+    /// </summary>
     public static SpriteBatch SpriteBatch { get; private set; }
+    /// <summary>
+    /// Current Scene Tree
+    /// </summary>
     public static SceneTree CurrentScene { get; set; }
+    /// <summary>
+    /// Scene Serializer
+    /// </summary>
     public static ISceneSerializer Serializer { get; set; } = new YamlSceneSerializer();
     
     /// <summary>
@@ -36,9 +57,8 @@ public static class Engine
     /// </summary>
     public static Matrix CurrentGlobalTransformMatrix { get; private set; } = Matrix.Identity;
     
-    private static BlendState _currentBlendState = BlendState.AlphaBlend;
-    private static Effect _currentEffect = null;
-    private static Matrix _currentTransformMatrix = Matrix.Identity;
+    public static RenderPipeline RenderPipeline { get; private set; }
+    
     
     /// <summary>
     /// Initialize the Engine
@@ -49,6 +69,7 @@ public static class Engine
         GraphicsDevice = graphicsDevice;
         SpriteBatch = spriteBatch;
         CurrentScene = new SceneTree();
+        RenderPipeline = new RenderPipeline(GraphicsDevice, SpriteBatch);
     }
     
     /// <summary>
@@ -58,6 +79,7 @@ public static class Engine
     {
         DesignResolution = new Point(width, height);
         ScalingMode = scalingMode;
+        RenderPipeline.UpdateRenderTarget();
     }
     
     /// <summary>
@@ -69,6 +91,7 @@ public static class Engine
         {
             DesignResolution = new Point(config.DesignWidth, config.DesignHeight);
             ScalingMode = config.ScalingMode;
+            RenderPipeline.UpdateRenderTarget();
         }
     }
     
@@ -175,78 +198,18 @@ public static class Engine
     }
     
     /// <summary>
-    /// 游戏循环更新方法
+    /// GameLoop Update
     /// </summary>
     public static void Update(GameTime gameTime)
     {
         CurrentScene?.Update(gameTime);
     }
     
-    public static void Render(Color? clearColor = null)
+    public static void Render(GameTime gameTime, Color? clearColor = null)
     {
         if (GraphicsDevice == null || SpriteBatch == null || CurrentScene == null)
             return;
         
-        GraphicsDevice.Clear(clearColor ?? Color.Black);
-        
-        Matrix scaleMatrix = GetScaleMatrix();
-        CurrentViewMatrix = Matrix.Identity;
-        
-        if (CurrentScene.ActiveCamera != null)
-        {
-            CurrentViewMatrix = CurrentScene.ActiveCamera.GetViewMatrix();
-        }
-        
-        CurrentGlobalTransformMatrix = scaleMatrix * CurrentViewMatrix;
-        
-        _currentBlendState = BlendState.AlphaBlend;
-        _currentEffect = null;
-        _currentTransformMatrix = CurrentGlobalTransformMatrix;
-       
-        // Begin SpriteBatch with proper settings
-        SpriteBatch.Begin(
-            sortMode: SpriteSortMode.Deferred, 
-            blendState: BlendState.AlphaBlend, 
-            samplerState: DefaultSamplerState,
-            depthStencilState: null, 
-            rasterizerState: null, 
-            effect: null, 
-            transformMatrix: CurrentGlobalTransformMatrix
-        );
-        
-        CurrentScene.Draw(SpriteBatch);
-        
-        SpriteBatch.End();
-    }
-    
-    public static void SetRenderState(BlendState blendState = null, Effect effect = null, Matrix? transformMatrix = null)
-    {
-        var targetBlend = blendState ?? BlendState.AlphaBlend;
-        var targetEffect = effect;
-        var targetMatrix = transformMatrix ?? CurrentGlobalTransformMatrix;
-        
-        bool stateChanged = false;
-
-        if (_currentBlendState != targetBlend) stateChanged = true;
-        else if (_currentEffect != targetEffect) stateChanged = true;
-        else if (_currentTransformMatrix != targetMatrix) stateChanged = true;
-        
-        if (!stateChanged) return;
-        
-        SpriteBatch.End();
-
-        SpriteBatch.Begin(
-            sortMode: SpriteSortMode.Deferred,
-            blendState: targetBlend,
-            samplerState: SamplerState.PointClamp,
-            depthStencilState: null,
-            rasterizerState: null,
-            effect: targetEffect,
-            transformMatrix: targetMatrix
-        );
-        
-        _currentBlendState = targetBlend;
-        _currentEffect = targetEffect;
-        _currentTransformMatrix = targetMatrix;
+        RenderPipeline.Render(CurrentScene, gameTime, clearColor ?? Color.Black);
     }
 }

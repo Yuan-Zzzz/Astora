@@ -112,7 +112,7 @@ namespace Astora.SandBox.Scripts
 
         protected override void Draw(GameTime gameTime)
         {
-           Engine.Render();
+           Engine.Render(gameTime);
             base.Draw(gameTime);
         }
     }

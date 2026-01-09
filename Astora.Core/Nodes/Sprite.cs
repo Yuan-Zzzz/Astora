@@ -1,4 +1,5 @@
 ﻿using Astora.Core;
+using Astora.Core.Renderer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -28,7 +29,7 @@ namespace Astora.Core.Nodes
                 Origin = new Vector2(DefaultSize / 2f, DefaultSize / 2f);
         }
 
-        public override void Draw(SpriteBatch spriteBatch)
+        public override void Draw(RenderBatcher renderBatcher)
         {
             var transform = GlobalTransform;
             Vector3 pos, scale;
@@ -39,15 +40,13 @@ namespace Astora.Core.Nodes
             var textureToDraw = Texture;
             if (textureToDraw == null)
             {
-                textureToDraw = GetDefaultWhiteTexture(spriteBatch.GraphicsDevice);
+                textureToDraw = GetDefaultWhiteTexture(Engine.GraphicsDevice);
             }
             
             Rectangle srcRect = Region ?? new Rectangle(0, 0, textureToDraw.Width, textureToDraw.Height);
-            
-            Engine.SetRenderState(BlendState, Effect, null);
 
             // 4. 绘制
-            spriteBatch.Draw(
+            renderBatcher.Draw(
                 textureToDraw,
                 new Vector2(pos.X, pos.Y) + Offset,
                 srcRect,

@@ -1,5 +1,6 @@
 ﻿using Astora.Core.Inputs;
 using Astora.Core.Nodes;
+using Astora.Core.Renderer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -26,7 +27,7 @@ namespace Astora.Core.Scene
             {
                 Root.Ready();
                 
-                // // 自动查找并设置Camera2D
+                // Try to find a Camera2D in the new scene
                 var camera = GetNode<Camera2D>();
                 if (camera != null)
                 {
@@ -71,11 +72,11 @@ namespace Astora.Core.Scene
         /// Draw Nodes
         /// </summary>
         /// <param name="spriteBatch"></param>
-        public void Draw(SpriteBatch spriteBatch)
+        public void Draw(RenderBatcher renderBatcher)
         {
             if (Root != null)
             {
-                Root.InternalDraw(spriteBatch);
+                Root.InternalDraw(renderBatcher);
             }
         }
         

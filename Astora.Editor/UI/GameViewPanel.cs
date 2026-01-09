@@ -74,7 +74,7 @@ namespace Astora.Editor.UI
                 transformMatrix: transformMatrix
             );
             
-            _sceneTree.Draw(spriteBatch);
+            //_sceneTree.Draw(spriteBatch);
             
             spriteBatch.End();
             

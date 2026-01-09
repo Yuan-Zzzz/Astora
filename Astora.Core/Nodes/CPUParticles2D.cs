@@ -1,4 +1,5 @@
 ﻿using System;
+using Astora.Core.Renderer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -281,10 +282,9 @@ namespace Astora.Core.Nodes
         /// Draw the particles
         /// </summary>
         /// <param name="spriteBatch"></param>
-        public override void Draw(SpriteBatch spriteBatch)
+        public override void Draw(RenderBatcher renderBatcher)
         {
-            Engine.SetRenderState(BlendState); 
-            var tex = Texture ?? GetDefaultTexture(spriteBatch.GraphicsDevice);
+            var tex = Texture ?? GetDefaultTexture(Engine.GraphicsDevice);
             Vector2 origin = new Vector2(tex.Width / 2f, tex.Height / 2f);
             
 
@@ -305,16 +305,17 @@ namespace Astora.Core.Nodes
                     drawPos += globalPos; 
                 }
 
-                spriteBatch.Draw(
+                renderBatcher.Draw(
                     tex,
                     drawPos,
                     null,
                     p.Color,
                     p.Rotation,
                     origin,
-                    p.Scale,
+                    new Vector2(p.Scale),
                     SpriteEffects.None,
-                    0f
+                    0f,
+                    this.BlendState
                 );
             }
         }

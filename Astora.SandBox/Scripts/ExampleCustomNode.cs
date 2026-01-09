@@ -1,6 +1,7 @@
 using Astora.Core;
 using Astora.Core.Attributes;
 using Astora.Core.Nodes;
+using Astora.Core.Renderer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -20,11 +21,6 @@ namespace Astora.SandBox.Scripts
         /// </summary>
         [SerializeField]
         private float _rotationSpeed = 1.0f;
-        
-  
-        
-       
-        
         
         public ExampleCustomNode(string name = "ExampleCustomNode") : base(name)
         {
@@ -55,15 +51,9 @@ namespace Astora.SandBox.Scripts
         /// <summary>
         /// 绘制节点
         /// </summary>
-        public override void Draw(SpriteBatch spriteBatch)
+        public override void Draw(RenderBatcher renderBatcher)
         {
-            base.Draw(spriteBatch);
-            
-            // 这里可以添加自定义绘制逻辑
-            // 例如：绘制一个简单的矩形或圆形
-            
-            // 注意：在实际使用中，你可能需要使用 Sprite 节点来绘制图像
-            // 或者使用更高级的绘制方法
+            base.Draw(renderBatcher);
         }
     }
 }
