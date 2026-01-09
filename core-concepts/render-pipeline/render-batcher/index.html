@@ -11,28 +11,26 @@
       
       
       
-        <link rel="prev" href="../../contributing/code-style/">
+        <link rel="prev" href="../intro/">
       
-      
-        <link rel="next" href="../render-pipeline/intro/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
-        <title>Architecture - Astora Engine Docs</title>
+        <title>RenderBatcher - Astora Engine Docs</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,7 +49,7 @@
       
     
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#architecture" class="md-skip">
+        <a href="#renderbatcher" class="md-skip">
           Skip to content
         </a>
       
@@ -90,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="Astora Engine Docs" class="md-header__button md-logo" aria-label="Astora Engine Docs" data-md-component="logo">
+    <a href="../../.." title="Astora Engine Docs" class="md-header__button md-logo" aria-label="Astora Engine Docs" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -110,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Architecture
+              RenderBatcher
             
           </span>
         </div>
@@ -198,7 +196,7 @@
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
   </div>
   <div class="md-source__repository">
-    Yuan-Zzzz/Astora
+    Astora
   </div>
 </a>
       </div>
@@ -223,7 +221,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../.." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -244,7 +242,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../contributing/code-style/" class="md-tabs__link">
+        <a href="../../../contributing/code-style/" class="md-tabs__link">
           
   
   
@@ -266,11 +264,11 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../../architecture/" class="md-tabs__link">
           
   
   
-  Core concepets
+  Core concepts
 
         </a>
       </li>
@@ -300,7 +298,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="Astora Engine Docs" class="md-nav__button md-logo" aria-label="Astora Engine Docs" data-md-component="logo">
+    <a href="../../.." title="Astora Engine Docs" class="md-nav__button md-logo" aria-label="Astora Engine Docs" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -316,7 +314,7 @@
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
   </div>
   <div class="md-source__repository">
-    Yuan-Zzzz/Astora
+    Astora
   </div>
 </a>
     </div>
@@ -330,7 +328,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -411,7 +409,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/code-style/" class="md-nav__link">
+      <a href="../../../contributing/code-style/" class="md-nav__link">
         
   
   
@@ -474,7 +472,7 @@
   <span class="md-ellipsis">
     
   
-    Core concepets
+    Core concepts
   
 
     
@@ -490,11 +488,124 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    Core concepets
+    Core concepts
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Render pipeline
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Render pipeline
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../intro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Intro
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -519,7 +630,7 @@
   <span class="md-ellipsis">
     
   
-    Architecture
+    RenderBatcher
   
 
     
@@ -537,7 +648,7 @@
   <span class="md-ellipsis">
     
   
-    Architecture
+    RenderBatcher
   
 
     
@@ -563,10 +674,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#about-spritebatch" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Overview
+        About SpriteBatch
       
     </span>
   </a>
@@ -574,10 +685,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#engine" class="md-nav__link">
+  <a href="#talk-about-transform-matrix" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Engine
+        Talk about Transform Matrix
       
     </span>
   </a>
@@ -585,13 +696,69 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#node-system" class="md-nav__link">
+  <a href="#why-renderbatcher" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Node System
+        Why RenderBatcher?
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Why RenderBatcher?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-problem-manual-state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Problem: Manual State Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-solution-renderbatcher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Solution: RenderBatcher
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-renderbatcher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is RenderBatcher?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What is RenderBatcher?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How it Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -599,91 +766,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-          
-          
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Render pipeline
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Render pipeline
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../render-pipeline/intro/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Intro
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -731,10 +813,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#about-spritebatch" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Overview
+        About SpriteBatch
       
     </span>
   </a>
@@ -742,10 +824,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#engine" class="md-nav__link">
+  <a href="#talk-about-transform-matrix" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Engine
+        Talk about Transform Matrix
       
     </span>
   </a>
@@ -753,13 +835,69 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#node-system" class="md-nav__link">
+  <a href="#why-renderbatcher" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Node System
+        Why RenderBatcher?
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Why RenderBatcher?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-problem-manual-state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Problem: Manual State Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-solution-renderbatcher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Solution: RenderBatcher
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-renderbatcher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What is RenderBatcher?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What is RenderBatcher?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How it Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -783,23 +921,66 @@
   
 
 
-<h1 id="architecture">Architecture</h1>
+<h1 id="renderbatcher">RenderBatcher</h1>
+<p>RenderBatcher is the encapsulation of MonoGame's SpriteBatch in Astora Engine. It provides a higher-level interface for managing render batches, making it easier to deal some rendering operations.</p>
+<h2 id="about-spritebatch">About SpriteBatch</h2>
+<p>The SpriteBatch is a batch processing system of MonoGame that allows you to draw multiple sprites with a single draw call, improving rendering performance. It use Begin/End methods to define a batch of sprites which will be drawn together.Here is the basic usage of SpriteBatch:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">spriteBatch</span><span class="p">.</span><span class="n">Begin</span><span class="p">(...</span><span class="n">Something</span><span class="w"> </span><span class="n">Parameters</span><span class="p">...);</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">spriteBatch</span><span class="p">.</span><span class="n">Draw</span><span class="p">(...);</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">spriteBatch</span><span class="p">.</span><span class="n">Draw</span><span class="p">(...);</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">...</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">spriteBatch</span><span class="p">.</span><span class="n">End</span><span class="p">();</span>
+</code></pre></div>
+<p>When you call <code>Begin</code>, The Sprite Batch will set up some necessary states for rendering, such as the transformation matrix, the blend state, and the sampler state. This allows you to draw your sprites with the correct settings without having to change these states manually for each draw call.And whe you call <code>End</code>,The Sprite Batch will flush all the sprites that have been drawn since the last <code>Begin</code> call to the graphics device in a single draw call.</p>
+<h2 id="talk-about-transform-matrix">Talk about Transform Matrix</h2>
+<p>We mentioned the transformation matrix in the previous section. So what it is?</p>
+<p>Imagine here is a canvas, and a rect is located at (50,100) on this canvas. If we move up the rect by 10 units, and then move right by 20 units. Eventually, the point will be located at (70,90). Same as scaling and rotation, we can use translate the rect attributes to achieve the same effect. However, here comes the problem,. There are too many ways to transform a rect, and if we want to combine multiple transformations, it will become very complicated. This is where the transformation matrix comes in. A transformation matrix is a mathematical tool that can represent multiple transformations in a single matrix.</p>
+<p>By using matrix multiplication, we can combine multiple transformations into a single matrix. For example, if we want to first translate the rect by (20,-10), then scale it by 2 times, and finally rotate it by 45 degrees, we can create three separate matrices for each transformation and then multiply them together to get a single transformation matrix. This matrix can then be applied to the rect to achieve the desired transformation.</p>
+<p>So you can see that the transformation matrix is a magic box that can transform positions, scales, and rotations all at once.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>This document is a work in progress and may be updated frequently.</p>
+<p>I think the part should be in artical about Camera, but just remind here.</p>
 </div>
-<h2 id="overview">Overview</h2>
-<p>Astora Engine is node-based, meaning that everything in the engine is represented as a node in a tree structure. This allows for a highly modular and flexible design, where different components can be easily added, removed, or modified without affecting the overall system. This is inspired by Godot Engine's architecture.</p>
-<h2 id="engine">Engine</h2>
-<p>The Engine class is the main entry point of Astora Engine. It is responsible for initializing and managing the various subsystems of the engine, such as rendering, input handling, audio, and more. The Engine class also provides a way to access global settings and configurations for the engine.</p>
-<p>Features of the Engine class include:</p>
+<h2 id="why-renderbatcher">Why RenderBatcher?</h2>
+<p>While SpriteBatch is Powerful, using it directly is facing a limitation on state management. </p>
+<p>When you call <code>SpriteBatch.Begin()</code>, the rendering states(BlendState, SamplerState, Effect, TransformMatrix, etc.) are set for the entire batch. </p>
+<p>Imagining a situation, you are drawing a scene with multiple sprites. They have the same rendering states, like all the blend state is AlphaBlend.Suddenly, you need to draw some particles with Additive blend state, or apply a special shader effect to a chraracter sprite.you can't switch the modes in the middle of a batch simply.</p>
+<h3 id="the-problem-manual-state-management">The Problem: Manual State Management</h3>
+<p>So without a manager, everything what will be drawn needs to manage the rendring lifecycle itself. A simplest implementation may look like this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1">//It&#39;s in ParticleSystem render loop</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1">// 1. We have to interrupt the global batch because we need Additive blending</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">spriteBatch</span><span class="p">.</span><span class="n">End</span><span class="p">();</span><span class="w"> </span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1">// 2. Start a new batch with our specific settings</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">spriteBatch</span><span class="p">.</span><span class="n">Begin</span><span class="p">(</span><span class="n">SpriteSortMode</span><span class="p">.</span><span class="n">Deferred</span><span class="p">,</span><span class="w"> </span><span class="n">BlendState</span><span class="p">.</span><span class="n">Additive</span><span class="p">,</span><span class="w"> </span><span class="p">...,</span><span class="w"> </span><span class="n">globalTransform</span><span class="p">);</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1">// 3. Draw our particles</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">foreach</span><span class="p">(</span><span class="kt">var</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n">particles</span><span class="p">)</span><span class="w"> </span><span class="n">spriteBatch</span><span class="p">.</span><span class="n">Draw</span><span class="p">(...);</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1">// 4. End our batch</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">spriteBatch</span><span class="p">.</span><span class="n">End</span><span class="p">();</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1">// 5. RESTORE the original batch for the next object? </span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">spriteBatch</span><span class="p">.</span><span class="n">Begin</span><span class="p">(...,</span><span class="w"> </span><span class="n">BlendState</span><span class="p">.</span><span class="n">AlphaBlend</span><span class="p">,</span><span class="w"> </span><span class="p">...);</span>
+</code></pre></div>
+<p>So here comes the problem:
+- We have to manually manage the batch lifecycle, which is error-prone and tedious.
+- If not managed carefully, you might accidentally break batches too often, increasing draw calls significantly.
+- GameObject need to know too much about the global rendering context (like the Camera's View Matrix), but it's unnecessary for them to be aware of these details.</p>
+<h3 id="the-solution-renderbatcher">The Solution: RenderBatcher</h3>
+<p>RenderBatcher is designed to solve these problems by managing multiple render batches automatically. It allows different parts of your rendering code to request specific rendering states without worrying about the underlying batch management.</p>
+<p>We just need to call RenderBatcher.Draw with the desired settings, and the RenderBatcher will take care of starting and ending batches as needed. This way, you can focus on what to draw rather than how to manage the drawing process.</p>
+<h2 id="what-is-renderbatcher">What is RenderBatcher?</h2>
+<p>The answer is simple: It's a state machine for SpriteBatch.</p>
+<p>At its core, RenderBatcher is the middleware between your rendering code and the SpriteBatch. You just need to tell your RenderBatcher what to draw and with which settings. No more the <code>Begin</code>/<code>End</code> calls, just draw directly.</p>
+<p>RenderBatcher tracks the current rendering state internally. 
+- _currentTransformMatrix: The current transformation matrix applied to all sprites.
+- _currentBlendState: The current blend state for rendering.
+- _currentSamplerState: The current sampler state for textures.
+- _currentEffect: The current shader effect applied to sprites.</p>
+<h3 id="how-it-works">How it Works</h3>
+<p>When you call <code>RenderBatcher.Draw</code>, it deal a fast check:</p>
 <ul>
-<li>Managing the main game loop, including updating and rendering.</li>
-<li>Providing a centralized input handling system.</li>
-<li>Designing resolution and display settings.</li>
+<li>Check requested and compare with current states.</li>
+<li>If they match, it simply draws the sprite using the existing batch.</li>
+<li>If they differ, it ends the current batch (if any), updates the states, and starts a new batch with the requested settings.</li>
 </ul>
-<h2 id="node-system">Node System</h2>
-<p>Node System is the core of Astora Engine. It provides a way to create and manage nodes, which can represent various elements such as scenes, objects, scripts, and more. Nodes can have parent-child relationships, allowing for hierarchical organization and inheritance of properties and behaviors. In Astora Engine, everything is a node, including scenes, objects, scripts, and even the engine itself. This allows for a consistent and unified approach to managing different components of the engine.</p>
 
 
 
@@ -855,10 +1036,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
