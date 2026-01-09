@@ -13,6 +13,7 @@
 
     <ItemGroup>
       <EmbeddedResource Include="Rendering\Shaders\Build\MSDF.fxc" />
+        <EmbeddedResource Include="Rendering\Shaders\Build\Bloom.fxc" />
     </ItemGroup>
 
 </Project>
