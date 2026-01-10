@@ -11,26 +11,26 @@
       
       
       
+        <link rel="prev" href="../render-batcher/">
       
-        <link rel="next" href="contributing/code-style/">
       
       
         
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
-        <title>Astora Engine Docs</title>
+        <title>RenderPipeline - Astora Engine Docs</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -49,7 +49,7 @@
       
     
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#welcome-to-astora-engine" class="md-skip">
+        <a href="#renderpipeline" class="md-skip">
           Skip to content
         </a>
       
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="Astora Engine Docs" class="md-header__button md-logo" aria-label="Astora Engine Docs" data-md-component="logo">
+    <a href="../../.." title="Astora Engine Docs" class="md-header__button md-logo" aria-label="Astora Engine Docs" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -108,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Welcome to Astora Engine
+              RenderPipeline
             
           </span>
         </div>
@@ -219,11 +219,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="." class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -244,7 +242,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="contributing/code-style/" class="md-tabs__link">
+        <a href="../../../contributing/code-style/" class="md-tabs__link">
           
   
   
@@ -260,11 +258,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="core-concepts/architecture/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../architecture/" class="md-tabs__link">
           
   
   
@@ -298,7 +298,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="Astora Engine Docs" class="md-nav__button md-logo" aria-label="Astora Engine Docs" data-md-component="logo">
+    <a href="../../.." title="Astora Engine Docs" class="md-nav__button md-logo" aria-label="Astora Engine Docs" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -325,37 +325,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Welcome to Astora Engine
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -371,70 +344,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#what-is-astora-engine" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What is Astora Engine
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#design-philosophy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Design Philosophy
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#who-is-suitable" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Who is suitable?
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#give-feedback" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Give Feedback
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -500,7 +409,7 @@
   
   
     <li class="md-nav__item">
-      <a href="contributing/code-style/" class="md-nav__link">
+      <a href="../../../contributing/code-style/" class="md-nav__link">
         
   
   
@@ -532,28 +441,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -571,7 +483,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -589,7 +501,7 @@
   
   
     <li class="md-nav__item">
-      <a href="core-concepts/architecture/" class="md-nav__link">
+      <a href="../../architecture/" class="md-nav__link">
         
   
   
@@ -614,28 +526,31 @@
                 
   
   
+    
   
   
+  
     
     
     
     
       
       
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
         
           
+          
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_2" >
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
         
           
-          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
             
   
   
@@ -653,7 +568,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -671,7 +586,7 @@
   
   
     <li class="md-nav__item">
-      <a href="core-concepts/render-pipeline/intro/" class="md-nav__link">
+      <a href="../intro/" class="md-nav__link">
         
   
   
@@ -699,7 +614,7 @@
   
   
     <li class="md-nav__item">
-      <a href="core-concepts/render-pipeline/render-batcher/" class="md-nav__link">
+      <a href="../render-batcher/" class="md-nav__link">
         
   
   
@@ -724,10 +639,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="core-concepts/render-pipeline/render-pipeline/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RenderPipeline
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -743,6 +685,87 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-renderpipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why RenderPipeline?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-renderpipeline-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How RenderPipeline Works?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How RenderPipeline Works?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#default-renderpipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default RenderPipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visual-resolution-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visual Resolution Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ping-pong-buffering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ping-Pong Buffering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -790,10 +813,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-is-astora-engine" class="md-nav__link">
+  <a href="#why-renderpipeline" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What is Astora Engine
+        Why RenderPipeline?
       
     </span>
   </a>
@@ -801,35 +824,52 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#design-philosophy" class="md-nav__link">
+  <a href="#how-renderpipeline-works" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Design Philosophy
+        How RenderPipeline Works?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How RenderPipeline Works?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#default-renderpipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default RenderPipeline
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#who-is-suitable" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#visual-resolution-handling" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Who is suitable?
+        Visual Resolution Handling
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#give-feedback" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#ping-pong-buffering" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Give Feedback
+        Ping-Pong Buffering
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -853,26 +893,36 @@
   
 
 
-<h1 id="welcome-to-astora-engine">Welcome to Astora Engine</h1>
-<h2 id="what-is-astora-engine">What is Astora Engine</h2>
-<p>The Astora Engine is designed to enhance the development efficiency of game developers. 
-It focuses on 2D game development, uses the C# programming language, and is built on MonoGame.</p>
+<h1 id="renderpipeline">RenderPipeline</h1>
+<p>The RenderPipeline is the manager of the rendering process. It is designed to solve these problems by organizing the rendering process into a modular, linear workflow.</p>
+<h2 id="why-renderpipeline">Why RenderPipeline?</h2>
+<p>MonoGame provides a powerful rendering method, We can clear the screen and draw sprites in a absolute positon. However, this approach has some limitations:</p>
+<ul>
+<li><strong>Lack of Modularity</strong>: The rendering process is often tightly coupled with game logic, making it difficult to manage and extend.</li>
+<li><strong>Difficult to Customize</strong>: Customizing the rendering process (e.g., adding post-processing effects, handling multiple cameras) can be cumbersome and error-prone.</li>
+<li><strong>State Management Issues</strong>: Managing rendering states (like blend modes, shaders, etc.) can become complex, especially when different objects require different states.(Fortunately, we have <a href="../render-batcher/">RenderBatcher</a> to help us manage the states.)</li>
+</ul>
+<h2 id="how-renderpipeline-works">How RenderPipeline Works?</h2>
+<p>The RenderPipeline operates by processing a series of rendering commands in a specific order. Each stage of the pipeline is responsible for a particular task, such as culling, sorting, or applying post-processing effects. This separation of concerns makes it easier to manage the rendering process and implement new features.</p>
+<p>At it's core, the RenderPipeline is Pass-based. It's a list of passes. We render them in sequence. Each Pass represents a distinct phase in the rendering process. For example, you might have passes for:</p>
+<ul>
+<li>Scene Rendering</li>
+<li>Post-Processing</li>
+<li>UI Rendering</li>
+</ul>
+<p>You can customize the RenderPipeline by adding, removing, or modifying passes to suit your game's needs.</p>
+<div class="language-cs highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">Engine</span><span class="p">.</span><span class="n">RenderPipeline</span><span class="p">.</span><span class="n">AddPass</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">SceneRenderPass</span><span class="p">());</span><span class="w">  </span><span class="c1">//Render the Game Scene  </span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">Engine</span><span class="p">.</span><span class="n">RenderPipeline</span><span class="p">.</span><span class="n">AddPass</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">PostProcessPass</span><span class="p">());</span><span class="w">  </span><span class="c1">//Apply Post-Processing Effects</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">Engine</span><span class="p">.</span><span class="n">RenderPipeline</span><span class="p">.</span><span class="n">AddPass</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">UIRenderPass</span><span class="p">());</span><span class="w">     </span><span class="c1">//Render the User Interface</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">Engine</span><span class="p">.</span><span class="n">RenderPipeline</span><span class="p">.</span><span class="n">AddPass</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">FinalCompositionPass</span><span class="p">());</span><span class="w"> </span><span class="c1">//Compose the Final Image</span>
+</span></code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Astora Engine now is building with my own game.That means it will bring broken changes</p>
+<p>This document is a work in progress and may be updated frequently.</p>
 </div>
-<h2 id="design-philosophy">Design Philosophy</h2>
-<p>Its design philosophy lies in enabling quick switching between two modes: pure code development and editor-based development.</p>
-<p>So you can use Astora Engine to build your own game with pure C# code. Then you can use editor to do some visual edit. After using the editor, you can completely abandon it and continue developing solely through pure code.</p>
-<h2 id="who-is-suitable">Who is suitable?</h2>
-<ul>
-<li>Skilled C# Programmer</li>
-<li>Basic knowledge of MonoGame/FNA/XNA</li>
-<li>Prefers pure code (occasional visual editor aid)</li>
-<li>Focusing on GameDev, Not for Tools</li>
-</ul>
-<h2 id="give-feedback">Give Feedback</h2>
-<p>If you discover any issue with the documentation and the engine. You can create an issue on Github;</p>
+<h3 id="default-renderpipeline">Default RenderPipeline</h3>
+<h3 id="visual-resolution-handling">Visual Resolution Handling</h3>
+<h3 id="ping-pong-buffering">Ping-Pong Buffering</h3>
 
 
 
@@ -928,10 +978,10 @@ It focuses on 2D game development, uses the C# programming language, and is buil
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
