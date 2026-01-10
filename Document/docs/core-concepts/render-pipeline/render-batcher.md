@@ -4,7 +4,7 @@ RenderBatcher is the encapsulation of MonoGame's SpriteBatch in Astora Engine. I
 ## About SpriteBatch
 The SpriteBatch is a batch processing system of MonoGame that allows you to draw multiple sprites with a single draw call, improving rendering performance. It uses Begin/End methods to define a batch of sprites which will be drawn together. Here is the basic usage of SpriteBatch:
 
-```cs
+``` cs
 spriteBatch.Begin(...Something Parameters...);
 spriteBatch.Draw(...);
 spriteBatch.Draw(...);
@@ -37,7 +37,7 @@ Imagine a situation, you are drawing a scene with multiple sprites. They have th
 ### The Problem: Manual State Management
 So without a manager, everything that is drawn needs to manage the rendering lifecycle itself. A simple implementation may look like this:
 
-```cs
+``` cs
 //It's in ParticleSystem render loop
 // 1. We have to interrupt the global batch because we need Additive blending
 spriteBatch.End(); 
