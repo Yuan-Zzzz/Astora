@@ -25,9 +25,24 @@ Engine.RenderPipeline.AddPass(new PostProcessPass());  //Apply Post-Processing E
 Engine.RenderPipeline.AddPass(new UIRenderPass());     //Render the User Interface
 Engine.RenderPipeline.AddPass(new FinalCompositionPass()); //Compose the Final Image
 ```
+
 !!! warning
     This document is a work in progress and may be updated frequently.
 
 ### Default RenderPipeline
+Astora Engine comes with a built-in pipeline configuration to get you standard immediately.By default,thie pipeline contains two core passes that act like  the "bread" of the sandwich,holding your rendering process together.
+
+- SceneRenderPass: It iterates through the active scene tree and draws all visable nodes. It applies the **View Matrix** provided by the active camera. This ensures that when the camera moves, the world moves relative to it. It draws the result onto an internal.
+
+- FinalCompositionPass: It takes the rendered result from the previous passes and draws it to the actual screen back-buffer.It applies a **Scale Matrix** to fit the virtual resolution to the actual window size,handling aspect ratios and letterboxing automatically.
+
+**RenderTarget**(Visual Canvas)
 ### Visual Resolution Handling
+On of the biggest challenges in 2D game development is supporting various screen sizes and aspect ratios.Astora solves this using a **Virtual Resolution System**.
+
+You define a logical resolution for your game(e.g. 1920x1080).All your game logic, coordinates,and sprites position are baesd on this fixed resolutiuon.The RenderPipeline draws everything to an internal RenderTarget that matches your Design Resolution.
+
 ### Ping-Pong Buffering
+
+!!! warning
+    TODO
