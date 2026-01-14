@@ -921,8 +921,24 @@
 <p>This document is a work in progress and may be updated frequently.</p>
 </div>
 <h3 id="default-renderpipeline">Default RenderPipeline</h3>
+<p>Astora Engine comes with a built-in pipeline configuration to get you standard immediately.By default,thie pipeline contains two core passes that act like  the "bread" of the sandwich,holding your rendering process together.</p>
+<ul>
+<li>
+<p>SceneRenderPass: It iterates through the active scene tree and draws all visable nodes. It applies the <strong>View Matrix</strong> provided by the active camera. This ensures that when the camera moves, the world moves relative to it. It draws the result onto an internal.</p>
+</li>
+<li>
+<p>FinalCompositionPass: It takes the rendered result from the previous passes and draws it to the actual screen back-buffer.It applies a <strong>Scale Matrix</strong> to fit the virtual resolution to the actual window size,handling aspect ratios and letterboxing automatically.</p>
+</li>
+</ul>
+<p><strong>RenderTarget</strong>(Visual Canvas)</p>
 <h3 id="visual-resolution-handling">Visual Resolution Handling</h3>
+<p>On of the biggest challenges in 2D game development is supporting various screen sizes and aspect ratios.Astora solves this using a <strong>Virtual Resolution System</strong>.</p>
+<p>You define a logical resolution for your game(e.g. 1920x1080).All your game logic, coordinates,and sprites position are baesd on this fixed resolutiuon.The RenderPipeline draws everything to an internal RenderTarget that matches your Design Resolution.</p>
 <h3 id="ping-pong-buffering">Ping-Pong Buffering</h3>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>TODO</p>
+</div>
 
 
 
