@@ -62,5 +62,10 @@ namespace Astora.Core.Nodes
             // ...
         }
     }
+    
+    public interface INode
+    {
+
+    }
 }
 ```
