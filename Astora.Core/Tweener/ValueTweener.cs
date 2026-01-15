@@ -150,7 +150,7 @@ public sealed class ValueTweener<T> : ITween
         public ValueTweener<T> Start()
         {
             var tween = Build();
-            TweenManager.Add(tween);
+            TweenCore.Add(tween);
             return tween;
         }
     }
