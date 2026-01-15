@@ -11,10 +11,8 @@ public static class Ease
     private const float Pi  = (float)Math.PI;
     private const float _2PI = Pi * 2f;
 
-    /* ---------- 线性 ---------- */
     public static readonly Func<float, float> Linear = t => t;
 
-    /* ---------- Quad ~ Quint ---------- */
     public static readonly Func<float, float> InQuad    = t => t * t;
     public static readonly Func<float, float> OutQuad   = t => t * (2f - t);
     public static readonly Func<float, float> InOutQuad = t => t < .5f ? 2f * t * t
@@ -38,12 +36,10 @@ public static class Ease
                                                             ? 16f * t * t * t * t * t
                                                             : 1f + 16f * (--t) * t * t * t * t;
 
-    /* ---------- Sine ---------- */
     public static readonly Func<float, float> InSine  = t => 1f - Cos(t * Pi * .5f);
     public static readonly Func<float, float> OutSine = t => Sin(t * Pi * .5f);
     public static readonly Func<float, float> InOutSine = t => -.5f * (Cos(Pi * t) - 1f);
 
-    /* ---------- Expo ---------- */
     public static readonly Func<float, float> InExpo = t =>
         t == 0f ? 0f : Pow(2f, 10f * (t - 1f));
 
@@ -59,7 +55,6 @@ public static class Ease
               :  .5f * (2f - Pow(2f, -10f * (2f * t - 1f)))
     };
 
-    /* ---------- Circ ---------- */
     public static readonly Func<float, float> InCirc  = t => 1f - Sqrt(1f - t * t);
     public static readonly Func<float, float> OutCirc = t => Sqrt(1f - (--t) * t);
     public static readonly Func<float, float> InOutCirc = t =>
@@ -70,7 +65,6 @@ public static class Ease
             :  .5f * (Sqrt(1f - (t -= 2f) * t) + 1f);
     };
 
-    /* ---------- Back ---------- */
     private const float c1 = 1.70158f;
     private const float c3 = c1 + 1f;
     public static readonly Func<float, float> InBack  = t => c3 * t * t * t - c1 * t * t;
@@ -84,7 +78,6 @@ public static class Ease
             : .5f * ((t -= 2f) * t * ((c2 + 1f) * t + c2) + 2f);
     };
 
-    /* ---------- Elastic ---------- */
     private const float c4 = _2PI / 3f;
     private const float c5 = _2PI / 4.5f;
 
@@ -113,7 +106,6 @@ public static class Ease
             :  .5f * Pow(2f, -10f * (t - 1f)) * Sin((t * 10f - 11.125f) * c5) + 1f;
     };
 
-    /* ---------- Bounce ---------- */
     private static float BounceOut(float t)
     {
         const float n1 = 7.5625f;
