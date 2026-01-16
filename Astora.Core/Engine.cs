@@ -1,6 +1,7 @@
 ﻿using Astora.Core.Project;
 using Astora.Core.Rendering.RenderPipeline;
 using Astora.Core.Rendering.RenderPipeline.RenderPass;
+using Astora.Core.Resources;
 using Astora.Core.Scene;
 using Astora.Core.Utils;
 using Microsoft.Xna.Framework;
@@ -66,6 +67,7 @@ public static class Engine
         GDM = gdm;
         CurrentScene = new SceneTree();
         RenderPipeline = new RenderPipeline(GDM.GraphicsDevice);
+        ResourceLoader.Initialize(content);
     }
 
     public static void LoadProjectConfig()

@@ -3,6 +3,7 @@ using Astora.Core.Nodes;
 using Astora.Core.Project;
 using Astora.Core.Rendering;
 using Astora.Core.Resources;
+using Astora.Core.Scene;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using YamlDotNet.Serialization;
@@ -13,7 +14,6 @@ namespace Astora.SandBox.Scripts
     public class Game1 : Game
     {
         private GraphicsDeviceManager _graphics;
-        private SpriteBatch _spriteBatch;
 
         public Game1()
         {
@@ -25,35 +25,22 @@ namespace Astora.SandBox.Scripts
         protected override void Initialize()
         {
             base.Initialize();
-            
-            _spriteBatch = new SpriteBatch(GraphicsDevice);
             Engine.Initialize(Content, _graphics);
-            LoadAndApplyProjectConfig();
-            
-             var initialScene = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Scenes", "NewScene.scene");
-             if (File.Exists(initialScene))
-             {
-                 Console.WriteLine($"加载初始场景: {initialScene}");
-                 Engine.LoadScene(initialScene);
-             }
-             
-             var magicVortex = new CPUParticles2D("MagicVortex", 500);
-           //  magicVortex.Texture = Content.Load<Texture2D>("star_particle");
+            Engine.CurrentScene.ChangeScene(new Node("Main"));
+            var xygg = ResourceLoader.Load<Texture2DResource>("/home/Yuan/Development/Astora/Astora.SandBox/bin/Debug/net8.0/Test.png");
+                var magicVortex = new CPUParticles2D("MagicVortex", 500);
              magicVortex.Position = new Vector2(400, 300);
-
-// 1. 设置发射形状为圆形 (半径 100)
              magicVortex.EmissionShape = CPUParticles2D.ParticleEmissionShape.Sphere;
-             magicVortex.EmissionBoxExtents = new Vector2(100, 0); // Y 在 Sphere 模式下忽略
+             magicVortex.EmissionBoxExtents = new Vector2(100, 0);
+             magicVortex.Texture = xygg.Texture;
 
-// 2. 设置物理：无重力，无初速度，纯靠切线加速度旋转
              magicVortex.Gravity = Vector2.Zero;
              magicVortex.InitialVelocityMin = 0f;
              magicVortex.InitialVelocityMax = 0f;
-             magicVortex.TangentialAccel = 150f; // 正值逆时针旋转，负值顺时针
+             magicVortex.TangentialAccel = 150f;
              
-             magicVortex.ScaleStart = 1.5f; // 曲线最大值时的倍率
+             magicVortex.ScaleStart = 1.5f;
 
-// 4. 颜色
              magicVortex.ColorStart = Color.Cyan;
              magicVortex.ColorEnd = Color.Transparent;
              magicVortex.Lifetime = 2.0f;
@@ -102,12 +89,9 @@ namespace Astora.SandBox.Scripts
             base.Update(gameTime);
         }
 
-        Texture2D ani;
-
         protected override void LoadContent()
         {
             base.LoadContent();
-            ani = Texture2D.FromFile(GraphicsDevice, "../../../Content/Test.png");
         }
 
         protected override void Draw(GameTime gameTime)
