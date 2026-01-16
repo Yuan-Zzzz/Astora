@@ -70,7 +70,7 @@ namespace Astora.Editor
             if (File.Exists(fontPath))
             {
                 // 添加微软雅黑字体，字体大小设置为 18，并包含中文字符范围
-                io.Fonts.AddFontFromFileTTF(fontPath, 18.0f, null, io.Fonts.GetGlyphRangesChineseSimplifiedCommon());
+                io.Fonts.AddFontFromFileTTF(fontPath, 18.0f, null, io.Fonts.GetGlyphRangesChineseFull());
             }
             else
             {
