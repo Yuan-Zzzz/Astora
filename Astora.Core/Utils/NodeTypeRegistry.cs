@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Reflection;
 using Astora.Core;
 using Astora.Core.Nodes;
@@ -102,12 +101,7 @@ namespace Astora.Core.Utils
                 }
                 catch (Exception ex)
                 {
-                    // 只记录非 ReflectionTypeLoadException 的异常
-                    // ReflectionTypeLoadException 已经在 DiscoverTypesFromAssembly 中处理
-                    if (!(ex is ReflectionTypeLoadException))
-                    {
-                        System.Console.WriteLine($"扫描优先程序集失败: {ex.Message}");
-                    }
+                    System.Console.WriteLine($"Scanning priority assembly failed: {ex.Message}");
                 }
             }
             
@@ -180,25 +174,7 @@ namespace Astora.Core.Utils
         /// </summary>
         private void DiscoverTypesFromAssembly(Assembly assembly, Type nodeBaseType, HashSet<string> seenTypeNames, bool isPriority)
         {
-            Type[] types;
-            try
-            {
-                types = assembly.GetTypes();
-            }
-            catch (ReflectionTypeLoadException ex)
-            {
-                // 如果某些类型无法加载（例如依赖的程序集缺失），只处理能够成功加载的类型
-                types = ex.Types.Where(t => t != null).ToArray()!;
-                
-                // 只记录一次警告，避免重复输出
-                if (types.Length < (ex.Types?.Length ?? 0))
-                {
-                    int failedCount = (ex.Types?.Length ?? 0) - types.Length;
-                    System.Console.WriteLine($"警告: 程序集 {assembly.GetName().Name} 中有 {failedCount} 个类型无法加载（可能是缺少依赖项），已跳过");
-                }
-            }
-            
-            var nodeTypes = types
+            var types = assembly.GetTypes()
                 .Where(t => 
                     !t.IsAbstract && 
                     !t.IsInterface && 
@@ -207,7 +183,7 @@ namespace Astora.Core.Utils
                     t != nodeBaseType &&
                     HasSuitableConstructor(t));
             
-            foreach (var type in nodeTypes)
+            foreach (var type in types)
             {
                 var fullTypeName = type.FullName ?? type.Name;
                 
