@@ -38,15 +38,6 @@ namespace Astora.Editor.UI
                 return;
             }
             
-            // Basic properties
-            ImGui.Text("Name:");
-            ImGui.SameLine();
-            var name = node.Name;
-            if (ImGui.InputText("##Name", ref name, 256))
-            {
-                node.Name = name;
-            }
-            
             // Display node type
             ImGui.Text("Type:");
             ImGui.SameLine();
@@ -54,156 +45,8 @@ namespace Astora.Editor.UI
             
             ImGui.Separator();
             
-            // If Node2D, show transform properties
-            if (node is Node2D node2d)
-            {
-                ImGui.Separator();
-                ImGui.Text("Transform");
-                
-                var pos = new Vector2(node2d.Position.X, node2d.Position.Y);
-                if (ImGui.DragFloat2("Position", ref pos))
-                {
-                    node2d.Position = new Microsoft.Xna.Framework.Vector2(pos.X, pos.Y);
-                }
-                
-                // Rotation
-                var rot = MathHelper.ToDegrees(node2d.Rotation);
-                if (ImGui.DragFloat("Rotation", ref rot))
-                {
-                    node2d.Rotation = MathHelper.ToRadians(rot);
-                }
-                
-                
-                var scale = new Vector2(node2d.Scale.X, node2d.Scale.Y);
-                if (ImGui.DragFloat2("Scale", ref scale))
-                {
-                    node2d.Scale = new Microsoft.Xna.Framework.Vector2(scale.X, scale.Y);
-                }
-            }
-            
-            // If Sprite, show Sprite properties
-            if (node is Sprite sprite)
-            {
-                ImGui.Separator();
-                ImGui.Text("Sprite");
-                
-                // 纹理显示和拖拽接收
-                ImGui.Text("Texture:");
-                ImGui.SameLine();
-                
-                // 显示当前纹理状态
-                if (sprite.Texture != null)
-                {
-                    ImGui.TextColored(new Vector4(0, 1, 0, 1), $"Loaded ({sprite.Texture.Width}x{sprite.Texture.Height})");
-                }
-                else
-                {
-                    ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1), "None (Default: 64x64 white)");
-                }
-                
-                // 纹理预览区域（可拖拽）- 自适应大小
-                Vector2 previewSize;
-                if (sprite.Texture != null)
-                {
-                    previewSize = CalculateAdaptivePreviewSize(sprite.Texture.Width, sprite.Texture.Height);
-                }
-                else
-                {
-                    previewSize = new Vector2(128, 128); // 默认占位符大小
-                }
-                
-                var texturePreviewId = sprite.Texture != null ? GetTexturePreviewId(sprite.Texture) : IntPtr.Zero;
-                
-                // 使用一个组来包装预览区域，使其成为拖拽目标
-                ImGui.BeginGroup();
-                
-                if (texturePreviewId != IntPtr.Zero)
-                {
-                    ImGui.Image(texturePreviewId, previewSize);
-                }
-                else
-                {
-                    // 显示占位符
-                    var drawList = ImGui.GetWindowDrawList();
-                    var min = ImGui.GetCursorScreenPos();
-                    var max = new System.Numerics.Vector2(min.X + previewSize.X, min.Y + previewSize.Y);
-                    drawList.AddRectFilled(min, max, ImGui.GetColorU32(new Vector4(0.3f, 0.3f, 0.3f, 1)));
-                    drawList.AddRect(min, max, ImGui.GetColorU32(new Vector4(0.5f, 0.5f, 0.5f, 1)));
-                    ImGui.Dummy(previewSize);
-                }
-                
-                // 拖拽接收区域（整个预览区域都可以接收拖拽）
-                if (ImGui.BeginDragDropTarget())
-                {
-                    unsafe
-                    {
-                        var payload = ImGui.AcceptDragDropPayload("TEXTURE_FILE_PATH");
-                        if (payload.NativePtr != (void*)IntPtr.Zero)
-                        {
-                            unsafe
-                            {
-                                var dataSize = (int)payload.DataSize;
-                                if (dataSize > 0)
-                                {
-                                    var data = new byte[dataSize];
-                                    System.Runtime.InteropServices.Marshal.Copy(payload.Data, data, 0, dataSize);
-                                    var filePath = System.Text.Encoding.UTF8.GetString(data);
-                                    if (!string.IsNullOrEmpty(filePath))
-                                    {
-                                        LoadTextureForSprite(sprite, filePath);
-                                    }
-                                }
-                            }
-                        }
-                        ImGui.EndDragDropTarget();
-                    }
-                }
-                
-                ImGui.EndGroup();
-                
-                // 清除纹理按钮
-                if (sprite.Texture != null)
-                {
-                    ImGui.SameLine();
-                    if (ImGui.Button("Clear"))
-                    {
-                        sprite.Texture = null!; // 允许设置为null，Sprite类会处理默认纹理
-                        sprite.Origin = new Microsoft.Xna.Framework.Vector2(32, 32); // 默认64x64的中心
-                    }
-                }
-                
-                var modulate = new Vector4(
-                    sprite.Modulate.R / 255f,
-                    sprite.Modulate.G / 255f,
-                    sprite.Modulate.B / 255f,
-                    sprite.Modulate.A / 255f
-                );
-                if (ImGui.ColorEdit4("Color", ref modulate))
-                {
-                    sprite.Modulate = new Microsoft.Xna.Framework.Color(
-                        (byte)(modulate.X * 255),
-                        (byte)(modulate.Y * 255),
-                        (byte)(modulate.Z * 255),
-                        (byte)(modulate.W * 255)
-                    );
-                }
-            }
-            
-            // If Camera2D, show camera properties
-            if (node is Camera2D camera)
-            {
-                ImGui.Separator();
-                ImGui.Text("Camera");
-                
-                var zoom = camera.Zoom;
-                if (ImGui.DragFloat("Zoom", ref zoom, 0.1f))
-                {
-                    camera.Zoom = zoom;
-                }
-            }
-            
-            // Render serialized fields (properties that are not already displayed above)
-            RenderSerializedFields(node);
+            // Automatically render all serializable fields using reflection
+            RenderSerializableFields(node);
             
             ImGui.End();
         }
@@ -385,69 +228,96 @@ namespace Astora.Editor.UI
         }
         
         /// <summary>
-        /// 渲染节点的序列化字段（只显示标记了 [SerializeField] 的字段）
+        /// 渲染节点的所有可序列化字段（Unity风格：公共字段 + 标记了 [SerializeField] 的私有字段）
         /// </summary>
-        private void RenderSerializedFields(Node node)
+        private void RenderSerializableFields(Node node)
         {
             // 与 YamlSceneSerializer 相同的忽略字段列表
             var ignoredFields = new HashSet<string>
             {
                 "_parent",
                 "_children",
-                "_isQueuedForDeletion"
+                "_isQueuedForDeletion",
+                "_defaultWhiteTexture",
+                "_texture",          // Sprite runtime field
+                "_effect",           // Sprite runtime field
+                "_blendState"        // Sprite runtime field
             };
             
-            // 获取所有实例字段（包括私有和公共）
-            var type = node.GetType();
-            var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-                .Where(f => !ignoredFields.Contains(f.Name));
+            // 收集所有类型的字段（从基类到派生类）
+            var nodeType = node.GetType();
+            var typeHierarchy = new List<Type>();
+            var currentType = nodeType;
             
-            var serializedFields = new List<FieldInfo>();
-            
-            foreach (var field in fields)
+            // 构建类型层次结构（从派生类到基类）
+            while (currentType != null && currentType != typeof(object))
             {
-                // 只显示标记了 [SerializeField] 的字段
-                if (!field.IsDefined(typeof(SerializeFieldAttribute), false))
-                    continue;
-                
-                var value = field.GetValue(node);
-                if (value == null) continue;
-                
-                var fieldType = field.FieldType;
-                
-                // 检查是否是支持的类型
-                if (IsSerializableType(fieldType))
-                {
-                    serializedFields.Add(field);
-                }
+                typeHierarchy.Add(currentType);
+                currentType = currentType.BaseType;
             }
             
-            // 如果有序列化字段，显示它们
-            if (serializedFields.Count > 0)
+            // 反转，使其从基类到派生类
+            typeHierarchy.Reverse();
+            
+            // 按类型层次遍历并显示字段
+            foreach (var declaringType in typeHierarchy)
             {
-                ImGui.Separator();
-                ImGui.Text("Serialized Fields");
+                var fields = declaringType.GetFields(BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                    .Where(f => !ignoredFields.Contains(f.Name) && !f.IsStatic)
+                    .ToList();
                 
-                foreach (var field in serializedFields)
+                var displayableFields = new List<FieldInfo>();
+                
+                foreach (var field in fields)
                 {
-                    RenderField(node, field);
+                    // Unity风格规则：公共字段 或 标记了 [SerializeField] 的私有字段
+                    bool shouldDisplay = field.IsPublic || field.IsDefined(typeof(SerializeFieldAttribute), false);
+                    
+                    if (!shouldDisplay)
+                        continue;
+                    
+                    var fieldType = field.FieldType;
+                    
+                    // 检查是否是支持的类型
+                    if (IsDisplayableType(fieldType))
+                    {
+                        displayableFields.Add(field);
+                    }
+                }
+                
+                // 如果有可显示的字段，显示分组标题和字段
+                if (displayableFields.Count > 0)
+                {
+                    ImGui.Separator();
+                    ImGui.Text(declaringType.Name);
+                    
+                    foreach (var field in displayableFields)
+                    {
+                        RenderField(node, field);
+                    }
                 }
             }
         }
         
         /// <summary>
-        /// 检查类型是否可序列化（与 YamlSceneSerializer.SerializeField 的逻辑一致）
+        /// 检查类型是否可以在Inspector中显示
         /// </summary>
-        private bool IsSerializableType(Type fieldType)
+        private bool IsDisplayableType(Type fieldType)
         {
-            if (fieldType == typeof(Vector2))
+            if (fieldType == typeof(Microsoft.Xna.Framework.Vector2))
                 return true;
             
             if (fieldType == typeof(Color))
                 return true;
+                
+            if (fieldType == typeof(Rectangle) || fieldType == typeof(Rectangle?))
+                return true;
             
-            if (fieldType == typeof(Texture2D))
-                return false; // Texture2D 不序列化
+            // Don't display runtime objects
+            if (fieldType == typeof(Texture2D) || 
+                fieldType == typeof(Effect) || 
+                fieldType == typeof(BlendState))
+                return false;
             
             if (fieldType.IsPrimitive ||
                 fieldType == typeof(string) ||
@@ -468,10 +338,20 @@ namespace Astora.Editor.UI
         private void RenderField(Node node, FieldInfo field)
         {
             var value = field.GetValue(node);
-            if (value == null) return;
-            
             var fieldType = field.FieldType;
-            var fieldName = field.Name;
+            var fieldName = GetDisplayName(field.Name);
+            
+            // Special handling for rotation (convert to degrees)
+            if (field.Name == "_rotation" && fieldType == typeof(float))
+            {
+                var rotationRad = (float)value;
+                var rotationDeg = MathHelper.ToDegrees(rotationRad);
+                if (ImGui.DragFloat(fieldName, ref rotationDeg))
+                {
+                    field.SetValue(node, MathHelper.ToRadians(rotationDeg));
+                }
+                return;
+            }
             
             // 根据类型渲染不同的控件
             if (fieldType == typeof(float))
@@ -537,7 +417,7 @@ namespace Astora.Editor.UI
                     ));
                 }
             }
-            else if (fieldType == typeof(Vector2))
+            else if (fieldType == typeof(Microsoft.Xna.Framework.Vector2))
             {
                 var vec = (Microsoft.Xna.Framework.Vector2)value;
                 var vec2 = new Vector2(vec.X, vec.Y);
@@ -546,6 +426,55 @@ namespace Astora.Editor.UI
                     field.SetValue(node, new Microsoft.Xna.Framework.Vector2(vec2.X, vec2.Y));
                 }
             }
+            else if (fieldType == typeof(Rectangle) || fieldType == typeof(Rectangle?))
+            {
+                if (value is Rectangle rect)
+                {
+                    ImGui.Text($"{fieldName}:");
+                    
+                    var x = rect.X;
+                    var y = rect.Y;
+                    var width = rect.Width;
+                    var height = rect.Height;
+                    
+                    ImGui.Indent();
+                    bool changed = false;
+                    changed |= ImGui.DragInt("X", ref x);
+                    changed |= ImGui.DragInt("Y", ref y);
+                    changed |= ImGui.DragInt("Width", ref width);
+                    changed |= ImGui.DragInt("Height", ref height);
+                    ImGui.Unindent();
+                    
+                    if (changed)
+                    {
+                        field.SetValue(node, new Rectangle(x, y, width, height));
+                    }
+                }
+                else
+                {
+                    ImGui.Text($"{fieldName}: None");
+                    if (ImGui.Button($"Create##{fieldName}"))
+                    {
+                        field.SetValue(node, new Rectangle(0, 0, 100, 100));
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 将字段名称转换为显示名称（移除下划线前缀，转换为友好格式）
+        /// </summary>
+        private string GetDisplayName(string fieldName)
+        {
+            // 移除下划线前缀
+            if (fieldName.StartsWith("_"))
+                fieldName = fieldName.Substring(1);
+            
+            // 首字母大写
+            if (fieldName.Length > 0)
+                fieldName = char.ToUpper(fieldName[0]) + fieldName.Substring(1);
+            
+            return fieldName;
         }
     }
 }

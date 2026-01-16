@@ -35,11 +35,21 @@ namespace Astora.Core.Utils
             { nameof(Camera2D), name => new Camera2D(name) }
         };
 
-        private static readonly HashSet<string> IgnoredFields = new()
+        private static readonly HashSet<string> IgnoredFieldNames = new()
         {
             "_parent",
             "_children",
-            "_isQueuedForDeletion"
+            "_isQueuedForDeletion",
+            "_defaultWhiteTexture" // Static field in Sprite
+        };
+        
+        private static readonly HashSet<string> IgnoredPropertyNames = new()
+        {
+            "Parent",
+            "Children",
+            "IsQueuedForDeletion",
+            "GlobalTransform",
+            "GlobalPosition"
         };
 
         public YamlSceneSerializer()
@@ -85,17 +95,18 @@ namespace Astora.Core.Utils
 
             var type = node.GetType();
             var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-                .Where(f => !IgnoredFields.Contains(f.Name));
+                .Where(f => !IgnoredFieldNames.Contains(f.Name) && !f.IsStatic);
 
             foreach (var field in fields)
             {
-                if (!field.IsDefined(typeof(SerializeFieldAttribute), false))
+                bool shouldSerialize = field.IsPublic || field.IsDefined(typeof(SerializeFieldAttribute), false);
+                
+                if (!shouldSerialize)
                     continue;
 
                 var value = field.GetValue(node);
-                if (value == null) continue;
-
-                var serializedValue = SerializeField(field.FieldType, value);
+                
+                var serializedValue = SerializeField(field.FieldType, value, field.Name);
                 if (serializedValue != null)
                 {
                     serialized.Properties[field.Name] = serializedValue;
@@ -110,8 +121,12 @@ namespace Astora.Core.Utils
             return serialized;
         }
 
-        private object? SerializeField(Type fieldType, object value)
+        private object? SerializeField(Type fieldType, object value, string fieldName)
         {
+            // Handle null values
+            if (value == null)
+                return null;
+            
             if (fieldType == typeof(Vector2))
             {
                 var vec = (Vector2)value;
@@ -129,8 +144,26 @@ namespace Astora.Core.Utils
                     { "a", color.A }
                 };
             }
+            
+            if (fieldType == typeof(Rectangle) || fieldType == typeof(Rectangle?))
+            {
+                if (value is Rectangle rect)
+                {
+                    return new Dictionary<string, int>
+                    {
+                        { "x", rect.X },
+                        { "y", rect.Y },
+                        { "width", rect.Width },
+                        { "height", rect.Height }
+                    };
+                }
+                return null;
+            }
 
-            if (fieldType == typeof(Texture2D))
+            // Don't serialize Texture2D, Effect, or BlendState (runtime objects)
+            if (fieldType == typeof(Texture2D) || 
+                fieldType == typeof(Effect) || 
+                fieldType == typeof(BlendState))
             {
                 return null;
             }
@@ -168,20 +201,22 @@ namespace Astora.Core.Utils
             {
                 var type = node.GetType();
                 var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-                    .Where(f => !IgnoredFields.Contains(f.Name));
+                    .Where(f => !IgnoredFieldNames.Contains(f.Name) && !f.IsStatic);
 
                 foreach (var field in fields)
                 {
-                    if (!field.IsDefined(typeof(SerializeFieldAttribute), false))
+                    bool shouldDeserialize = field.IsPublic || field.IsDefined(typeof(SerializeFieldAttribute), false);
+                    
+                    if (!shouldDeserialize)
                         continue;
 
-                    if (!serialized.Properties.TryGetValue(field.Name, out var value) || value == null)
+                    if (!serialized.Properties.TryGetValue(field.Name, out var value))
                         continue;
 
                     try
                     {
                         var deserializedValue = DeserializeField(field.FieldType, value, field.Name);
-                        if (deserializedValue != null)
+                        if (deserializedValue != null || (value == null && !field.FieldType.IsValueType))
                         {
                             field.SetValue(node, deserializedValue);
                         }
@@ -252,6 +287,15 @@ namespace Astora.Core.Utils
                 var b = GetDictValue<int>(colorDict, "b") ?? 255;
                 var a = GetDictValue<int>(colorDict, "a") ?? 255;
                 return new Color(r, g, b, a);
+            }
+            
+            if ((fieldType == typeof(Rectangle) || fieldType == typeof(Rectangle?)) && value is IDictionary rectDict)
+            {
+                var x = GetDictValue<int>(rectDict, "x") ?? 0;
+                var y = GetDictValue<int>(rectDict, "y") ?? 0;
+                var width = GetDictValue<int>(rectDict, "width") ?? 0;
+                var height = GetDictValue<int>(rectDict, "height") ?? 0;
+                return new Rectangle(x, y, width, height);
             }
 
             if (fieldType == typeof(Texture2D) && value is string texturePath)

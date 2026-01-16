@@ -1,10 +1,27 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Astora.Core.Attributes;
+using Microsoft.Xna.Framework;
+
 namespace Astora.Core.Nodes
 {
     public class Camera2D : Node2D
     {
-        public float Zoom { get; set; } = 1.0f;
-        public Vector2 Origin { get; set; }
+        [SerializeField]
+        private float _zoom = 1.0f;
+        
+        [SerializeField]
+        private Vector2 _origin;
+        
+        public float Zoom 
+        { 
+            get => _zoom; 
+            set => _zoom = value; 
+        }
+        
+        public Vector2 Origin 
+        { 
+            get => _origin; 
+            set => _origin = value; 
+        }
         
         public Camera2D(string name = "Camera2D") : base(name)
         {
@@ -50,7 +67,7 @@ namespace Astora.Core.Nodes
             if (Engine.GDM.GraphicsDevice != null)
             {
                 var vp = Engine.GDM.GraphicsDevice.Viewport;
-                Origin = new Vector2(vp.Width / 2f, vp.Height / 2f);
+                _origin = new Vector2(vp.Width / 2f, vp.Height / 2f);
             }
         }
     }

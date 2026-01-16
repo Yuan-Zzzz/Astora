@@ -1,4 +1,5 @@
 ﻿using Astora.Core;
+using Astora.Core.Attributes;
 using Astora.Core.Rendering.RenderPipeline;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -7,13 +8,73 @@ namespace Astora.Core.Nodes
 {
     public class Sprite : Node2D
     {
-        public Texture2D Texture { get; set; }
-        public Vector2 Origin { get; set; }
-        public Color Modulate { get; set; } = Color.White;
-        public Effect? Effect { get; set; }
-        public Rectangle? Region { get; set; }
-        public Vector2 Offset { get; set; } = Vector2.Zero;
-        public BlendState BlendState { get; set; } = BlendState.AlphaBlend;
+        [SerializeField]
+        private string _texturePath = "";
+        
+        [SerializeField]
+        private Vector2 _origin;
+        
+        [SerializeField]
+        private Color _modulate = Color.White;
+        
+        [SerializeField]
+        private Vector2 _offset = Vector2.Zero;
+        
+        [SerializeField]
+        private Rectangle? _region;
+        
+        // Non-serialized runtime fields
+        private Texture2D _texture;
+        private Effect? _effect;
+        private BlendState _blendState = BlendState.AlphaBlend;
+        
+        public Texture2D Texture 
+        { 
+            get => _texture; 
+            set => _texture = value; 
+        }
+        
+        public Vector2 Origin 
+        { 
+            get => _origin; 
+            set => _origin = value; 
+        }
+        
+        public Color Modulate 
+        { 
+            get => _modulate; 
+            set => _modulate = value; 
+        }
+        
+        public Effect? Effect 
+        { 
+            get => _effect; 
+            set => _effect = value; 
+        }
+        
+        public Rectangle? Region 
+        { 
+            get => _region; 
+            set => _region = value; 
+        }
+        
+        public Vector2 Offset 
+        { 
+            get => _offset; 
+            set => _offset = value; 
+        }
+        
+        public BlendState BlendState 
+        { 
+            get => _blendState; 
+            set => _blendState = value; 
+        }
+        
+        public string TexturePath
+        {
+            get => _texturePath;
+            set => _texturePath = value;
+        }
 
         // Default white texture for sprites without assigned texture
         private static Texture2D? _defaultWhiteTexture;
@@ -21,12 +82,12 @@ namespace Astora.Core.Nodes
 
         public Sprite(string name, Texture2D texture) : base(name)
         {
-            Texture = texture;
+            _texture = texture;
             //The default origin is the center of the texture
             if (texture != null)
-                Origin = new Vector2(texture.Width / 2f, texture.Height / 2f);
+                _origin = new Vector2(texture.Width / 2f, texture.Height / 2f);
             else
-                Origin = new Vector2(DefaultSize / 2f, DefaultSize / 2f);
+                _origin = new Vector2(DefaultSize / 2f, DefaultSize / 2f);
         }
 
         public override void Draw(RenderBatcher renderBatcher)

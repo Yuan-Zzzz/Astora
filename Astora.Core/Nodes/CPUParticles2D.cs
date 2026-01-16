@@ -1,4 +1,5 @@
 ﻿using System;
+using Astora.Core.Attributes;
 using Astora.Core.Rendering.RenderPipeline;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -33,92 +34,252 @@ namespace Astora.Core.Nodes
             Sphere
         }
         
-        public ParticleEmissionShape EmissionShape { get; set; } = ParticleEmissionShape.Point;
+        [SerializeField]
+        private ParticleEmissionShape _emissionShape = ParticleEmissionShape.Point;
+        
+        [SerializeField]
+        private Vector2 _emissionBoxExtents = new Vector2(10f, 10f);
+        
+        [SerializeField]
+        private float _emissionSphereRadius = 10f;
+        
+        [SerializeField]
+        private float _tangentialAccel = 0f;
+        
+        [SerializeField]
+        private bool _emitting = true;
+        
+        [SerializeField]
+        private int _amount = 100;
+        
+        [SerializeField]
+        private bool _oneShot = false;
+        
+        [SerializeField]
+        private float _lifetime = 1.0f;
+        
+        [SerializeField]
+        private bool _localCoords = false;
+        
+        [SerializeField]
+        private Vector2 _gravity = new Vector2(0, 980f);
+        
+        [SerializeField]
+        private Vector2 _direction = new Vector2(1, 0);
+        
+        [SerializeField]
+        private float _spread = 45f;
+        
+        [SerializeField]
+        private float _initialVelocityMin = 100f;
+        
+        [SerializeField]
+        private float _initialVelocityMax = 200f;
+        
+        [SerializeField]
+        private float _angularVelocity = 0f;
+        
+        [SerializeField]
+        private Color _colorStart = Color.White;
+        
+        [SerializeField]
+        private Color _colorEnd = Color.Transparent;
+        
+        [SerializeField]
+        private float _scaleStart = 1.0f;
+        
+        [SerializeField]
+        private float _scaleEnd = 1.0f;
+        
+        // Non-serialized runtime fields
+        private Texture2D _texture;
+        private BlendState _blendState = BlendState.AlphaBlend;
+        
+        public ParticleEmissionShape EmissionShape 
+        { 
+            get => _emissionShape; 
+            set => _emissionShape = value; 
+        }
+        
         /// <summary>
         /// Extents of the emission box shape
         /// </summary>
-        public Vector2 EmissionBoxExtents { get; set; } = new Vector2(10f, 10f);
+        public Vector2 EmissionBoxExtents 
+        { 
+            get => _emissionBoxExtents; 
+            set => _emissionBoxExtents = value; 
+        }
+        
         /// <summary>
         /// Emission sphere radius
         /// </summary>
-        public float EmissionSphereRadius { get; set; } = 10f;
+        public float EmissionSphereRadius 
+        { 
+            get => _emissionSphereRadius; 
+            set => _emissionSphereRadius = value; 
+        }
         
         /// <summary>
         /// Radial acceleration applied to particles
         /// </summary>
-        public float TangentialAccel { get; set; } = 0f;
+        public float TangentialAccel 
+        { 
+            get => _tangentialAccel; 
+            set => _tangentialAccel = value; 
+        }
         
         /// <summary>
         /// Texture used for particles
         /// </summary>
-        public Texture2D Texture { get; set; }
+        public Texture2D Texture 
+        { 
+            get => _texture; 
+            set => _texture = value; 
+        }
+        
         /// <summary>
         /// Whether the particle system is currently emitting particles
         /// </summary>
-        public bool Emitting { get; set; } = true;
+        public bool Emitting 
+        { 
+            get => _emitting; 
+            set => _emitting = value; 
+        }
+        
         /// <summary>
         /// Particle pool size
         /// </summary>
-        public int Amount { get; private set; } = 100;
+        public int Amount 
+        { 
+            get => _amount; 
+            private set => _amount = value; 
+        }
+        
         /// <summary>
         /// Particle system will emit all particles once and stop
         /// </summary>
-        public bool OneShot { get; set; } = false;
+        public bool OneShot 
+        { 
+            get => _oneShot; 
+            set => _oneShot = value; 
+        }
+        
         /// <summary>
         /// Lifetime of each particle in seconds
         /// </summary>
-        public float Lifetime { get; set; } = 1.0f;
+        public float Lifetime 
+        { 
+            get => _lifetime; 
+            set => _lifetime = value; 
+        }
+        
         /// <summary>
         /// Whether particles use local coordinates (true) or global coordinates (false)
         /// </summary>
-        public bool LocalCoords { get; set; } = false;
+        public bool LocalCoords 
+        { 
+            get => _localCoords; 
+            set => _localCoords = value; 
+        }
         
         /// <summary>
         /// Simulation space gravity applied to particles
         /// </summary>
-        public Vector2 Gravity { get; set; } = new Vector2(0, 980f);
+        public Vector2 Gravity 
+        { 
+            get => _gravity; 
+            set => _gravity = value; 
+        }
+        
         /// <summary>
         /// Initial emission direction of particles
         /// </summary>
-        public Vector2 Direction { get; set; } = new Vector2(1, 0); 
+        public Vector2 Direction 
+        { 
+            get => _direction; 
+            set => _direction = value; 
+        }
+        
         /// <summary>
         /// Spread angle in degrees around the Direction vector
         /// </summary>
-        public float Spread { get; set; } = 45f;
+        public float Spread 
+        { 
+            get => _spread; 
+            set => _spread = value; 
+        }
+        
         /// <summary>
         /// Minimum initial velocity of particles
         /// </summary>
-        public float InitialVelocityMin { get; set; } = 100f;
+        public float InitialVelocityMin 
+        { 
+            get => _initialVelocityMin; 
+            set => _initialVelocityMin = value; 
+        }
+        
         /// <summary>
         /// Maximum initial velocity of particles
         /// </summary>
-        public float InitialVelocityMax { get; set; } = 200f;
+        public float InitialVelocityMax 
+        { 
+            get => _initialVelocityMax; 
+            set => _initialVelocityMax = value; 
+        }
+        
         /// <summary>
         /// Angular velocity applied to particles in radians per second
         /// </summary>
-        public float AngularVelocity { get; set; } = 0f; 
+        public float AngularVelocity 
+        { 
+            get => _angularVelocity; 
+            set => _angularVelocity = value; 
+        }
         
         /// <summary>
         /// Starting color of particles
         /// </summary>
-        public Color ColorStart { get; set; } = Color.White;
+        public Color ColorStart 
+        { 
+            get => _colorStart; 
+            set => _colorStart = value; 
+        }
+        
         /// <summary>
         /// Ending color of particles
         /// </summary>
-        public Color ColorEnd { get; set; } = Color.Transparent;
+        public Color ColorEnd 
+        { 
+            get => _colorEnd; 
+            set => _colorEnd = value; 
+        }
+        
         /// <summary>
         /// Starting scale of particles
         /// </summary>
-        public float ScaleStart { get; set; } = 1.0f;
+        public float ScaleStart 
+        { 
+            get => _scaleStart; 
+            set => _scaleStart = value; 
+        }
+        
         /// <summary>
         /// Ending scale of particles
         /// </summary>
-        public float ScaleEnd { get; set; } = 1.0f;
+        public float ScaleEnd 
+        { 
+            get => _scaleEnd; 
+            set => _scaleEnd = value; 
+        }
 
         /// <summary>
         /// Blend state used for rendering particles
         /// </summary>
-        public BlendState BlendState { get; set; } = BlendState.AlphaBlend;
+        public BlendState BlendState 
+        { 
+            get => _blendState; 
+            set => _blendState = value; 
+        }
 
         private Particle[] _particles;
         private Random _random;
@@ -128,6 +289,7 @@ namespace Astora.Core.Nodes
         public CPUParticles2D(string name, int amount = 100) : base(name)
         {
             _random = new Random();
+            _amount = amount;
             ResizePool(amount);
         }
 
@@ -136,9 +298,9 @@ namespace Astora.Core.Nodes
         /// </summary>
         public void ResizePool(int newAmount)
         {
-            Amount = newAmount;
-            _particles = new Particle[Amount];
-            for (int i = 0; i < Amount; i++)
+            _amount = newAmount;
+            _particles = new Particle[_amount];
+            for (int i = 0; i < _amount; i++)
             {
                 _particles[i] = new Particle { IsActive = false };
             }

@@ -1,4 +1,5 @@
 ﻿using System;
+using Astora.Core.Attributes;
 using Astora.Core.Resources;
 using Microsoft.Xna.Framework;
 
@@ -6,7 +7,14 @@ namespace Astora.Core.Nodes
 {
     public class AnimatedSprite : Sprite
     {
-        public SpriteFrames Frames { get; set; }
+        // Non-serialized runtime field
+        private SpriteFrames _frames;
+        
+        public SpriteFrames Frames 
+        { 
+            get => _frames; 
+            set => _frames = value; 
+        }
 
         public string Animation 
         { 
@@ -28,7 +36,15 @@ namespace Astora.Core.Nodes
             }
         }
 
-        public float SpeedScale { get; set; } = 1.0f;
+        [SerializeField]
+        private float _speedScale = 1.0f;
+        
+        public float SpeedScale 
+        { 
+            get => _speedScale; 
+            set => _speedScale = value; 
+        }
+        
         public bool Playing { get; private set; } = false;
         
         public event Action<string> OnAnimationFinished;
@@ -41,10 +57,10 @@ namespace Astora.Core.Nodes
 
         public AnimatedSprite(string name, SpriteFrames frames = null) : base(name, null)
         {
-            Frames = frames;
-            if (Frames != null)
+            _frames = frames;
+            if (_frames != null)
             {
-                Texture = Frames.Texture;
+                Texture = _frames.Texture;
             }
         }
         

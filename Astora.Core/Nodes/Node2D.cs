@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Astora.Core.Attributes;
+using Microsoft.Xna.Framework;
 
 namespace Astora.Core.Nodes
 {
@@ -10,17 +11,38 @@ namespace Astora.Core.Nodes
         /// <summary>
         /// Node Position in 2D Space
         /// </summary>
-        public Vector2 Position { get; set; } = Vector2.Zero;
+        [SerializeField]
+        private Vector2 _position = Vector2.Zero;
+        
+        public Vector2 Position 
+        { 
+            get => _position; 
+            set => _position = value; 
+        }
         
         /// <summary>
         /// Node Rotation in Radians
         /// </summary>
-        public float Rotation { get; set; } = 0f;
+        [SerializeField]
+        private float _rotation = 0f;
+        
+        public float Rotation 
+        { 
+            get => _rotation; 
+            set => _rotation = value; 
+        }
         
         /// <summary>
         /// Node Scale in 2D Space
         /// </summary>
-        public Vector2 Scale { get; set; } = Vector2.One;
+        [SerializeField]
+        private Vector2 _scale = Vector2.One;
+        
+        public Vector2 Scale 
+        { 
+            get => _scale; 
+            set => _scale = value; 
+        }
 
         public Node2D(string name = "Node2D") : base(name) { }
         

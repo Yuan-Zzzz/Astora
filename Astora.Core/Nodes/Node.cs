@@ -1,4 +1,5 @@
-﻿using Astora.Core.Rendering.RenderPipeline;
+﻿using Astora.Core.Attributes;
+using Astora.Core.Rendering.RenderPipeline;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -9,7 +10,14 @@ namespace Astora.Core.Nodes
         /// <summary>
         /// Name of the node for identification
         /// </summary>
-        public string Name { get; set; }
+        [SerializeField] 
+        private string _name = "Node";
+        
+        public string Name 
+        { 
+            get => _name; 
+            set => _name = value; 
+        }
         
         /// <summary>
         /// Parent node in the hierarchy
@@ -26,11 +34,11 @@ namespace Astora.Core.Nodes
 
         public Node()
         {
-            Name = "Node";
+            _name = "Node";
         }
         public Node(string name = "Node")
         {
-            Name = name;
+            _name = name;
         }
 
         #region Child Management

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Reflection;
 using Astora.Core;
 using Astora.Core.Nodes;
@@ -101,7 +102,12 @@ namespace Astora.Core.Utils
                 }
                 catch (Exception ex)
                 {
-                    System.Console.WriteLine($"Scanning priority assembly failed: {ex.Message}");
+                    // 只记录非 ReflectionTypeLoadException 的异常
+                    // ReflectionTypeLoadException 已经在 DiscoverTypesFromAssembly 中处理
+                    if (!(ex is ReflectionTypeLoadException))
+                    {
+                        System.Console.WriteLine($"扫描优先程序集失败: {ex.Message}");
+                    }
                 }
             }
             
@@ -174,7 +180,25 @@ namespace Astora.Core.Utils
         /// </summary>
         private void DiscoverTypesFromAssembly(Assembly assembly, Type nodeBaseType, HashSet<string> seenTypeNames, bool isPriority)
         {
-            var types = assembly.GetTypes()
+            Type[] types;
+            try
+            {
+                types = assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                // 如果某些类型无法加载（例如依赖的程序集缺失），只处理能够成功加载的类型
+                types = ex.Types.Where(t => t != null).ToArray()!;
+                
+                // 只记录一次警告，避免重复输出
+                if (types.Length < (ex.Types?.Length ?? 0))
+                {
+                    int failedCount = (ex.Types?.Length ?? 0) - types.Length;
+                    System.Console.WriteLine($"警告: 程序集 {assembly.GetName().Name} 中有 {failedCount} 个类型无法加载（可能是缺少依赖项），已跳过");
+                }
+            }
+            
+            var nodeTypes = types
                 .Where(t => 
                     !t.IsAbstract && 
                     !t.IsInterface && 
@@ -183,7 +207,7 @@ namespace Astora.Core.Utils
                     t != nodeBaseType &&
                     HasSuitableConstructor(t));
             
-            foreach (var type in types)
+            foreach (var type in nodeTypes)
             {
                 var fullTypeName = type.FullName ?? type.Name;
                 
@@ -236,9 +260,15 @@ namespace Astora.Core.Utils
                     for (int i = 1; i < parameters.Length; i++)
                     {
                         var param = parameters[i];
-                        if (!param.ParameterType.IsClass && 
-                            !(param.ParameterType.IsGenericType && 
-                              param.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>)))
+                        // 检查参数是否有默认值（可选参数）
+                        bool hasDefaultValue = param.HasDefaultValue || param.IsOptional;
+                        // 检查是否是类类型或可空类型
+                        bool isClassOrNullable = param.ParameterType.IsClass || 
+                            (param.ParameterType.IsGenericType && 
+                             param.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>));
+                        
+                        // 如果参数没有默认值，且不是类类型或可空类型，则不是可选的
+                        if (!hasDefaultValue && !isClassOrNullable)
                         {
                             allOptional = false;
                             break;
@@ -296,9 +326,12 @@ namespace Astora.Core.Utils
                         for (int i = 1; i < parameters.Length; i++)
                         {
                             var param = parameters[i];
-                            if (!param.ParameterType.IsClass && 
-                                !(param.ParameterType.IsGenericType && 
-                                  param.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>)))
+                            bool hasDefaultValue = param.HasDefaultValue || param.IsOptional;
+                            bool isClassOrNullable = param.ParameterType.IsClass || 
+                                (param.ParameterType.IsGenericType && 
+                                 param.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>));
+                            
+                            if (!hasDefaultValue && !isClassOrNullable)
                             {
                                 allOptional = false;
                                 break;
@@ -311,7 +344,29 @@ namespace Astora.Core.Utils
                             args[0] = nodeName;
                             for (int i = 1; i < parameters.Length; i++)
                             {
-                                args[i] = null!;
+                                var param = parameters[i];
+                                if (param.HasDefaultValue)
+                                {
+                                    // 使用参数的默认值
+                                    args[i] = param.DefaultValue ?? 
+                                        (param.ParameterType.IsValueType ? Activator.CreateInstance(param.ParameterType)! : null!);
+                                }
+                                else if (param.ParameterType.IsClass)
+                                {
+                                    // 类类型使用 null
+                                    args[i] = null!;
+                                }
+                                else if (param.ParameterType.IsGenericType && 
+                                         param.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                {
+                                    // 可空类型使用 null
+                                    args[i] = null!;
+                                }
+                                else
+                                {
+                                    // 其他值类型使用默认值（这种情况理论上不应该发生，因为 allOptional 检查已经过滤了）
+                                    args[i] = Activator.CreateInstance(param.ParameterType)!;
+                                }
                             }
                             return (Node)constructor.Invoke(args);
                         }
