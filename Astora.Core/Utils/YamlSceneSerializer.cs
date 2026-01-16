@@ -32,7 +32,9 @@ namespace Astora.Core.Utils
             { nameof(Node), name => new Node(name) },
             { nameof(Node2D), name => new Node2D(name) },
             { nameof(Sprite), name => new Sprite(name, null) },
-            { nameof(Camera2D), name => new Camera2D(name) }
+            { nameof(Camera2D), name => new Camera2D(name) },
+            { nameof(CPUParticles2D), name => new CPUParticles2D(name)},
+            { nameof(AnimatedSprite), name => new AnimatedSprite(name)}
         };
 
         private static readonly HashSet<string> IgnoredFieldNames = new()
