@@ -6,6 +6,7 @@ using Astora.Editor.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ImGuiNET;
+using System.IO;
 
 namespace Astora.Editor
 {
@@ -61,6 +62,20 @@ namespace Astora.Editor
 
             // 初始化 ImGui
             _imGuiRenderer = new ImGuiRenderer(this);
+            
+            // 添加中文字体支持
+            var io = ImGui.GetIO();
+            var fontPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Fonts", "msyh.ttc");
+            if (File.Exists(fontPath))
+            {
+                // 添加微软雅黑字体，字体大小设置为 18，并包含中文字符范围
+                io.Fonts.AddFontFromFileTTF(fontPath, 18.0f, null, io.Fonts.GetGlyphRangesChineseSimplifiedCommon());
+            }
+            else
+            {
+                System.Console.WriteLine($"警告：未找到字体文件 {fontPath}，将使用默认字体");
+            }
+            
             _imGuiRenderer.RebuildFontAtlas();
 
             // 初始化面板
