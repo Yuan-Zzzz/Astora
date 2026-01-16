@@ -159,6 +159,14 @@ public class EditorService
         {
             _sceneTree.ChangeScene(scene);
             _state.CurrentScenePath = path;
+            var sceneName = System.IO.Path.GetFileNameWithoutExtension(path);
+            _state.NotificationManager.ShowSuccess($"场景 '{sceneName}' 加载成功");
+            System.Console.WriteLine($"场景已加载: {path}");
+        }
+        else
+        {
+            _state.NotificationManager.ShowError($"加载场景失败，请查看控制台了解详细信息");
+            System.Console.WriteLine($"加载场景失败: {path}");
         }
     }
     
@@ -169,6 +177,8 @@ public class EditorService
     {
         if (_sceneTree.Root == null)
         {
+            _state.NotificationManager.ShowError("无法保存：没有场景可保存");
+            System.Console.WriteLine("保存失败：场景树的根节点为空");
             return;
         }
         
@@ -179,8 +189,20 @@ public class EditorService
             savePath = _projectService.SceneManager.GetScenePath(_sceneTree.Root.Name);
         }
         
-        _projectService.SceneManager.SaveScene(savePath, _sceneTree.Root);
-        _state.CurrentScenePath = savePath;
+        var result = _projectService.SceneManager.SaveScene(savePath, _sceneTree.Root);
+        
+        if (result)
+        {
+            _state.CurrentScenePath = savePath;
+            var sceneName = System.IO.Path.GetFileNameWithoutExtension(savePath);
+            _state.NotificationManager.ShowSuccess($"场景 '{sceneName}' 保存成功");
+            System.Console.WriteLine($"场景已保存到: {savePath}");
+        }
+        else
+        {
+            _state.NotificationManager.ShowError($"保存场景失败，请查看控制台了解详细信息");
+            System.Console.WriteLine($"保存场景失败: {savePath}");
+        }
     }
     
     /// <summary>
@@ -188,8 +210,17 @@ public class EditorService
     /// </summary>
     public void CreateNewScene(string sceneName)
     {
-        var scenePath = _projectService.SceneManager.CreateNewScene(sceneName);
-        LoadScene(scenePath);
+        try
+        {
+            var scenePath = _projectService.SceneManager.CreateNewScene(sceneName);
+            LoadScene(scenePath);
+            System.Console.WriteLine($"新场景已创建: {scenePath}");
+        }
+        catch (Exception ex)
+        {
+            _state.NotificationManager.ShowError($"创建场景失败: {ex.Message}");
+            System.Console.WriteLine($"创建场景失败: {ex.Message}");
+        }
     }
     
     /// <summary>

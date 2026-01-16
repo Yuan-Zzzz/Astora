@@ -73,19 +73,43 @@ namespace Astora.Editor.Project
         /// </summary>
         public Node? LoadScene(string scenePath)
         {
+            System.Console.WriteLine($"尝试加载场景: {scenePath}");
+            
             if (!File.Exists(scenePath))
             {
-                System.Console.WriteLine($"场景文件不存在: {scenePath}");
+                System.Console.WriteLine($"错误：场景文件不存在: {scenePath}");
                 return null;
             }
 
             try
             {
-                return _serializer.Load(scenePath);
+                var fileInfo = new FileInfo(scenePath);
+                System.Console.WriteLine($"场景文件信息 - 大小: {fileInfo.Length} 字节, 最后修改: {fileInfo.LastWriteTime}");
+                
+                var scene = _serializer.Load(scenePath);
+                
+                if (scene != null)
+                {
+                    System.Console.WriteLine($"场景加载成功: {scene.Name}");
+                }
+                else
+                {
+                    System.Console.WriteLine("警告：场景加载返回了 null");
+                }
+                
+                return scene;
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"加载场景失败: {ex.Message}");
+                System.Console.WriteLine($"加载场景时发生异常: {ex.GetType().Name}");
+                System.Console.WriteLine($"错误消息: {ex.Message}");
+                System.Console.WriteLine($"堆栈跟踪:\n{ex.StackTrace}");
+                
+                if (ex.InnerException != null)
+                {
+                    System.Console.WriteLine($"内部异常: {ex.InnerException.Message}");
+                }
+                
                 return null;
             }
         }
@@ -97,14 +121,66 @@ namespace Astora.Editor.Project
         {
             try
             {
+                System.Console.WriteLine($"开始保存场景: {scenePath}");
+                
+                // 验证根节点
+                if (root == null)
+                {
+                    System.Console.WriteLine("错误：根节点为 null，无法保存场景");
+                    return false;
+                }
+                
                 // 确保目录存在
                 var directory = Path.GetDirectoryName(scenePath);
-                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                if (!string.IsNullOrEmpty(directory))
                 {
-                    Directory.CreateDirectory(directory);
+                    if (!Directory.Exists(directory))
+                    {
+                        System.Console.WriteLine($"创建场景目录: {directory}");
+                        Directory.CreateDirectory(directory);
+                    }
+                }
+                else
+                {
+                    System.Console.WriteLine("错误：无法确定场景目录");
+                    return false;
+                }
+                
+                // 检查是否有写入权限
+                try
+                {
+                    // 尝试创建或打开文件以验证写入权限
+                    using (var fs = File.Open(scenePath, FileMode.OpenOrCreate, FileAccess.Write))
+                    {
+                        // 只是测试权限，不写入任何内容
+                    }
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    System.Console.WriteLine($"错误：没有写入权限: {scenePath}");
+                    return false;
+                }
+                catch (IOException ioEx)
+                {
+                    System.Console.WriteLine($"IO 错误：{ioEx.Message}");
+                    return false;
                 }
 
+                // 保存场景
                 _serializer.Save(root, scenePath);
+                System.Console.WriteLine($"场景已成功保存到: {scenePath}");
+                
+                // 验证文件是否真的被写入
+                if (File.Exists(scenePath))
+                {
+                    var fileInfo = new FileInfo(scenePath);
+                    System.Console.WriteLine($"文件大小: {fileInfo.Length} 字节, 最后修改时间: {fileInfo.LastWriteTime}");
+                }
+                else
+                {
+                    System.Console.WriteLine("警告：文件保存后未找到，可能保存失败");
+                    return false;
+                }
                 
                 // 更新场景列表
                 ScanScenes();
@@ -113,7 +189,15 @@ namespace Astora.Editor.Project
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"保存场景失败: {ex.Message}");
+                System.Console.WriteLine($"保存场景时发生异常: {ex.GetType().Name}");
+                System.Console.WriteLine($"错误消息: {ex.Message}");
+                System.Console.WriteLine($"堆栈跟踪:\n{ex.StackTrace}");
+                
+                if (ex.InnerException != null)
+                {
+                    System.Console.WriteLine($"内部异常: {ex.InnerException.Message}");
+                }
+                
                 return false;
             }
         }

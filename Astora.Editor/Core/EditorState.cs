@@ -31,4 +31,9 @@ public class EditorState
     /// 场景快照路径（用于播放前保存场景状态）
     /// </summary>
     public string? SavedSceneSnapshotPath { get; set; }
+    
+    /// <summary>
+    /// 通知管理器
+    /// </summary>
+    public NotificationManager NotificationManager { get; } = new NotificationManager();
 }

@@ -7,6 +7,7 @@ using System.Reflection;
 using Astora.Core.Attributes;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
+using Astora.Core.Resources;
 
 namespace Astora.Core.Utils
 {
@@ -259,7 +260,7 @@ namespace Astora.Core.Utils
                 {
                     try
                     {
-                        return Engine.Content.Load<Texture2D>(texturePath);
+                        return Resources.ResourceLoader.Load<Texture2DResource>(texturePath).Texture;
                     }
                     catch
                     {

@@ -66,7 +66,18 @@ namespace Astora.Editor.UI
             Matrix viewMatrix = Matrix.Identity;
             if (_sceneTree.ActiveCamera != null)
             {
+                // 临时保存并设置相机的Origin以匹配当前RenderTarget
+                var originalOrigin = _sceneTree.ActiveCamera.Origin;
+                var expectedOrigin = new Microsoft.Xna.Framework.Vector2(
+                    _gameRenderTarget.Width / 2f, 
+                    _gameRenderTarget.Height / 2f
+                );
+                _sceneTree.ActiveCamera.Origin = expectedOrigin;
+                
                 viewMatrix = _sceneTree.ActiveCamera.GetViewMatrix();
+                
+                // 恢复原始Origin
+                _sceneTree.ActiveCamera.Origin = originalOrigin;
             }
             
             // 组合变换矩阵：缩放 * 视图（与实际运行时一致）

@@ -87,7 +87,7 @@ public class CameraViewportOverlay : ISceneViewOverlay
     /// </summary>
     private RectangleF GetCameraViewportBounds(Camera2D camera, Editor editor)
     {
-        // 获取设计分辨率（从项目配置）或使用默认值
+        // 获取设计分辨率（从项目配置）
         int designWidth = 1920;
         int designHeight = 1080;
         
@@ -106,21 +106,24 @@ public class CameraViewportOverlay : ISceneViewOverlay
             designHeight = viewport.Height;
         }
         
-        // 计算视口大小（考虑相机的 Zoom）
-        var viewportSize = new XnaVector2(designWidth / camera.Zoom, designHeight / camera.Zoom);
+        // 计算视口边界：
+        // 相机的Origin表示相机Position在屏幕上的显示位置
+        // 为了正确显示游戏视口，我们应该使用设计分辨率的中心作为Origin
+        var expectedOrigin = new XnaVector2(designWidth / 2f, designHeight / 2f);
         
-        // 相机的世界位置
-        var cameraWorldPos = camera.GlobalPosition;
+        // 手动计算视口边界，使用正确的Origin值
+        // 视口大小（考虑Zoom）
+        var viewportWidth = designWidth / camera.Zoom;
+        var viewportHeight = designHeight / camera.Zoom;
         
-        // 计算视口左上角的世界坐标
-        var viewportTopLeft = cameraWorldPos - camera.Origin / camera.Zoom;
+        // 视口左上角 = 相机位置 - (期望的Origin / Zoom)
+        var topLeft = camera.GlobalPosition - expectedOrigin / camera.Zoom;
         
-        // 返回边界矩形
         return new RectangleF(
-            viewportTopLeft.X,
-            viewportTopLeft.Y,
-            viewportSize.X,
-            viewportSize.Y
+            topLeft.X,
+            topLeft.Y,
+            viewportWidth,
+            viewportHeight
         );
     }
 }

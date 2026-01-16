@@ -32,6 +32,7 @@ namespace Astora.Editor
         private ProjectLauncherPanel? _projectLauncherPanel;
         private CreateProjectDialog? _createProjectDialog;
         private MenuBar _menuBar;
+        private NotificationPanel _notificationPanel;
         
         public Editor()
         {
@@ -88,6 +89,7 @@ namespace Astora.Editor
             _projectLauncherPanel = new ProjectLauncherPanel(this);
             _createProjectDialog = new CreateProjectDialog(this);
             _menuBar = new MenuBar(this);
+            _notificationPanel = new NotificationPanel(_editorService.State.NotificationManager);
         }
 
         protected override void LoadContent()
@@ -174,6 +176,9 @@ namespace Astora.Editor
                     _sceneViewPanel.RenderUI();
                 }
             }
+            
+            // 渲染通知面板（始终显示）
+            _notificationPanel?.Render();
         }
         
         // 公共方法供面板调用 - 委托给服务
