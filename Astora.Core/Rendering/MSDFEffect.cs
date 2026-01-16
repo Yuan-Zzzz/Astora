@@ -37,7 +37,7 @@ namespace Astora.Core.Rendering
                 var bytes = new byte[stream.Length];
                 stream.Read(bytes, 0, (int)stream.Length);
         
-                _instance = new MSDFEffect(Engine.GraphicsDevice, bytes);
+                _instance = new MSDFEffect(Engine.GDM.GraphicsDevice, bytes);
                 return _instance;
             }
         }

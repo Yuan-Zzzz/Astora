@@ -6,6 +6,8 @@ using Astora.Core.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace Astora.Core;
 
@@ -23,11 +25,7 @@ public static class Engine
     /// <summary>
     /// Graphics Device
     /// </summary>
-    public static GraphicsDevice GraphicsDevice { get; private set; }
-    /// <summary>
-    /// Default Sprite Batch
-    /// </summary>
-    public static SpriteBatch SpriteBatch { get; private set; }
+    public static GraphicsDeviceManager GDM{ get; private set; }
     /// <summary>
     /// Current Scene Tree
     /// </summary>
@@ -57,23 +55,46 @@ public static class Engine
     /// </summary>
     public static Matrix CurrentGlobalTransformMatrix { get; private set; } = Matrix.Identity;
     
-    public static RenderPipeline RenderPipeline { get; private set; }
-    
+    public static RenderPipeline RenderPipeline { get; private set; } 
     
     /// <summary>
     /// Initialize the Engine
     /// </summary>
-    public static void Initialize(ContentManager content, GraphicsDevice graphicsDevice, SpriteBatch spriteBatch)
+    public static void Initialize(ContentManager content, GraphicsDeviceManager gdm)
     {
         Content = content;
-        GraphicsDevice = graphicsDevice;
-        SpriteBatch = spriteBatch;
+        GDM = gdm;
         CurrentScene = new SceneTree();
-        RenderPipeline = new RenderPipeline(GraphicsDevice, SpriteBatch);
+        RenderPipeline = new RenderPipeline(GDM.GraphicsDevice);
+    }
+
+    public static void LoadProjectConfig()
+    {
+            var configPath = "project.yaml";
+            if (!File.Exists(configPath))
+            {
+                configPath =  Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "project.yaml");
+            }
+                
+            var deserializer = new DeserializerBuilder()
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .Build();
+                
+            var yaml = File.ReadAllText(configPath);
+            var config = deserializer.Deserialize<GameProjectConfig>(yaml);
+                
+            if (config != null)
+            {
+                SetDesignResolution(config);
+                GDM.PreferredBackBufferWidth = config.DesignWidth;
+                GDM.PreferredBackBufferHeight = config.DesignHeight;
+                GDM.ApplyChanges();
+            }
+  
     }
     
     /// <summary>
-    /// 设置设计分辨率和缩放模式
+    /// Set DesignResolution
     /// </summary>
     public static void SetDesignResolution(int width, int height, ScalingMode scalingMode = ScalingMode.Fit)
     {
@@ -83,7 +104,7 @@ public static class Engine
     }
     
     /// <summary>
-    /// 从配置设置设计分辨率
+    /// SetDesignResolutionWith GameConfig
     /// </summary>
     public static void SetDesignResolution(GameProjectConfig config)
     {
@@ -96,14 +117,14 @@ public static class Engine
     }
     
     /// <summary>
-    /// 计算缩放矩阵
+    /// Caculate the ScaleMatrix
     /// </summary>
     public static Matrix GetScaleMatrix()
     {
-        if (GraphicsDevice == null)
+        if (GDM == null)
             return Matrix.Identity;
         
-        var viewport = GraphicsDevice.Viewport;
+        var viewport = GDM.GraphicsDevice.Viewport;
         var actualWidth = viewport.Width;
         var actualHeight = viewport.Height;
         var designWidth = DesignResolution.X;
@@ -164,10 +185,10 @@ public static class Engine
     /// </summary>
     public static Viewport GetScaledViewport()
     {
-        if (GraphicsDevice == null)
+        if (GDM == null)
             return new Viewport();
         
-        var viewport = GraphicsDevice.Viewport;
+        var viewport = GDM.GraphicsDevice.Viewport;
         var scaleMatrix = GetScaleMatrix();
         var scale = scaleMatrix.M11; // 获取X缩放
         
@@ -206,10 +227,7 @@ public static class Engine
     }
     
     public static void Render(GameTime gameTime, Color? clearColor = null)
-    {
-        if (GraphicsDevice == null || SpriteBatch == null || CurrentScene == null)
-            return;
-        
+    { 
         RenderPipeline.Render(CurrentScene, gameTime, clearColor ?? Color.Black);
     }
 }

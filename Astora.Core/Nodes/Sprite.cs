@@ -40,7 +40,7 @@ namespace Astora.Core.Nodes
             var textureToDraw = Texture;
             if (textureToDraw == null)
             {
-                textureToDraw = GetDefaultWhiteTexture(Engine.GraphicsDevice);
+                textureToDraw = GetDefaultWhiteTexture(Engine.GDM.GraphicsDevice);
             }
             
             Rectangle srcRect = Region ?? new Rectangle(0, 0, textureToDraw.Width, textureToDraw.Height);

@@ -13,10 +13,10 @@ public class RenderPipeline
     private List<IRenderPass> _passes;
     private RenderContext _context;
 
-    public RenderPipeline(GraphicsDevice graphicsDevice, SpriteBatch spriteBatch)
+    public RenderPipeline(GraphicsDevice graphicsDevice)
     {
         _graphicsDevice = graphicsDevice;
-        _renderBatcher = new RenderBatcher(graphicsDevice, spriteBatch);
+        _renderBatcher = new RenderBatcher(graphicsDevice);
         _passes = new List<IRenderPass>();
         _context = new RenderContext
         {

@@ -32,10 +32,10 @@ namespace Astora.Core.Nodes
         
         public Vector2 GetCameraBounds()
         {
-            if (Engine.GraphicsDevice == null)
+            if (Engine.GDM.GraphicsDevice == null)
                 return Vector2.Zero;
 
-            var vp = Engine.GraphicsDevice.Viewport;
+            var vp = Engine.GDM.GraphicsDevice.Viewport;
             var width = vp.Width / Zoom;
             var height = vp.Height / Zoom;
             return new Vector2(width, height);
@@ -47,9 +47,9 @@ namespace Astora.Core.Nodes
         public void ResizeViewport()
         {
             // There create the origin at the center of the viewport
-            if (Engine.GraphicsDevice != null)
+            if (Engine.GDM.GraphicsDevice != null)
             {
-                var vp = Engine.GraphicsDevice.Viewport;
+                var vp = Engine.GDM.GraphicsDevice.Viewport;
                 Origin = new Vector2(vp.Width / 2f, vp.Height / 2f);
             }
         }

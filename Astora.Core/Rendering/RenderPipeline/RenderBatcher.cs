@@ -15,10 +15,10 @@ public class RenderBatcher
     
     private bool _isBatching;
 
-    public RenderBatcher(GraphicsDevice device, SpriteBatch spriteBatch)
+    public RenderBatcher(GraphicsDevice device)
     {
         _device = device;
-        _spriteBatch = spriteBatch;
+        _spriteBatch = new SpriteBatch(_device);
     }
     
     public void Begin(Matrix transformMatrix, SamplerState sampler = null)

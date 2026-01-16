@@ -284,7 +284,7 @@ namespace Astora.Core.Nodes
         /// <param name="spriteBatch"></param>
         public override void Draw(RenderBatcher renderBatcher)
         {
-            var tex = Texture ?? GetDefaultTexture(Engine.GraphicsDevice);
+            var tex = Texture ?? GetDefaultTexture(Engine.GDM.GraphicsDevice);
             Vector2 origin = new Vector2(tex.Width / 2f, tex.Height / 2f);
             
 
