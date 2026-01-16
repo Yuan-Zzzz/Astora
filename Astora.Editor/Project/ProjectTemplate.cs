@@ -100,7 +100,7 @@ namespace {projectName}
         protected override void LoadContent()
         {{
             _spriteBatch = new SpriteBatch(GraphicsDevice);
-            Engine.Initialize(Content, GraphicsDevice, _spriteBatch);
+            Engine.Initialize(Content, _graphics);
             Engine.CurrentScene = _sceneTree;
             
             // 加载项目配置并应用设计分辨率

@@ -1,5 +1,5 @@
-﻿using ImGuiNET;
-using System.Runtime.InteropServices;
+﻿using Astora.Editor.Utils;
+using ImGuiNET;
 
 namespace Astora.Editor.UI
 {
@@ -147,8 +147,7 @@ namespace Astora.Editor.UI
                 
                 if (ImGui.Button("Browse..."))
                 {
-                    // Use Windows file dialog
-                    var path = ShowOpenFileDialog("Select Project File", "*.csproj");
+                    var path = FileDialog.ShowOpenFileDialog("Select Project File", "*.csproj", Environment.CurrentDirectory);
                     if (!string.IsNullOrEmpty(path))
                     {
                         _projectPathInput = path;
@@ -268,66 +267,5 @@ namespace Astora.Editor.UI
             _showOpenProjectDialog = true;
             _projectPathInput = string.Empty;
         }
-
-        // Windows file dialog using native Windows API
-        private string ShowOpenFileDialog(string title, string filter)
-        {
-            try
-            {
-                var ofn = new OpenFileName
-                {
-                    lStructSize = Marshal.SizeOf<OpenFileName>(),
-                    lpstrTitle = title,
-                    lpstrFilter = $"Project Files\0{filter}\0All Files\0*.*\0\0",
-                    nFilterIndex = 1,
-                    lpstrFile = new string('\0', 260),
-                    nMaxFile = 260,
-                    lpstrInitialDir = Environment.CurrentDirectory,
-                    Flags = 0x00080000 | 0x00001000 | 0x00000800 | 0x00000200 | 0x00000008 // OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_ALLOWMULTISELECT | OFN_NOCHANGEDIR
-                };
-
-                if (GetOpenFileName(ref ofn))
-                {
-                    return ofn.lpstrFile;
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Console.WriteLine($"Error showing file dialog: {ex.Message}");
-            }
-
-            return string.Empty;
-        }
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-        private struct OpenFileName
-        {
-            public int lStructSize;
-            public IntPtr hwndOwner;
-            public IntPtr hInstance;
-            public string lpstrFilter;
-            public string lpstrCustomFilter;
-            public int nMaxCustFilter;
-            public int nFilterIndex;
-            public string lpstrFile;
-            public int nMaxFile;
-            public string lpstrFileTitle;
-            public int nMaxFileTitle;
-            public string lpstrInitialDir;
-            public string lpstrTitle;
-            public int Flags;
-            public short nFileOffset;
-            public short nFileExtension;
-            public string lpstrDefExt;
-            public IntPtr lCustData;
-            public IntPtr lpfnHook;
-            public string lpTemplateName;
-            public IntPtr pvReserved;
-            public int dwReserved;
-            public int FlagsEx;
-        }
-
-        [DllImport("comdlg32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        private static extern bool GetOpenFileName(ref OpenFileName ofn);
     }
 }

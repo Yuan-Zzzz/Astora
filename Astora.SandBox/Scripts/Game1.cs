@@ -27,7 +27,7 @@ namespace Astora.SandBox.Scripts
             base.Initialize();
             
             _spriteBatch = new SpriteBatch(GraphicsDevice);
-            Engine.Initialize(Content, GraphicsDevice, _spriteBatch);
+            Engine.Initialize(Content, _graphics);
             LoadAndApplyProjectConfig();
             
              var initialScene = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Scenes", "NewScene.scene");

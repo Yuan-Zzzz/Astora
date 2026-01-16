@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Astora.Editor.Utils
 {
@@ -82,25 +83,45 @@ namespace Astora.Editor.Utils
 
             try
             {
-                var directory = File.Exists(filePath) ? Path.GetDirectoryName(filePath) : filePath;
-                
-                var processInfo = new ProcessStartInfo
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    FileName = "explorer.exe",
-                    Arguments = File.Exists(filePath) 
-                        ? $"/select,\"{filePath}\"" 
-                        : $"\"{directory}\"",
-                    UseShellExecute = false
-                };
+                    var directory = File.Exists(filePath) ? Path.GetDirectoryName(filePath) : filePath;
+                    
+                    var processInfo = new ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments = File.Exists(filePath) 
+                            ? $"/select,\"{filePath}\"" 
+                            : $"\"{directory}\"",
+                        UseShellExecute = false
+                    };
 
-                Process.Start(processInfo);
-                return true;
+                    Process.Start(processInfo);
+                    return true;
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    // Linux 使用 xdg-open 打开文件或文件夹
+                    var processInfo = new ProcessStartInfo
+                    {
+                        FileName = "xdg-open",
+                        Arguments = File.Exists(filePath) 
+                            ? Path.GetDirectoryName(filePath) ?? filePath
+                            : filePath,
+                        UseShellExecute = false
+                    };
+
+                    Process.Start(processInfo);
+                    return true;
+                }
             }
             catch (Exception ex)
             {
                 System.Console.WriteLine($"Error showing in explorer: {ex.Message}");
                 return false;
             }
+
+            return false;
         }
 
         /// <summary>

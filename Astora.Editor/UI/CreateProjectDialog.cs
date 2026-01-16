@@ -1,6 +1,6 @@
 using Astora.Editor.Project;
+using Astora.Editor.Utils;
 using ImGuiNET;
-using System.Runtime.InteropServices;
 
 namespace Astora.Editor.UI
 {
@@ -159,20 +159,9 @@ namespace Astora.Editor.UI
             return true;
         }
 
-        // Windows folder dialog using native API
         private string ShowFolderDialog(string title)
         {
-            try
-            {
-                // 使用简单的实现，通过命令行打开文件夹选择
-                // 或者使用 Windows API
-                // 这里使用一个简化的实现
-                return string.Empty;
-            }
-            catch
-            {
-                return string.Empty;
-            }
+            return FileDialog.ShowFolderDialog(title, _projectLocation);
         }
     }
 }

@@ -1,6 +1,7 @@
 using Astora.Core;
 using Astora.Core.Project;
 using Astora.Core.Scene;
+using Astora.Core.Rendering.RenderPipeline;
 using Astora.Editor.Project;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -21,12 +22,14 @@ namespace Astora.Editor.UI
         private RenderTarget2D _gameRenderTarget;
         private IntPtr _renderTargetTextureId;
         private ImGuiRenderer _imGuiRenderer;
+        private RenderBatcher _renderBatcher;
         
         public GameViewPanel(SceneTree sceneTree, ImGuiRenderer imGuiRenderer, ProjectManager? projectManager = null)
         {
             _sceneTree = sceneTree;
             _imGuiRenderer = imGuiRenderer;
             _projectManager = projectManager;
+            _renderBatcher = new RenderBatcher(Engine.GDM.GraphicsDevice);
         }
         
         /// <summary>
@@ -40,16 +43,16 @@ namespace Astora.Editor.UI
             var config = _projectManager?.CurrentProject?.GameConfig;
             
             // 保存原始状态
-            var originalViewport = Engine.GraphicsDevice.Viewport;
+            var originalViewport = Engine.GDM.GraphicsDevice.Viewport;
             var originalDesignResolution = Engine.DesignResolution;
             var originalScalingMode = Engine.ScalingMode;
             
             // 设置RenderTarget
-            Engine.GraphicsDevice.SetRenderTarget(_gameRenderTarget);
-            Engine.GraphicsDevice.Clear(Color.Black);
+            Engine.GDM.GraphicsDevice.SetRenderTarget(_gameRenderTarget);
+            Engine.GDM.GraphicsDevice.Clear(Color.Black);
             
             // 设置视口以匹配RenderTarget大小
-            Engine.GraphicsDevice.Viewport = new Viewport(0, 0, _gameRenderTarget.Width, _gameRenderTarget.Height);
+            Engine.GDM.GraphicsDevice.Viewport = new Viewport(0, 0, _gameRenderTarget.Width, _gameRenderTarget.Height);
             
             // 如果使用设计分辨率，设置引擎的设计分辨率（用于后续可能的缩放计算）
             if (config != null)
@@ -69,21 +72,17 @@ namespace Astora.Editor.UI
             // 组合变换矩阵：缩放 * 视图（与实际运行时一致）
             Matrix transformMatrix = scaleMatrix * viewMatrix;
             
-            spriteBatch.Begin(
-                samplerState: SamplerState.PointClamp,
-                transformMatrix: transformMatrix
-            );
-            
-            //_sceneTree.Draw(spriteBatch);
-            
-            spriteBatch.End();
+            // 使用RenderBatcher渲染场景（与实际运行时一致）
+            _renderBatcher.Begin(transformMatrix, SamplerState.PointClamp);
+            _sceneTree.Draw(_renderBatcher);
+            _renderBatcher.End();
             
             // 恢复原始状态
-            Engine.GraphicsDevice.Viewport = originalViewport;
+            Engine.GDM.GraphicsDevice.Viewport = originalViewport;
             Engine.SetDesignResolution(originalDesignResolution.X, originalDesignResolution.Y, originalScalingMode);
             
             // 恢复默认RenderTarget
-            Engine.GraphicsDevice.SetRenderTarget(null);
+            Engine.GDM.GraphicsDevice.SetRenderTarget(null);
         }
         
         /// <summary>
@@ -131,7 +130,7 @@ namespace Astora.Editor.UI
                     
                     _gameRenderTarget?.Dispose();
                     _gameRenderTarget = new RenderTarget2D(
-                        Engine.GraphicsDevice,
+                        Engine.GDM.GraphicsDevice,
                         renderWidth,
                         renderHeight
                     );

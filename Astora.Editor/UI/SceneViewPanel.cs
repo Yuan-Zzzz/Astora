@@ -2,6 +2,7 @@
 using Astora.Core;
 using Astora.Core.Nodes;
 using Astora.Core.Scene;
+using Astora.Core.Rendering.RenderPipeline;
 using Astora.Editor.Tools;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -49,6 +50,10 @@ namespace Astora.Editor.UI
         private MoveTool _moveTool;
         private RotateTool _rotateTool;
         
+        // 渲染器
+        private RenderBatcher _renderBatcher;
+        private SpriteBatch _spriteBatch;
+        
         // 最小线宽常量，确保线条始终可见
         private const float MinLineThickness = 1f;
         
@@ -57,6 +62,10 @@ namespace Astora.Editor.UI
             _sceneTree = sceneTree;
             _imGuiRenderer = imGuiRenderer;
             _editor = editor;
+            
+            // 初始化渲染器
+            _renderBatcher = new RenderBatcher(Engine.GDM.GraphicsDevice);
+            _spriteBatch = new SpriteBatch(Engine.GDM.GraphicsDevice);
             
             // 初始化 Gizmo 渲染器和工具
             _gizmoRenderer = new GizmoRenderer();
@@ -167,10 +176,10 @@ namespace Astora.Editor.UI
                 designWidth = config.DesignWidth;
                 designHeight = config.DesignHeight;
             }
-            else if (Engine.GraphicsDevice != null)
+            else if (Engine.GDM?.GraphicsDevice != null)
             {
                 // 如果没有项目配置，使用 GraphicsDevice 的视口大小
-                var viewport = Engine.GraphicsDevice.Viewport;
+                var viewport = Engine.GDM.GraphicsDevice.Viewport;
                 designWidth = viewport.Width;
                 designHeight = viewport.Height;
             }
@@ -730,16 +739,25 @@ namespace Astora.Editor.UI
         
         public void Draw(SpriteBatch spriteBatch)
         {
+            // 防御性空值检查
+            if (spriteBatch == null) return;
+            if (Engine.GDM == null || Engine.GDM.GraphicsDevice == null) return;
             if (_sceneRenderTarget == null) return;
             
             // 设置RenderTarget
-            Engine.GraphicsDevice.SetRenderTarget(_sceneRenderTarget);
-            Engine.GraphicsDevice.Clear(Color.Black);
+            Engine.GDM.GraphicsDevice.SetRenderTarget(_sceneRenderTarget);
+            Engine.GDM.GraphicsDevice.Clear(Color.Black);
             
             // 渲染场景到RenderTarget
             Matrix viewMatrix = Matrix.CreateTranslation(new XnaVector3(-_cameraPosition, 0)) *
                                Matrix.CreateScale(_cameraZoom);
             
+            // 使用RenderBatcher渲染场景
+            _renderBatcher.Begin(viewMatrix, SamplerState.PointClamp);
+            _sceneTree.Draw(_renderBatcher);
+            _renderBatcher.End();
+            
+            // 使用SpriteBatch渲染编辑器辅助内容（网格、坐标轴、Gizmo等）
             spriteBatch.Begin(
                 samplerState: SamplerState.PointClamp,
                 transformMatrix: viewMatrix
@@ -750,8 +768,6 @@ namespace Astora.Editor.UI
             
             // 绘制坐标轴（在网格之上，场景内容之下）
             DrawCoordinateAxes(spriteBatch);
-            
-            //_sceneTree.Draw();
             
             // 绘制选中节点的Gizmo
             var selectedNode = _editor.GetSelectedNode();
@@ -767,7 +783,7 @@ namespace Astora.Editor.UI
             spriteBatch.End();
             
             // 恢复默认RenderTarget
-            Engine.GraphicsDevice.SetRenderTarget(null);
+            Engine.GDM.GraphicsDevice.SetRenderTarget(null);
         }
         
         public void RenderUI()
@@ -902,7 +918,7 @@ namespace Astora.Editor.UI
                     
                     _sceneRenderTarget?.Dispose();
                     _sceneRenderTarget = new RenderTarget2D(
-                        Engine.GraphicsDevice,
+                        Engine.GDM.GraphicsDevice,
                         (int)viewportSize.X,
                         (int)viewportSize.Y
                     );

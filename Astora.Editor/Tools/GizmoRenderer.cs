@@ -22,7 +22,7 @@ public class GizmoRenderer
     {
         if (_whitePixelTexture == null || _whitePixelTexture.IsDisposed)
         {
-            _whitePixelTexture = new Texture2D(Engine.GraphicsDevice, 1, 1);
+            _whitePixelTexture = new Texture2D(Engine.GDM.GraphicsDevice, 1, 1);
             _whitePixelTexture.SetData(new[] { Color.White });
         }
         return _whitePixelTexture;
