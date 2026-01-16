@@ -18,7 +18,6 @@ namespace Astora.SandBox.Scripts
         public Game1()
         {
             _graphics = new GraphicsDeviceManager(this);
-            Content.RootDirectory = "Content";
             IsMouseVisible = true;
         }
 
@@ -27,7 +26,7 @@ namespace Astora.SandBox.Scripts
             base.Initialize();
             Engine.Initialize(Content, _graphics);
             Engine.CurrentScene.ChangeScene(new Node("Main"));
-            var xygg = ResourceLoader.Load<Texture2DResource>("/home/Yuan/Development/Astora/Astora.SandBox/bin/Debug/net8.0/Test.png");
+            var xygg = ResourceLoader.Load<Texture2DResource>("Test.png");
                 var magicVortex = new CPUParticles2D("MagicVortex", 500);
              magicVortex.Position = new Vector2(400, 300);
              magicVortex.EmissionShape = CPUParticles2D.ParticleEmissionShape.Sphere;

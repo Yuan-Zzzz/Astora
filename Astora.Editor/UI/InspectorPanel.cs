@@ -1,5 +1,6 @@
 ﻿using Astora.Core;
 using Astora.Core.Nodes;
+using Astora.Core.Resources;
 using Astora.Editor.Project;
 using ImGuiNET;
 using Microsoft.Xna.Framework;
@@ -100,8 +101,17 @@ namespace Astora.Editor.UI
                     ImGui.TextColored(new Vector4(0.7f, 0.7f, 0.7f, 1), "None (Default: 64x64 white)");
                 }
                 
-                // 纹理预览区域（可拖拽）
-                var previewSize = new Vector2(128, 128);
+                // 纹理预览区域（可拖拽）- 自适应大小
+                Vector2 previewSize;
+                if (sprite.Texture != null)
+                {
+                    previewSize = CalculateAdaptivePreviewSize(sprite.Texture.Width, sprite.Texture.Height);
+                }
+                else
+                {
+                    previewSize = new Vector2(128, 128); // 默认占位符大小
+                }
+                
                 var texturePreviewId = sprite.Texture != null ? GetTexturePreviewId(sprite.Texture) : IntPtr.Zero;
                 
                 // 使用一个组来包装预览区域，使其成为拖拽目标
@@ -211,24 +221,83 @@ namespace Astora.Editor.UI
             return previewId;
         }
         
+        /// <summary>
+        /// 计算自适应的预览大小，保持纹理的宽高比
+        /// </summary>
+        private Vector2 CalculateAdaptivePreviewSize(int textureWidth, int textureHeight, float maxSize = 256f, float minSize = 64f)
+        {
+            if (textureWidth <= 0 || textureHeight <= 0)
+            {
+                return new Vector2(128, 128); // 默认大小
+            }
+            
+            float aspectRatio = (float)textureWidth / textureHeight;
+            float previewWidth, previewHeight;
+            
+            // 根据宽高比计算预览尺寸
+            if (aspectRatio > 1.0f)
+            {
+                // 宽图：宽度为基准
+                previewWidth = Math.Min(maxSize, textureWidth);
+                previewHeight = previewWidth / aspectRatio;
+                
+                // 确保高度不会太小
+                if (previewHeight < minSize && textureHeight >= minSize)
+                {
+                    previewHeight = minSize;
+                    previewWidth = previewHeight * aspectRatio;
+                }
+            }
+            else
+            {
+                // 高图：高度为基准
+                previewHeight = Math.Min(maxSize, textureHeight);
+                previewWidth = previewHeight * aspectRatio;
+                
+                // 确保宽度不会太小
+                if (previewWidth < minSize && textureWidth >= minSize)
+                {
+                    previewWidth = minSize;
+                    previewHeight = previewWidth / aspectRatio;
+                }
+            }
+            
+            // 对于特别小的纹理，保持原始大小或适当放大
+            if (textureWidth < minSize && textureHeight < minSize)
+            {
+                float scale = minSize / Math.Max(textureWidth, textureHeight);
+                previewWidth = textureWidth * scale;
+                previewHeight = textureHeight * scale;
+            }
+            
+            return new Vector2(previewWidth, previewHeight);
+        }
+        
         private void LoadTextureForSprite(Sprite sprite, string filePath)
         {
             try
             {
-                // 转换为Content相对路径
-                var contentPath = ConvertToContentPath(filePath);
-                if (string.IsNullOrEmpty(contentPath))
+                // 验证文件存在
+                if (!File.Exists(filePath))
                 {
-                    System.Console.WriteLine($"无法找到Content目录: {filePath}");
+                    System.Console.WriteLine($"文件不存在: {filePath}");
                     return;
                 }
                 
-                // 加载纹理
-                if (Engine.Content != null)
+                // 获取文件的绝对路径
+                var absolutePath = Path.GetFullPath(filePath);
+                
+                System.Console.WriteLine($"[InspectorPanel] 加载纹理: {Path.GetFileName(absolutePath)}");
+                System.Console.WriteLine($"[InspectorPanel] 完整路径: {absolutePath}");
+                
+                // 使用 ResourceLoader 加载纹理资源（传递绝对路径）
+                // ResourceLoader 会利用 Path.Combine 的特性：当第二个参数是绝对路径时，直接使用该路径
+                try
                 {
-                    try
+                    var textureResource = ResourceLoader.Load<Texture2DResource>(absolutePath);
+                    if (textureResource != null && textureResource.Texture != null)
                     {
-                        var texture = Engine.Content.Load<Texture2D>(contentPath);
+                        var texture = textureResource.Texture;
                         sprite.Texture = texture;
                         sprite.Origin = new Microsoft.Xna.Framework.Vector2(texture.Width / 2f, texture.Height / 2f);
                         
@@ -238,16 +307,28 @@ namespace Astora.Editor.UI
                             var previewId = _imGuiRenderer.BindTexture(texture);
                             _texturePreviewCache[texture] = previewId;
                         }
+                        
+                        System.Console.WriteLine($"✓ 成功加载纹理: {Path.GetFileName(absolutePath)} ({texture.Width}x{texture.Height})");
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        System.Console.WriteLine($"加载纹理失败: {ex.Message}");
+                        System.Console.WriteLine($"✗ 加载的纹理资源为空: {absolutePath}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Console.WriteLine($"✗ 加载纹理失败: {Path.GetFileName(absolutePath)}");
+                    System.Console.WriteLine($"  错误详情: {ex.Message}");
+                    if (ex.InnerException != null)
+                    {
+                        System.Console.WriteLine($"  内部错误: {ex.InnerException.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"处理纹理路径失败: {ex.Message}");
+                System.Console.WriteLine($"✗ 处理纹理路径失败: {filePath}");
+                System.Console.WriteLine($"  错误详情: {ex.Message}");
             }
         }
         
@@ -255,12 +336,14 @@ namespace Astora.Editor.UI
         {
             if (_projectManager?.CurrentProject == null)
             {
+                System.Console.WriteLine("当前没有打开的项目");
                 return null;
             }
             
             var projectRoot = _projectManager.CurrentProject.ProjectRoot;
             if (string.IsNullOrEmpty(projectRoot))
             {
+                System.Console.WriteLine("项目根目录为空");
                 return null;
             }
             
@@ -276,6 +359,7 @@ namespace Astora.Editor.UI
                 }
                 else
                 {
+                    System.Console.WriteLine($"在项目根目录中找不到Content文件夹: {projectRoot}");
                     return null;
                 }
             }
@@ -286,19 +370,18 @@ namespace Astora.Editor.UI
             
             if (!fullPath.StartsWith(contentFullPath, StringComparison.OrdinalIgnoreCase))
             {
-                // 文件不在Content目录中，尝试复制或返回null
+                // 文件不在Content目录中
                 System.Console.WriteLine($"文件不在Content目录中: {filePath}");
+                System.Console.WriteLine($"Content目录: {contentFullPath}");
                 return null;
             }
             
             // 转换为相对路径（相对于Content目录）
             var relativePath = Path.GetRelativePath(contentFullPath, fullPath);
             
-            // 移除文件扩展名（MonoGame Content管道要求）
-            var pathWithoutExtension = Path.ChangeExtension(relativePath, null);
-            
+            // 保留文件扩展名（ResourceLoader 和 Texture2DImporter 需要扩展名来识别文件类型）
             // 规范化路径分隔符（使用/而不是\）
-            return pathWithoutExtension.Replace('\\', '/');
+            return relativePath.Replace('\\', '/');
         }
         
         /// <summary>
