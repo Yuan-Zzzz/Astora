@@ -182,15 +182,30 @@ public class SceneViewPanel
         // 处理输入
         _inputHandler.HandleInput(isWindowHovered);
         
-        // 绘制标尺
-        DrawRulers();
+        // 渲染场景视图（先获取可用空间，考虑标尺占用的空间）
+        const float rulerSize = 30f; // 增加标尺宽度以容纳文字
+        var availableSize = ImGui.GetContentRegionAvail();
         
-        // 渲染场景视图
-        var viewportSize = ImGui.GetContentRegionAvail();
+        // 为标尺预留空间
+        var viewportSize = new Vector2(
+            Math.Max(0, availableSize.X - rulerSize * 2), // 左右各一个标尺
+            Math.Max(0, availableSize.Y - rulerSize * 2)  // 上下各一个标尺
+        );
+        
         if (viewportSize.X > 0 && viewportSize.Y > 0)
         {
+            // 先设置光标位置，为左侧和顶部标尺留出空间
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + rulerSize);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + rulerSize);
+            
+            // 获取场景视图的实际屏幕位置（用于绘制标尺）
+            var viewportScreenPos = ImGui.GetCursorScreenPos();
+            
             // 更新 RenderTarget 大小（关键：在 Draw 之前更新）
             _renderer.UpdateRenderTarget((int)viewportSize.X, (int)viewportSize.Y);
+            
+            // 绘制标尺（在场景视图周围）
+            DrawRulers(viewportScreenPos, viewportSize, rulerSize);
             
             // 绘制场景和覆盖层
             var spriteBatch = _renderService.GetSpriteBatch();
@@ -240,17 +255,11 @@ public class SceneViewPanel
     /// <summary>
     /// 绘制标尺（在ImGui中绘制，显示世界坐标像素值）
     /// </summary>
-    private void DrawRulers()
+    private void DrawRulers(Vector2 viewportStartPos, Vector2 viewportSize, float rulerSize)
     {
         if (!_renderer.IsReady) return;
         
         var drawList = ImGui.GetWindowDrawList();
-        // 获取场景视图的起始位置（与Image使用相同的位置）
-        var viewportStartPos = ImGui.GetCursorScreenPos();
-        var viewportSize = ImGui.GetContentRegionAvail();
-        
-        // 标尺尺寸
-        const float rulerSize = 25f;
         
         // 计算当前视口在世界坐标系中的范围
         var bounds = _camera.GetViewportBounds(_renderer.Width, _renderer.Height);
@@ -400,8 +409,21 @@ public class SceneViewPanel
             {
                 var labelText = ((int)worldY).ToString();
                 var textSize = ImGui.CalcTextSize(labelText);
+                // 计算文字位置，确保在标尺区域内
+                var rulerLeft = viewportStartPos.X - rulerSize;
+                var textX = rulerLeft + Math.Max(2f, (rulerSize - textSize.X) * 0.5f);
+                // 如果文字超出标尺右边界，则右对齐
+                if (textX + textSize.X > viewportStartPos.X - 2f)
+                {
+                    textX = viewportStartPos.X - textSize.X - 2f;
+                }
+                // 确保文字不超出标尺左边界
+                if (textX < rulerLeft + 2f)
+                {
+                    textX = rulerLeft + 2f;
+                }
                 var textPos = new Vector2(
-                    viewportStartPos.X - rulerSize + (rulerSize - textSize.X) * 0.5f,
+                    textX,
                     screenY - textSize.Y * 0.5f
                 );
                 drawList.AddText(textPos, textColor, labelText);
@@ -439,8 +461,22 @@ public class SceneViewPanel
             {
                 var labelText = ((int)worldY).ToString();
                 var textSize = ImGui.CalcTextSize(labelText);
+                // 计算文字位置，确保在标尺区域内
+                var rulerLeft = viewportStartPos.X + viewportSize.X;
+                var rulerRight = rulerLeft + rulerSize;
+                var textX = rulerLeft + Math.Max(2f, (rulerSize - textSize.X) * 0.5f);
+                // 如果文字超出标尺右边界，则左对齐
+                if (textX + textSize.X > rulerRight - 2f)
+                {
+                    textX = rulerRight - textSize.X - 2f;
+                }
+                // 确保文字不超出标尺左边界
+                if (textX < rulerLeft + 2f)
+                {
+                    textX = rulerLeft + 2f;
+                }
                 var textPos = new Vector2(
-                    viewportStartPos.X + viewportSize.X + (rulerSize - textSize.X) * 0.5f,
+                    textX,
                     screenY - textSize.Y * 0.5f
                 );
                 drawList.AddText(textPos, textColor, labelText);
