@@ -108,7 +108,7 @@ namespace Astora.Core.Utils
 
                 var value = field.GetValue(node);
                 
-                var serializedValue = SerializeField(field.FieldType, value, field.Name);
+                var serializedValue = SerializeField(field, value);
                 if (serializedValue != null)
                 {
                     serialized.Properties[field.Name] = serializedValue;
@@ -123,12 +123,34 @@ namespace Astora.Core.Utils
             return serialized;
         }
 
-        private object? SerializeField(Type fieldType, object value, string fieldName)
+        private object? SerializeField(FieldInfo fieldInfo, object value)
         {
             // Handle null values
             if (value == null)
                 return null;
+
+            var fieldType = fieldInfo.FieldType;
             
+            // Check the ContentRelativePathAttribute to translate the full path to relative path by Content.RootDirectory
+            if (fieldType == typeof(string) && fieldInfo != null && fieldInfo.IsDefined(typeof(ContentRelativePath), false) && value is string pathValue)
+            {
+                if (string.IsNullOrEmpty(pathValue))
+                  return pathValue;
+
+                // translate the absolute path to relative path
+                if (Path.IsPathRooted(pathValue))
+                {
+                    var contentRoot = Engine.Content.RootDirectory;
+                    if (pathValue.StartsWith(contentRoot, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var relativePath = Path.GetRelativePath(contentRoot, pathValue);
+                        return relativePath.Replace('\\','/');
+                    }
+                }
+
+                return pathValue;
+            }
+
             if (fieldType == typeof(Vector2))
             {
                 var vec = (Vector2)value;
@@ -163,6 +185,7 @@ namespace Astora.Core.Utils
             }
 
             // Don't serialize Texture2D, Effect, or BlendState (runtime objects)
+            // BlendState is a enum what could be serialized
             if (fieldType == typeof(Texture2D) || 
                 fieldType == typeof(Effect) || 
                 fieldType == typeof(BlendState))
@@ -217,7 +240,7 @@ namespace Astora.Core.Utils
 
                     try
                     {
-                        var deserializedValue = DeserializeField(field.FieldType, value, field.Name);
+                        var deserializedValue = DeserializeField(field, value);
                         if (deserializedValue != null || (value == null && !field.FieldType.IsValueType))
                         {
                             field.SetValue(node, deserializedValue);
@@ -243,7 +266,6 @@ namespace Astora.Core.Utils
 
         private T? GetDictValue<T>(IDictionary dict, string key) where T : struct
         {
-            // 尝试不同的键格式
             var keys = new List<string> { key, key.ToLower(), key.ToUpper() };
             if (key.Length > 0)
             {
@@ -272,8 +294,26 @@ namespace Astora.Core.Utils
             return null;
         }
 
-        private object? DeserializeField(Type fieldType, object value, string fieldName)
+        private object? DeserializeField(FieldInfo fieldInfo, object value)
         {
+            var fieldType = fieldInfo.FieldType;
+            // Translate ContentRelativePathAttribute filed to absolute path
+            if (fieldType == typeof(string) && fieldInfo.IsDefined(typeof(ContentRelativePath), false) && value is string pathValue)
+            {
+                if (string.IsNullOrEmpty(pathValue))
+                    return pathValue;
+
+                if (!Path.IsPathRooted(pathValue))
+                {
+                    var contentRoot = Engine.Content.RootDirectory;
+                    var absolutePath = Path.GetFullPath(Path.Combine(contentRoot, pathValue));
+                    return absolutePath;
+                }
+
+                return pathValue;
+            }
+
+
             // Vector2
             if (fieldType == typeof(Vector2) && value is IDictionary dict)
             {
@@ -304,6 +344,7 @@ namespace Astora.Core.Utils
             {
                 if (Engine.Content != null && !string.IsNullOrEmpty(texturePath))
                 {
+                    // Deserialization shoude be fullpath,and relative path in serialization
                     try
                     {
                         return Resources.ResourceLoader.Load<Texture2DResource>(texturePath).Texture;

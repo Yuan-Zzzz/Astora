@@ -1,29 +1,21 @@
 type: Node
 name: NewScene
-properties: {}
+properties:
+  _name: NewScene
 children:
-- type: ExampleCustomNode
-  name: NewExampleCustomNode
+- type: Sprite
+  name: NewSprite
   properties:
-    _speed: 100
-    _nodeColor:
+    _texturePath: /home/Yuan/Development/Astora/Astora.SandBox/Test.png
+    _origin:
+      x: 70
+      y: 70
+    _modulate:
       r: 255
-      g: 0
-      b: 0
+      g: 255
+      b: 255
       a: 255
-    _autoRotate: false
-    _rotationSpeed: 1
-    _health: 100
-    _score: 0
-    _description: Example Custom Node
-    _tag: Default
-    _precisionValue: 3.141592653589793
-  children:
-  - type: Sprite
-    name: NewSprite
-    properties: {}
-    children: 
-- type: Camera2D
-  name: NewCamera2D
-  properties: {}
+    _offset:
+      x: 0
+      y: 0
   children: 

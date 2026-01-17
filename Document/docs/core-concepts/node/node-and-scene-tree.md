@@ -8,4 +8,4 @@ This hierarchical structure is powerful:
 - **Organization**: Group related nodes together. For example, a `Player` node might have a
       `Sprite` and a `Camera2D` as its children.
 - **Relative Transformations**: A child node's position, rotation, and scale are relative toits parent. If you move the parent, all its children move with it, maintaining their relativpositions.
-
+AttributeTargets.Field

@@ -9,6 +9,7 @@ namespace Astora.Core.Nodes
     public class Sprite : Node2D
     {
         [SerializeField]
+        [ContentRelativePath]
         private string _texturePath = "";
         
         [SerializeField]
