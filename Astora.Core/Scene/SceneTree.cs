@@ -17,7 +17,7 @@ namespace Astora.Core.Scene
         /// </summary>
         public Camera2D ActiveCamera { get; set; }
 
-        public void ChangeScene(Node newSceneRoot)
+        public void AttachScene(Node newSceneRoot)
         {
             // Set new root
             Root = newSceneRoot;
@@ -43,13 +43,13 @@ namespace Astora.Core.Scene
         /// <summary>
         /// Load Scene from file
         /// </summary>
-        public void LoadScene(string scenePath)
+        public void AttachScene(string scenePath)
         {
             if (Engine.Serializer == null)
                 throw new InvalidOperationException("Scene serializer not set.");
             
             var scene = Engine.Serializer.Load(scenePath);
-            ChangeScene(scene);
+            AttachScene(scene);
         }
 
         public void SaveScene(string scenePath)

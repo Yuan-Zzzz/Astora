@@ -55,6 +55,12 @@ namespace Astora.Core.Project
         /// </summary>
         [YamlMember(Alias = "scalingMode")]
         public ScalingMode ScalingMode { get; set; } = ScalingMode.Fit;
+       
+        /// <summary>
+        /// ContentRootDirectory
+        /// </summary>
+        [YamlMember(Alias = "contentRootDirectory")]
+        public string ContentRootDirectory {get; set;} = "Content";
 
         /// <summary>
         /// Creates a default game project configuration
@@ -65,7 +71,8 @@ namespace Astora.Core.Project
             {
                 DesignWidth = 1920,
                 DesignHeight = 1080,
-                ScalingMode = ScalingMode.Fit
+                ScalingMode = ScalingMode.Fit,
+                ContentRootDirectory = "Content"
             };
         }
     }

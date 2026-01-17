@@ -27,7 +27,7 @@ namespace Astora.SandBox.Scripts
             base.Initialize();
             Engine.Initialize(Content, _graphics);
             Console.WriteLine("Conent目录："+ Content.RootDirectory);
-            Engine.CurrentScene.ChangeScene(new Node("Main"));
+            Engine.CurrentScene.AttachScene(new Node("Main"));
             var xygg = ResourceLoader.Load<Texture2DResource>("Test.png");
             
             var spr = new Sprite("xygg",xygg.Texture);
