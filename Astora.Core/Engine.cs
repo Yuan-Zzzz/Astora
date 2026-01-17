@@ -91,6 +91,8 @@ public static class Engine
                 GDM.PreferredBackBufferWidth = config.DesignWidth;
                 GDM.PreferredBackBufferHeight = config.DesignHeight;
                 GDM.ApplyChanges();
+
+                Content.RootDirectory = config.ContentRootDirectory;
             }
   
     }
