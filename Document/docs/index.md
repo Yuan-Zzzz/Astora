@@ -1,4 +1,6 @@
 # Welcome to Astora Engine
+!!! warning
+    The editor is built by AI!!!! Just for test some features,DO NOT USE IT NOW!!!!.It will be deleted in the future, and rewrite by human code!
 ## What is Astora Engine
 The Astora Engine is designed to enhance the development efficiency of game developers. 
 It focuses on 2D game development, uses the C# programming language, and is built on MonoGame.
