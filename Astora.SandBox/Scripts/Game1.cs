@@ -19,6 +19,7 @@ namespace Astora.SandBox.Scripts
         {
             _graphics = new GraphicsDeviceManager(this);
             IsMouseVisible = true;
+            Content.RootDirectory = "Content";
         }
 
         protected override void Initialize()
@@ -28,61 +29,13 @@ namespace Astora.SandBox.Scripts
             Console.WriteLine("Conent目录："+ Content.RootDirectory);
             Engine.CurrentScene.ChangeScene(new Node("Main"));
             var xygg = ResourceLoader.Load<Texture2DResource>("Test.png");
-                var magicVortex = new CPUParticles2D("MagicVortex", 500);
-             magicVortex.Position = new Vector2(400, 300);
-             magicVortex.EmissionShape = CPUParticles2D.ParticleEmissionShape.Sphere;
-             magicVortex.EmissionBoxExtents = new Vector2(100, 0);
-             magicVortex.Texture = xygg.Texture;
-
-             magicVortex.Gravity = Vector2.Zero;
-             magicVortex.InitialVelocityMin = 0f;
-             magicVortex.InitialVelocityMax = 0f;
-             magicVortex.TangentialAccel = 150f;
-             
-             magicVortex.ScaleStart = 1.5f;
-
-             magicVortex.ColorStart = Color.Cyan;
-             magicVortex.ColorEnd = Color.Transparent;
-             magicVortex.Lifetime = 2.0f;
-
-             Engine.CurrentScene.Root.AddChild(magicVortex);
+            
+            var spr = new Sprite("xygg",xygg.Texture);
+            Engine.CurrentScene.Root.AddChild(spr);
+            spr.TexturePath = xygg.ResourcePath;
+            Engine.CurrentScene.SaveScene("Scenes/test.scene");
         }
         
-        /// <summary>
-        /// 加载并应用项目配置
-        /// </summary>
-        private void LoadAndApplyProjectConfig()
-        {
-                // 尝试从当前目录或上级目录查找 project.yaml
-                var configPath = "project.yaml";
-                if (!File.Exists(configPath))
-                {
-                    // 尝试在上级目录查找（适用于从 bin/Debug/net8.0 运行的情况）
-                    configPath =  Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "project.yaml");
-                    if (!File.Exists(configPath))
-                    {
-                        // 使用默认配置
-                        System.Console.WriteLine("未找到 project.yaml，使用默认设计分辨率");
-                        return;
-                    }
-                }
-                
-                var deserializer = new DeserializerBuilder()
-                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                    .Build();
-                
-                var yaml = File.ReadAllText(configPath);
-                var config = deserializer.Deserialize<GameProjectConfig>(yaml);
-                
-                if (config != null)
-                {
-                    Engine.SetDesignResolution(config);
-                    _graphics.PreferredBackBufferWidth = config.DesignWidth;
-                    _graphics.PreferredBackBufferHeight = config.DesignHeight;
-                    _graphics.ApplyChanges();
-                }
-        }
-
         protected override void Update(GameTime gameTime)
         {
             Engine.Update(gameTime);

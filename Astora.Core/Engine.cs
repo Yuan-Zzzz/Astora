@@ -205,20 +205,6 @@ public static class Engine
         };
     }
     
-    /// <summary>
-    /// Load scene from file
-    /// </summary>
-    public static void LoadScene(string scenePath)
-    {
-        if (CurrentScene == null)
-            throw new InvalidOperationException("Engine not initialized. Call Engine.Initialize() first.");
-        
-        if (Serializer == null)
-            throw new InvalidOperationException("Scene serializer not set.");
-        
-        var scene = Serializer.Load(scenePath);
-        CurrentScene.ChangeScene(scene);
-    }
     
     /// <summary>
     /// GameLoop Update

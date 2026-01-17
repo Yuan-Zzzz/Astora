@@ -1,0 +1,21 @@
+type: Node
+name: Main
+properties:
+  _name: Main
+children:
+- type: Sprite
+  name: xygg
+  properties:
+    _texturePath: Content/Test.png
+    _origin:
+      x: 70
+      y: 70
+    _modulate:
+      r: 255
+      g: 255
+      b: 255
+      a: 255
+    _offset:
+      x: 0
+      y: 0
+  children: 

@@ -52,6 +52,15 @@ namespace Astora.Core.Scene
             ChangeScene(scene);
         }
 
+        public void SaveScene(string scenePath)
+        {
+            if (Engine.Serializer == null)
+               throw new InvalidOperationException("Scene serializer not set.");
+
+            Engine.Serializer.Save(Root, scenePath);
+            Console.WriteLine($"The Scene has been save on {scenePath}");
+        }
+
         /// <summary>
         /// Update Nodes
         /// </summary>
