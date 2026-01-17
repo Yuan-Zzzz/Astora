@@ -19,3 +19,11 @@ children:
       x: 0
       y: 0
   children: 
+- type: Camera2D
+  name: Camera2D
+  properties:
+    _zoom: 1
+    _origin:
+      x: 960
+      y: 540
+  children: 

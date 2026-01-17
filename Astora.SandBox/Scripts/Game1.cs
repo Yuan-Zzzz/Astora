@@ -5,9 +5,6 @@ using Astora.Core.Rendering;
 using Astora.Core.Resources;
 using Astora.Core.Scene;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 namespace Astora.SandBox.Scripts
 
 {
@@ -26,13 +23,16 @@ namespace Astora.SandBox.Scripts
         {
             base.Initialize();
             Engine.Initialize(Content, _graphics);
+            Engine.LoadProjectConfig();
             Console.WriteLine("Conent目录："+ Content.RootDirectory);
-            Engine.CurrentScene.AttachScene(new Node("Main"));
-            var xygg = ResourceLoader.Load<Texture2DResource>("Test.png");
-            
+            var rootNode = new Node("Main");
+            var xygg = ResourceLoader.Load<Texture2DResource>("Test.png"); 
             var spr = new Sprite("xygg",xygg.Texture);
-            Engine.CurrentScene.Root.AddChild(spr);
+            rootNode.AddChild(spr);
             spr.TexturePath = xygg.ResourcePath;
+            var cam = new Camera2D();
+            rootNode.AddChild(cam);
+            Engine.CurrentScene.AttachScene(rootNode);
             Engine.CurrentScene.SaveScene("Scenes/test.scene");
         }
         
