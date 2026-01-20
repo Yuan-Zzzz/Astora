@@ -1,4 +1,4 @@
-﻿using Astora.Core.Attributes;
+using Astora.Core.Attributes;
 using Microsoft.Xna.Framework;
 
 namespace Astora.Core.Nodes
@@ -43,6 +43,8 @@ namespace Astora.Core.Nodes
             get => _scale; 
             set => _scale = value; 
         }
+
+        public Node2D() : base() { }
 
         public Node2D(string name = "Node2D") : base(name) { }
         

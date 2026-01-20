@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Astora.Core.Attributes;
 using Astora.Core.Rendering.RenderPipeline;
 using Microsoft.Xna.Framework;
@@ -152,7 +152,7 @@ namespace Astora.Core.Nodes
         public int Amount 
         { 
             get => _amount; 
-            private set => _amount = value; 
+            set => _amount = value; 
         }
         
         /// <summary>
@@ -285,6 +285,13 @@ namespace Astora.Core.Nodes
         private Random _random;
         private float _timeSinceLastEmission;
         private Texture2D _defaultTexture;
+
+        public CPUParticles2D() : base()
+        {
+            _random = new Random();
+            _amount = 100;
+            ResizePool(100);
+        }
 
         public CPUParticles2D(string name, int amount = 100) : base(name)
         {

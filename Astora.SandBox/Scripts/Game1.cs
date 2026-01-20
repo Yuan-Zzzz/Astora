@@ -16,7 +16,6 @@ namespace Astora.SandBox.Scripts
         {
             _graphics = new GraphicsDeviceManager(this);
             IsMouseVisible = true;
-            Content.RootDirectory = "Content";
         }
 
         protected override void Initialize()
@@ -24,16 +23,10 @@ namespace Astora.SandBox.Scripts
             base.Initialize();
             Engine.Initialize(Content, _graphics);
             Engine.LoadProjectConfig();
-            Console.WriteLine("Conent目录："+ Content.RootDirectory);
-            var rootNode = new Node("Main");
-            var xygg = ResourceLoader.Load<Texture2DResource>("Test.png"); 
-            var spr = new Sprite("xygg",xygg.Texture);
-            rootNode.AddChild(spr);
-            spr.TexturePath = xygg.ResourcePath;
-            var cam = new Camera2D();
-            rootNode.AddChild(cam);
-            Engine.CurrentScene.AttachScene(rootNode);
-            Engine.CurrentScene.SaveScene("Scenes/test.scene");
+            
+            SampleCameraParticleSpriteScene.CreateAndSaveScene("Scenes/builderTest.scene");
+            var scene = Engine.Serializer.Load("Scenes/builderTest.scene");
+            Engine.CurrentScene.AttachScene(scene);  
         }
         
         protected override void Update(GameTime gameTime)

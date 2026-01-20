@@ -1,4 +1,4 @@
-﻿using Astora.Core.Attributes;
+using Astora.Core.Attributes;
 using Microsoft.Xna.Framework;
 
 namespace Astora.Core.Nodes
@@ -23,6 +23,11 @@ namespace Astora.Core.Nodes
             set => _origin = value; 
         }
         
+        public Camera2D() : base()
+        {
+            ResizeViewport();
+        }
+
         public Camera2D(string name = "Camera2D") : base(name)
         {
             ResizeViewport();

@@ -1,4 +1,4 @@
-﻿using Astora.Core;
+using Astora.Core;
 using Astora.Core.Attributes;
 using Astora.Core.Rendering.RenderPipeline;
 using Microsoft.Xna.Framework;
@@ -80,6 +80,11 @@ namespace Astora.Core.Nodes
         // Default white texture for sprites without assigned texture
         private static Texture2D? _defaultWhiteTexture;
         private const int DefaultSize = 64;
+
+        public Sprite() : base()
+        {
+            _origin = new Vector2(DefaultSize / 2f, DefaultSize / 2f);
+        }
 
         public Sprite(string name, Texture2D texture) : base(name)
         {
