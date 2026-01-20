@@ -23,9 +23,7 @@ namespace Astora.SandBox.Scripts
             base.Initialize();
             Engine.Initialize(Content, _graphics);
             Engine.LoadProjectConfig();
-            
-            SampleCameraParticleSpriteScene.CreateAndSaveScene("Scenes/builderTest.scene");
-            var scene = Engine.Serializer.Load("Scenes/builderTest.scene");
+           var scene = SampleScene.Build();  
             Engine.CurrentScene.AttachScene(scene);  
         }
         
