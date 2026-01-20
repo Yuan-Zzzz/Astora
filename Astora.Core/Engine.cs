@@ -88,11 +88,9 @@ public static class Engine
             if (config != null)
             {
                 SetDesignResolution(config);
-                GDM.PreferredBackBufferWidth = config.DesignWidth;
-                GDM.PreferredBackBufferHeight = config.DesignHeight;
+                SetWindowSize(config.DesignWidth, config.DesignHeight);
                 GDM.ApplyChanges();
-
-                Content.RootDirectory = config.ContentRootDirectory;
+                Content.RootDirectory = config.ContentRootDirectory; 
             }
   
     }
@@ -118,6 +116,14 @@ public static class Engine
             ScalingMode = config.ScalingMode;
             RenderPipeline.UpdateRenderTarget();
         }
+    }
+
+    public static void SetWindowSize(int width, int height)
+    {
+        if (GDM == null) return;
+        GDM.PreferredBackBufferWidth = width;
+        GDM.PreferredBackBufferHeight = height;
+        GDM.ApplyChanges();
     }
     
     /// <summary>
