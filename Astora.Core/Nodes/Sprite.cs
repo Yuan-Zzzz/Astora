@@ -1,6 +1,7 @@
 using Astora.Core;
 using Astora.Core.Attributes;
 using Astora.Core.Rendering.RenderPipeline;
+using Astora.Core.Resources;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -98,6 +99,11 @@ namespace Astora.Core.Nodes
 
         public override void Draw(RenderBatcher renderBatcher)
         {
+            if (_texture == null && !string.IsNullOrEmpty(_texturePath))
+            {
+                LoadTextureFromPath();
+            }
+            
             var transform = GlobalTransform;
             Vector3 pos, scale;
             Quaternion rotQ;
@@ -124,6 +130,25 @@ namespace Astora.Core.Nodes
                 SpriteEffects.None,
                 0f
             );
+        }
+
+        public void LoadTextureFromPath()
+        {
+            if (string.IsNullOrEmpty(_texturePath))
+            {
+                _texture = null;
+                return;
+            }
+            
+                var textureResource = ResourceLoader.Load<Texture2DResource>(_texturePath);
+                if (textureResource != null)
+                {
+                    _texture = textureResource.Texture;
+                    if (_texture != null && _origin == new Vector2(DefaultSize / 2f, DefaultSize / 2f))
+                    {
+                        _origin = new Vector2(_texture.Width / 2f, _texture.Height / 2f);
+                    }
+                }
         }
 
         /// <summary>

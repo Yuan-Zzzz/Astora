@@ -46,9 +46,7 @@ public static class ResourceLoader
         }
         
         // Load Resource
-        // The default path is ContentRoot path
-        var contentRoot = Engine.Content.RootDirectory;
-        var fullpath = Path.Combine(contentRoot,path);
+        var fullpath = path;
         Console.WriteLine($"Load Resource from path {fullpath}");
         var resource = importer.Import(fullpath, _contentManager);
         if (resource == null)

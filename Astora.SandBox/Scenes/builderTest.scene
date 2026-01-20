@@ -50,7 +50,7 @@ children:
 - type: Sprite
   name: SampleSprite
   properties:
-    _texturePath: Content/Test.png
+    _texturePath: Test.png
     _origin:
       x: 70
       y: 70

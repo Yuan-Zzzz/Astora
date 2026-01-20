@@ -1,4 +1,4 @@
-﻿using Astora.Core;
+using Astora.Core;
 using Astora.Core.Nodes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -259,6 +259,11 @@ namespace Astora.Core.Utils
                     var child = DeserializeNode(childSerialized);
                     node.AddChild(child);
                 }
+            }
+
+            if (node is Sprite sprite && !string.IsNullOrEmpty(sprite.TexturePath))
+            {
+                sprite.LoadTextureFromPath();
             }
 
             return node;
