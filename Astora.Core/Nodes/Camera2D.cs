@@ -57,9 +57,8 @@ namespace Astora.Core.Nodes
             if (Engine.GDM.GraphicsDevice == null)
                 return Vector2.Zero;
 
-            var vp = Engine.GDM.GraphicsDevice.Viewport;
-            var width = vp.Width / Zoom;
-            var height = vp.Height / Zoom;
+            var width = Engine.DesignResolution.X / Zoom;
+            var height = Engine.DesignResolution.Y / Zoom;
             return new Vector2(width, height);
         }
         
@@ -71,9 +70,15 @@ namespace Astora.Core.Nodes
             // There create the origin at the center of the viewport
             if (Engine.GDM.GraphicsDevice != null)
             {
-                var vp = Engine.GDM.GraphicsDevice.Viewport;
-                _origin = new Vector2(vp.Width / 2f, vp.Height / 2f);
+                var ds = Engine.DesignResolution;
+                _origin = new Vector2(ds.X / 2f, ds.Y / 2f);
             }
+        }
+
+        public override void Update(float delta)
+        {
+            base.Update(delta);
+            ResizeViewport();
         }
     }
 }

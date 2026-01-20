@@ -1,0 +1,65 @@
+type: Node
+name: SampleScene
+properties:
+  _name: SampleScene
+children:
+- type: Camera2D
+  name: MainCamera
+  properties:
+    _zoom: 1
+    _origin:
+      x: 400
+      y: 240
+  children: 
+- type: CPUParticles2D
+  name: ParticleEffects
+  properties:
+    _emissionBoxExtents:
+      x: 10
+      y: 10
+    _emissionSphereRadius: 10
+    _tangentialAccel: 0
+    _emitting: true
+    _amount: 50
+    _oneShot: false
+    _lifetime: 2
+    _localCoords: false
+    _gravity:
+      x: 0
+      y: 0
+    _direction:
+      x: 1
+      y: -1
+    _spread: 45
+    _initialVelocityMin: 100
+    _initialVelocityMax: 200
+    _angularVelocity: 5
+    _colorStart:
+      r: 255
+      g: 200
+      b: 100
+      a: 255
+    _colorEnd:
+      r: 255
+      g: 50
+      b: 50
+      a: 0
+    _scaleStart: 0.5
+    _scaleEnd: 0.1
+  children: 
+- type: Sprite
+  name: SampleSprite
+  properties:
+    _texturePath: Test.png
+    _origin:
+      x: 70
+      y: 70
+    _modulate:
+      r: 255
+      g: 255
+      b: 255
+      a: 255
+    _offset:
+      x: 0
+      y: 0
+  children: 

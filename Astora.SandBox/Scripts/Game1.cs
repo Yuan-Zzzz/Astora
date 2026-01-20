@@ -23,7 +23,7 @@ namespace Astora.SandBox.Scripts
             base.Initialize();
             Engine.Initialize(Content, _graphics);
             Engine.LoadProjectConfig();
-           var scene = SampleScene.Build();  
+            var scene = Engine.Serializer.Load(SampleScene.ScenePath);
             Engine.CurrentScene.AttachScene(scene);  
         }
         

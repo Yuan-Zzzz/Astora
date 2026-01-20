@@ -25,7 +25,9 @@ namespace Astora.Core.Nodes
         [SerializeField]
         private Rectangle? _region;
         
-        // Non-serialized runtime fields
+        [SerializeField]
+        private float _pixelDensity = 1.0f;
+        
         private Texture2D _texture;
         private Effect? _effect;
         private BlendState _blendState = BlendState.AlphaBlend;
@@ -34,6 +36,12 @@ namespace Astora.Core.Nodes
         { 
             get => _texture; 
             set => _texture = value; 
+        }
+
+        public float PixelDensity
+        {
+            get => _pixelDensity;
+            set => _pixelDensity = value > 0 ? value : 1.0f;
         }
         
         public Vector2 Origin 
@@ -118,7 +126,12 @@ namespace Astora.Core.Nodes
             
             Rectangle srcRect = Region ?? new Rectangle(0, 0, textureToDraw.Width, textureToDraw.Height);
 
-            // 4. 绘制
+            var renderScale = new Vector2(scale.X, scale.Y);
+            if (_pixelDensity != 1.0f)
+            {
+                renderScale /= _pixelDensity;
+            }
+
             renderBatcher.Draw(
                 textureToDraw,
                 new Vector2(pos.X, pos.Y) + Offset,
@@ -126,7 +139,7 @@ namespace Astora.Core.Nodes
                 Modulate,
                 rotation,
                 Origin,
-                new Vector2(scale.X, scale.Y),
+                renderScale,
                 SpriteEffects.None,
                 0f
             );
@@ -144,10 +157,7 @@ namespace Astora.Core.Nodes
                 if (textureResource != null)
                 {
                     _texture = textureResource.Texture;
-                    if (_texture != null && _origin == new Vector2(DefaultSize / 2f, DefaultSize / 2f))
-                    {
-                        _origin = new Vector2(_texture.Width / 2f, _texture.Height / 2f);
-                    }
+                    _origin = new Vector2(_texture.Width / 2f, _texture.Height / 2f);
                 }
         }
 

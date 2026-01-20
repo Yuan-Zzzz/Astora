@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -17,5 +17,9 @@
       <Folder Include="Content\" />
       <Folder Include="Scenes\" />
     </ItemGroup>
+
+    <Target Name="GenerateScenes" AfterTargets="PostBuildEvent">
+        <Exec Command="dotnet run --project ../Astora.SceneGenerator/Astora.SceneGenerator.csproj -- $(TargetPath) $(MSBuildProjectDirectory) $(MSBuildProjectDirectory)/Content" ConsoleToMSBuild="true" />
+    </Target>
 
 </Project>
