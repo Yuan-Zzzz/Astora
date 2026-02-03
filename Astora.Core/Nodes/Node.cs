@@ -10,25 +10,25 @@ namespace Astora.Core.Nodes
         /// <summary>
         /// Name of the node for identification
         /// </summary>
-        [SerializeField] 
+        [SerializeField]
         private string _name = "Node";
-        
-        public string Name 
-        { 
-            get => _name; 
-            set => _name = value; 
+
+        public string Name
+        {
+            get => _name;
+            set => _name = value;
         }
-        
+
         /// <summary>
         /// Parent node in the hierarchy
         /// </summary>
-        public Node Parent { get;private set; }
-        
+        public Node Parent { get; private set; }
+
         /// <summary>
         /// Node children in the hierarchy
         /// </summary>
         public List<Node> Children { get; private set; } = new List<Node>();
-        
+
         // Mark if this node is queued for deletion
         public bool IsQueuedForDeletion { get; private set; } = false;
 
@@ -53,7 +53,7 @@ namespace Astora.Core.Nodes
 
             child.Parent = this;
             Children.Add(child);
-            child.Ready(); 
+            child.Ready();
         }
 
         /// <summary>
@@ -79,6 +79,8 @@ namespace Astora.Core.Nodes
             {
                 child.QueueFree();
             }
+
+            ExitTree();
         }
         #endregion
 
@@ -86,6 +88,7 @@ namespace Astora.Core.Nodes
         public virtual void Ready() { }
         public virtual void Update(float delta) { }
         public virtual void Draw(RenderBatcher renderBatcher) { }
+        public virtual void ExitTree() { }
         #endregion
 
         #region Node Search Methods
@@ -102,7 +105,7 @@ namespace Astora.Core.Nodes
             }
             return null;
         }
-        
+
         /// <summary>
         /// 按名称查找子节点（递归）
         /// </summary>
@@ -116,7 +119,7 @@ namespace Astora.Core.Nodes
             }
             return null;
         }
-        
+
         /// <summary>
         /// 获取所有指定类型的子节点（递归）
         /// </summary>
@@ -137,20 +140,20 @@ namespace Astora.Core.Nodes
             if (IsQueuedForDeletion) return;
             float delta = (float)gameTime.ElapsedGameTime.TotalSeconds;
             Update(delta);
-            
+
             for (int i = Children.Count - 1; i >= 0; i--)
             {
                 Children[i].InternalUpdate(gameTime);
             }
-            
+
             Children.RemoveAll(c => c.IsQueuedForDeletion);
         }
         internal void InternalDraw(RenderBatcher renderBatcher)
         {
             if (IsQueuedForDeletion) return;
-            
+
             Draw(renderBatcher);
-            
+
             foreach (var child in Children)
             {
                 child.InternalDraw(renderBatcher);
