@@ -64,6 +64,7 @@ namespace Astora.Core.Nodes
         {
             if (Children.Contains(child))
             {
+                ExitTree();
                 child.Parent = null;
                 Children.Remove(child);
             }
