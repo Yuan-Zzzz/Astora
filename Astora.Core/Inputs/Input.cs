@@ -1,8 +1,17 @@
-﻿using Microsoft.Xna.Framework;
+using Astora.Core.Nodes;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 
 namespace Astora.Core.Inputs
 {
+    /// <summary>
+    /// Input system for handling keyboard and mouse input.
+    /// 
+    /// Mouse coordinate systems:
+    /// - RawMousePosition: Window coordinates (physical pixels)
+    /// - MouseScreenPosition: Design resolution coordinates (after ScaleMatrix transform)
+    /// - MouseWorldPosition: World coordinates (after Camera ViewMatrix transform)
+    /// </summary>
     public static class Input
     {
         // Keyboard State
@@ -64,7 +73,61 @@ namespace Astora.Core.Inputs
         #endregion
         
         #region Mouse properties and methods
-        public static Vector2 MousePosition => new Vector2(_currentMouse.X, _currentMouse.Y);
+        
+        /// <summary>
+        /// Raw mouse position in window coordinates (physical pixels).
+        /// This is the unprocessed position from the OS.
+        /// </summary>
+        public static Vector2 RawMousePosition => new Vector2(_currentMouse.X, _currentMouse.Y);
+        
+        /// <summary>
+        /// Mouse position in design resolution coordinates.
+        /// Use this for UI interactions and screen-space calculations.
+        /// Applies inverse ScaleMatrix to convert from window to design resolution.
+        /// </summary>
+        public static Vector2 MouseScreenPosition
+        {
+            get
+            {
+                var scaleMatrix = Engine.GetScaleMatrix();
+                var invScaleMatrix = Matrix.Invert(scaleMatrix);
+                return Vector2.Transform(RawMousePosition, invScaleMatrix);
+            }
+        }
+        
+        /// <summary>
+        /// Get mouse position in world coordinates using the specified camera.
+        /// Use this for game world interactions (e.g., clicking on game objects).
+        /// </summary>
+        /// <param name="camera">The camera to use for coordinate transformation</param>
+        /// <returns>Mouse position in world coordinates</returns>
+        public static Vector2 GetMouseWorldPosition(Camera2D camera)
+        {
+            if (camera == null)
+                return MouseScreenPosition;
+            
+            return camera.ScreenToWorld(MouseScreenPosition);
+        }
+        
+        /// <summary>
+        /// Mouse position in world coordinates using the current active camera.
+        /// Returns screen position if no active camera is available.
+        /// Use this for game world interactions (e.g., clicking on game objects).
+        /// </summary>
+        public static Vector2 MouseWorldPosition
+        {
+            get
+            {
+                var activeCamera = Engine.CurrentScene?.ActiveCamera;
+                return GetMouseWorldPosition(activeCamera);
+            }
+        }
+        
+        /// <summary>
+        /// [Deprecated] Use MouseScreenPosition instead.
+        /// Mouse position in design resolution coordinates.
+        /// </summary>
+        public static Vector2 MousePosition => MouseScreenPosition;
         
         public static bool IsMouseButtonDown(ButtonState buttonState)
         {
