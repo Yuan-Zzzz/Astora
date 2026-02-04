@@ -31,7 +31,7 @@ namespace Astora.Core.Nodes
 
         // Mark if this node is queued for deletion
         public bool IsQueuedForDeletion { get; private set; } = false;
-
+        public event Action OnExitTree;
         public Node()
         {
             _name = "Node";
@@ -89,7 +89,11 @@ namespace Astora.Core.Nodes
         public virtual void Ready() { }
         public virtual void Update(float delta) { }
         public virtual void Draw(RenderBatcher renderBatcher) { }
-        public virtual void ExitTree() { }
+        public virtual void ExitTree()
+        {
+            OnExitTree?.Invoke();
+            OnExitTree = null;
+        }
         #endregion
 
         #region Node Search Methods
