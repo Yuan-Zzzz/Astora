@@ -24,7 +24,7 @@ public class FinalCompositionPass : RenderPass
             SpriteEffects.None,
             0f
         );
-        
+
         context.RenderBatcher.End();
     }
 }

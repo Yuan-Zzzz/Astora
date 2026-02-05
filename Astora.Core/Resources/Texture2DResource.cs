@@ -1,5 +1,6 @@
 namespace Astora.Core.Resources;
 
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Content;
 
@@ -58,6 +59,31 @@ public class Texture2DImporter : IResourceImporter
         {
             throw new InvalidOperationException($"Failed to load texture from file: {fullPath}", ex);
         }
+
+        // Premultiply alpha for correct blending with BlendState.AlphaBlend
+        PremultiplyAlpha(texture);
+
         return new Texture2DResource(texture, path);
+    }
+
+    /// <summary>
+    /// Converts texture from straight alpha to premultiplied alpha.
+    /// This ensures correct blending when using BlendState.AlphaBlend.
+    /// </summary>
+    private static void PremultiplyAlpha(Texture2D texture)
+    {
+        var pixels = new Color[texture.Width * texture.Height];
+        texture.GetData(pixels);
+
+        for (int i = 0; i < pixels.Length; i++)
+        {
+            var c = pixels[i];
+            if (c.A < 255)
+            {
+                pixels[i] = Color.FromNonPremultiplied(c.R, c.G, c.B, c.A);
+            }
+        }
+
+        texture.SetData(pixels);
     }
 }
