@@ -157,6 +157,24 @@ public static class Input
         return _currentMouse.MiddleButton == ButtonState.Pressed && 
                _previousMouse.MiddleButton == ButtonState.Released;
     }
+
+    /// <summary>
+    /// True when left button was released this frame (was pressed, now released).
+    /// </summary>
+    public static bool IsLeftMouseButtonReleased()
+    {
+        return _currentMouse.LeftButton == ButtonState.Released &&
+               _previousMouse.LeftButton == ButtonState.Pressed;
+    }
+
+    /// <summary>
+    /// True when right button was released this frame.
+    /// </summary>
+    public static bool IsRightMouseButtonReleased()
+    {
+        return _currentMouse.RightButton == ButtonState.Released &&
+               _previousMouse.RightButton == ButtonState.Pressed;
+    }
     
     public static int MouseScrollDelta => _currentMouse.ScrollWheelValue - _previousMouse.ScrollWheelValue;
     #endregion

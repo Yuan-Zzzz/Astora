@@ -5,8 +5,8 @@ using Astora.Core.Rendering;
 using Astora.Core.Resources;
 using Astora.Core.Scene;
 using Microsoft.Xna.Framework;
-namespace Astora.SandBox.Scripts
 
+namespace Astora.SandBox.Scripts
 {
     public class Game1 : Game
     {
@@ -23,8 +23,9 @@ namespace Astora.SandBox.Scripts
             base.Initialize();
             Engine.Initialize(Content, _graphics);
             Engine.LoadProjectConfig();
-            var scene = Engine.Serializer.Load(SampleScene.ScenePath);
-            Engine.CurrentScene.AttachScene(scene);  
+            var sceneRoot = SceneBootstrap.LoadOrBuildScene();
+            Engine.CurrentScene.AttachScene(sceneRoot);
+            SandboxUIDemo.BuildDemoUI(Engine.CurrentScene.Root);
         }
         
         protected override void Update(GameTime gameTime)
