@@ -602,6 +602,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Engine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#extension-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extension points
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1120,6 +1137,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Engine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#extension-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extension points
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1161,12 +1195,18 @@
 <h2 id="overview">Overview</h2>
 <p>Astora Engine is node-based, meaning that everything in the engine is represented as a node in a tree structure. This allows for a highly modular and flexible design, where different components can be easily added, removed, or modified without affecting the overall system. This is inspired by Godot Engine's architecture.</p>
 <h2 id="engine">Engine</h2>
-<p>The Engine class is the main entry point of Astora Engine. It is responsible for initializing and managing the various subsystems of the engine, such as rendering, input handling, audio, and more. The Engine class also provides a way to access global settings and configurations for the engine.</p>
+<p>The Engine class is the main entry point of Astora Engine. It acts as a static facade: after <code>Engine.Initialize(Content, GDM, nodeFactory?)</code>, all getters and methods delegate to an internal <code>IEngineContext</code> (default implementation: <code>EngineContext</code>). This allows tests or multi-viewport setups to inject a custom context without changing call sites.</p>
 <p>Features of the Engine class include:</p>
 <ul>
 <li>Managing the main game loop, including updating and rendering.</li>
 <li>Providing a centralized input handling system.</li>
-<li>Designing resolution and display settings.</li>
+<li>Design resolution and display settings (scale matrix, viewport).</li>
+</ul>
+<h3 id="extension-points">Extension points</h3>
+<ul>
+<li><strong>Resources</strong>: Register custom asset types with <code>ResourceLoader.RegisterImporter&lt;T&gt;(IResourceImporter)</code>.</li>
+<li><strong>Nodes</strong>: Implement <code>INodeFactory</code> (e.g. use <code>NodeTypeRegistry</code>) and pass it to <code>Engine.Initialize</code> so scene load/save and the editor use the same node types.</li>
+<li><strong>Rendering</strong>: Nodes draw via <code>IRenderBatcher</code>; the pipeline can be extended with custom <code>IRenderPass</code> implementations.</li>
 </ul>
 <h2 id="node-system">Node System</h2>
 <p>Node System is the core of Astora Engine. It provides a way to create and manage nodes, which can represent various elements such as scenes, objects, scripts, and more. Nodes can have parent-child relationships, allowing for hierarchical organization and inheritance of properties and behaviors. In Astora Engine, everything is a node, including scenes, objects, scripts, and even the engine itself. This allows for a consistent and unified approach to managing different components of the engine.</p>
