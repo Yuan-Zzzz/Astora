@@ -47,16 +47,15 @@ public static class ResourceLoader
         
         // Load Resource
         var fullpath = path;
-        Console.WriteLine($"Load Resource from path {fullpath}");
+        Logger.Debug($"Loading resource: {fullpath}");
         var resource = importer.Import(fullpath, _contentManager);
         if (resource == null)
-            throw new InvalidOperationException($"Failed to load resourece: {path}");
+            throw new InvalidOperationException($"Failed to load resource: {path}");
         
         resource.ResourcePath = fullpath;
         resource.ResourceId = fullpath;
         resource.ReferenceCount = 1;
         resource.IsLoaded = true;
-        Console.WriteLine(fullpath);
         _resourceCache[fullpath] = resource;
         return (T)resource;
     }

@@ -1,8 +1,9 @@
-﻿using Astora.Core.Project;
+using Astora.Core.Project;
 using Astora.Core.Rendering.RenderPipeline;
 using Astora.Core.Rendering.RenderPipeline.RenderPass;
 using Astora.Core.Resources;
 using Astora.Core.Scene;
+using Astora.Core.Tweener;
 using Astora.Core.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -219,6 +220,8 @@ public static class Engine
     /// </summary>
     public static void Update(GameTime gameTime)
     {
+        float delta = (float)gameTime.ElapsedGameTime.TotalSeconds;
+        TweenCore.Update(delta);
         CurrentScene?.Update(gameTime);
     }
     

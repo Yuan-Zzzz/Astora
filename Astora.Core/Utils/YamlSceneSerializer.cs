@@ -9,12 +9,12 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using Astora.Core.Resources;
 
-namespace Astora.Core.Utils
-{
-    /// <summary>
-    /// Serialized representation of a Node for YAML serialization
-    /// </summary>
-    public class SerializedNode
+namespace Astora.Core.Utils;
+
+/// <summary>
+/// Serialized representation of a Node for YAML serialization
+/// </summary>
+public class SerializedNode
     {
         public string Type { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
@@ -132,7 +132,7 @@ namespace Astora.Core.Utils
             var fieldType = fieldInfo.FieldType;
             
             // Check the ContentRelativePathAttribute to translate the full path to relative path by Content.RootDirectory
-            if (fieldType == typeof(string) && fieldInfo != null && fieldInfo.IsDefined(typeof(ContentRelativePath), false) && value is string pathValue)
+            if (fieldType == typeof(string) && fieldInfo != null && fieldInfo.IsDefined(typeof(ContentRelativePathAttribute), false) && value is string pathValue)
             {
                 if (string.IsNullOrEmpty(pathValue))
                   return pathValue;
@@ -246,8 +246,9 @@ namespace Astora.Core.Utils
                             field.SetValue(node, deserializedValue);
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        Logger.Warn($"Failed to deserialize field '{field.Name}': {ex.Message}");
                     }
                 }
             }
@@ -303,7 +304,7 @@ namespace Astora.Core.Utils
         {
             var fieldType = fieldInfo.FieldType;
             // Translate ContentRelativePathAttribute filed to absolute path
-            if (fieldType == typeof(string) && fieldInfo.IsDefined(typeof(ContentRelativePath), false) && value is string pathValue)
+            if (fieldType == typeof(string) && fieldInfo.IsDefined(typeof(ContentRelativePathAttribute), false) && value is string pathValue)
             {
                 if (string.IsNullOrEmpty(pathValue))
                     return pathValue;
@@ -424,8 +425,9 @@ namespace Astora.Core.Utils
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Logger.Warn($"Failed to create node by reflection from priority assembly: {ex.Message}");
                 }
             }
             
@@ -520,4 +522,3 @@ namespace Astora.Core.Utils
             return null;
         }
     }
-}

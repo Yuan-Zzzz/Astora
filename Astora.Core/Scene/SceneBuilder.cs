@@ -1,5 +1,6 @@
-using Astora.Core;
 using Astora.Core.Nodes;
+
+namespace Astora.Core.Scene;
 
 public class SceneBuilder
 {
@@ -21,7 +22,7 @@ public class SceneBuilder
         return new SceneBuilder(rootNode);
     }
 
-    public SceneBuilder Create<T>(string name, Action<SceneBuilder>? configure = null) where T : Node, new()
+    public SceneBuilder AddChild<T>(string name, Action<SceneBuilder>? configure = null) where T : Node, new()
     {
        var nodeToAdd = new T()
        {

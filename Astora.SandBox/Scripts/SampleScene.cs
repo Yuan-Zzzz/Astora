@@ -1,5 +1,6 @@
 using Astora.Core.Nodes;
 using Astora.Core.Resources;
+using Astora.Core.Scene;
 using Microsoft.Xna.Framework;
 
 namespace Astora.SandBox.Scripts

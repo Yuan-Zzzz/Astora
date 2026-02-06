@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 
+namespace Astora.Core.Tweener;
+
 public static class Ease
 {
 

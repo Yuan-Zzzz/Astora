@@ -1,6 +1,6 @@
 namespace Astora.Core.Attributes;
-    
-[AttributeUsage(AttributeTargets.Field)]
-public class ContentRelativePath : Attribute{
 
+[AttributeUsage(AttributeTargets.Field)]
+public class ContentRelativePathAttribute : Attribute
+{
 }

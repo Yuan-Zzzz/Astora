@@ -2,12 +2,12 @@ using System.Reflection;
 using Astora.Core;
 using Astora.Core.Nodes;
 
-namespace Astora.Core.Utils
-{
-    /// <summary>
-    /// Node Information
-    /// </summary>
-    public class NodeTypeInfo
+namespace Astora.Core.Utils;
+
+/// <summary>
+/// Node Information
+/// </summary>
+public class NodeTypeInfo
     {
         public Type Type { get; set; }
         public string TypeName { get; set; }
@@ -101,7 +101,7 @@ namespace Astora.Core.Utils
                 }
                 catch (Exception ex)
                 {
-                    System.Console.WriteLine($"Scanning priority assembly failed: {ex.Message}");
+                    Logger.Warn($"Scanning priority assembly failed: {ex.Message}");
                 }
             }
             
@@ -114,7 +114,7 @@ namespace Astora.Core.Utils
                 }
                 catch (Exception ex)
                 {
-                    System.Console.WriteLine($"Scanning core assembly failed: {ex.Message}");
+                    Logger.Warn($"Scanning core assembly failed: {ex.Message}");
                 }
             }
             
@@ -146,7 +146,7 @@ namespace Astora.Core.Utils
                 }
                 catch (ReflectionTypeLoadException ex)
                 {
-                    System.Console.WriteLine($"Failed to load types from assembly {assembly.FullName}: {ex.Message}");
+                    Logger.Warn($"Failed to load types from assembly {assembly.FullName}: {ex.Message}");
                 }
                 catch (InvalidOperationException)
                 {
@@ -154,7 +154,7 @@ namespace Astora.Core.Utils
                 }
                 catch (Exception ex)
                 {
-                    System.Console.WriteLine($"Scanning assembly {assembly.FullName} failed: {ex.Message}");
+                    Logger.Warn($"Scanning assembly {assembly.FullName} failed: {ex.Message}");
                 }
             }
             
@@ -359,7 +359,7 @@ namespace Astora.Core.Utils
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"Creating node of type {nodeType.FullName} failed: {ex.Message}");
+                Logger.Warn($"Creating node of type {nodeType.FullName} failed: {ex.Message}");
                 return null;
             }
             
@@ -398,5 +398,4 @@ namespace Astora.Core.Utils
             return result;
         }
     }
-}
 
