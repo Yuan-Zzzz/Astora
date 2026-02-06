@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -12,8 +13,16 @@ public class RenderBatcher : IRenderBatcher
     private BlendState _currentBlendState;
     private SamplerState _currentSamplerState;
     private Effect _currentEffect;
+    private RasterizerState _currentRasterizer;
     
     private bool _isBatching;
+    private readonly Stack<Rectangle> _scissorStack = new Stack<Rectangle>();
+
+    private static readonly RasterizerState ScissorEnabled = new RasterizerState
+    {
+        ScissorTestEnable = true,
+        CullMode = CullMode.None
+    };
 
     public RenderBatcher(GraphicsDevice device)
     {
@@ -27,16 +36,16 @@ public class RenderBatcher : IRenderBatcher
 
         _currentTransform = transformMatrix;
         _currentSamplerState = sampler ?? SamplerState.PointClamp;
-        _currentBlendState = BlendState.AlphaBlend; 
+        _currentBlendState = BlendState.AlphaBlend;
         _currentEffect = null;
+        _currentRasterizer = RasterizerState.CullNone;
 
-        // 真正的开启
         _spriteBatch.Begin(
             SpriteSortMode.Deferred,
             _currentBlendState,
             _currentSamplerState,
             DepthStencilState.None,
-            RasterizerState.CullNone,
+            _currentRasterizer,
             _currentEffect,
             _currentTransform
         );
@@ -70,7 +79,13 @@ public class RenderBatcher : IRenderBatcher
         
         _spriteBatch.Draw(texture, position, sourceRectangle, color, rotation, origin, scale, effects, layerDepth);
     }
-    
+
+    public void DrawString(SpriteFont font, string text, Vector2 position, Color color)
+    {
+        if (font == null || string.IsNullOrEmpty(text)) return;
+        _spriteBatch.DrawString(font, text, position, color);
+    }
+
     private void FlushAndChangeState(BlendState newBlend, Effect newEffect)
     {
         _spriteBatch.End();
@@ -83,9 +98,56 @@ public class RenderBatcher : IRenderBatcher
             _currentBlendState,
             _currentSamplerState,
             DepthStencilState.None,
-            RasterizerState.CullNone,
+            _currentRasterizer,
             _currentEffect,
             _currentTransform
         );
+    }
+
+    public void PushScissorRect(Rectangle rect)
+    {
+        var vp = _device.Viewport.Bounds;
+        var current = _scissorStack.Count > 0 ? _scissorStack.Peek() : new Rectangle(vp.X, vp.Y, vp.Width, vp.Height);
+        var intersected = Rectangle.Intersect(current, rect);
+        if (intersected.Width <= 0 || intersected.Height <= 0)
+            intersected = new Rectangle(rect.X, rect.Y, 0, 0);
+        _scissorStack.Push(intersected);
+        ApplyScissorAndRestartBatch(ScissorEnabled, intersected);
+    }
+
+    public void PopScissorRect()
+    {
+        if (_scissorStack.Count == 0) return;
+        _scissorStack.Pop();
+        if (_scissorStack.Count == 0)
+        {
+            _spriteBatch.End();
+            _isBatching = false;
+            _currentRasterizer = RasterizerState.CullNone;
+            _device.ScissorRectangle = _device.Viewport.Bounds;
+            _spriteBatch.Begin(SpriteSortMode.Deferred, _currentBlendState, _currentSamplerState,
+                DepthStencilState.None, _currentRasterizer, _currentEffect, _currentTransform);
+            _isBatching = true;
+        }
+        else
+            ApplyScissorAndRestartBatch(ScissorEnabled, _scissorStack.Peek());
+    }
+
+    private void ApplyScissorAndRestartBatch(RasterizerState rasterizer, Rectangle scissorRect)
+    {
+        _spriteBatch.End();
+        _isBatching = false;
+        _currentRasterizer = rasterizer;
+        _device.ScissorRectangle = rasterizer.ScissorTestEnable ? scissorRect : _device.Viewport.Bounds;
+        _spriteBatch.Begin(
+            SpriteSortMode.Deferred,
+            _currentBlendState,
+            _currentSamplerState,
+            DepthStencilState.None,
+            _currentRasterizer,
+            _currentEffect,
+            _currentTransform
+        );
+        _isBatching = true;
     }
 }

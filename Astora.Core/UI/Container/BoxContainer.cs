@@ -61,16 +61,13 @@ public class BoxContainer : Control
         {
             var desired = c.ComputeDesiredSize();
             c.DesiredSize = desired;
-            if (_vertical)
-            {
-                mainSum += desired.Y;
-                if (desired.X > crossMax) crossMax = desired.X;
-            }
-            else
-            {
-                mainSum += desired.X;
-                if (desired.Y > crossMax) crossMax = desired.Y;
-            }
+            float main = _vertical ? desired.Y : desired.X;
+            float cross = _vertical ? desired.X : desired.Y;
+            float minMain = _vertical ? c.MinSize.Y : c.MinSize.X;
+            float minCross = _vertical ? c.MinSize.X : c.MinSize.Y;
+            mainSum += Math.Max(main, minMain);
+            if (cross > crossMax) crossMax = cross;
+            if (minCross > crossMax) crossMax = minCross;
         }
         float totalMain = mainSum + _spacing * (n - 1);
         if (_vertical)
@@ -86,23 +83,54 @@ public class BoxContainer : Control
         var controls = Children.OfType<Control>().ToList();
         if (controls.Count == 0) return;
 
-        int x = finalRect.X;
-        int y = finalRect.Y;
-        foreach (var child in controls)
+        int n = controls.Count;
+        float totalStretch = 0f;
+        foreach (var c in controls)
+            totalStretch += c.StretchRatio;
+
+        if (_vertical)
         {
-            int w, h;
-            if (_vertical)
+            int availableMain = finalRect.Height - _spacing * (n - 1);
+            float sumBase = 0f;
+            foreach (var c in controls)
             {
-                w = finalRect.Width;
-                h = (int)child.DesiredSize.Y;
-                child.ArrangeChildren(new Rectangle(x, y, w, h));
+                float baseMain = Math.Max(c.DesiredSize.Y, c.MinSize.Y);
+                sumBase += baseMain;
+            }
+            float extra = Math.Max(0, availableMain - sumBase);
+            int y = finalRect.Y;
+            foreach (var child in controls)
+            {
+                float baseMain = Math.Max(child.DesiredSize.Y, child.MinSize.Y);
+                float main = baseMain;
+                if (extra > 0 && totalStretch > 0 && child.StretchRatio > 0)
+                    main += extra * (child.StretchRatio / totalStretch);
+                int h = (int)main;
+                int w = finalRect.Width;
+                child.ArrangeChildren(new Rectangle(finalRect.X, y, w, h));
                 y += h + _spacing;
             }
-            else
+        }
+        else
+        {
+            int availableMain = finalRect.Width - _spacing * (n - 1);
+            float sumBase = 0f;
+            foreach (var c in controls)
             {
-                w = (int)child.DesiredSize.X;
-                h = finalRect.Height;
-                child.ArrangeChildren(new Rectangle(x, y, w, h));
+                float baseMain = Math.Max(c.DesiredSize.X, c.MinSize.X);
+                sumBase += baseMain;
+            }
+            float extra = Math.Max(0, availableMain - sumBase);
+            int x = finalRect.X;
+            foreach (var child in controls)
+            {
+                float baseMain = Math.Max(child.DesiredSize.X, child.MinSize.X);
+                float main = baseMain;
+                if (extra > 0 && totalStretch > 0 && child.StretchRatio > 0)
+                    main += extra * (child.StretchRatio / totalStretch);
+                int w = (int)main;
+                int h = finalRect.Height;
+                child.ArrangeChildren(new Rectangle(x, finalRect.Y, w, h));
                 x += w + _spacing;
             }
         }

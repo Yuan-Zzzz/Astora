@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Astora.Core;
 using Astora.Core.Inputs;
@@ -16,6 +17,7 @@ public class UIRoot : Control
 {
     private int _viewportWidth;
     private int _viewportHeight;
+    private Control? _focusedControl;
 
     /// <summary>
     /// Canvas width for layout (default from Engine.DesignResolution).
@@ -102,9 +104,16 @@ public class UIRoot : Control
     public override void ArrangeChildren(Rectangle finalRect)
     {
         base.ArrangeChildren(finalRect);
-        // Give each direct child the full canvas (typical: one main child).
         foreach (var child in Children.OfType<Control>())
-            child.ArrangeChildren(finalRect);
+        {
+            if (child.UseAnchorLayout)
+            {
+                var rect = child.GetRectFromAnchorAndOffset(finalRect);
+                child.ArrangeChildren(rect);
+            }
+            else
+                child.ArrangeChildren(finalRect);
+        }
     }
 
     #endregion
@@ -155,6 +164,76 @@ public class UIRoot : Control
 
     #endregion
 
+    #region Focus
+
+    /// <summary>
+    /// Currently focused control, or null. Set by GrabFocus(Control).
+    /// </summary>
+    public Control? GetFocused() => _focusedControl;
+
+    /// <summary>
+    /// Set focus to the given control. Only has effect if the control is in this tree and has FocusMode != None.
+    /// </summary>
+    public void GrabFocus(Control? control)
+    {
+        if (control != null && control.FocusMode == FocusMode.None) return;
+        if (control != null && !IsDescendantOfThis(control)) return;
+        if (_focusedControl == control) return;
+        var old = _focusedControl;
+        _focusedControl = control;
+        if (old != null)
+        {
+            old.IsFocused = false;
+            old.OnFocusExit();
+        }
+        if (control != null)
+        {
+            control.IsFocused = true;
+            control.OnFocusEnter();
+        }
+    }
+
+    private bool IsDescendantOfThis(Control control)
+    {
+        for (var n = control.Parent; n != null; n = n.Parent)
+        {
+            if (n == this) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Collect all focusable controls in depth-first order (same as tree order).
+    /// </summary>
+    private static void CollectFocusable(Control c, List<Control> list)
+    {
+        if (!c.Visible || c.FocusMode == FocusMode.None) return;
+        list.Add(c);
+        foreach (var child in c.Children.OfType<Control>())
+            CollectFocusable(child, list);
+    }
+
+    public Control? FindNextValidFocus()
+    {
+        var list = new List<Control>();
+        CollectFocusable(this, list);
+        if (list.Count == 0) return null;
+        int idx = _focusedControl != null ? list.IndexOf(_focusedControl) : -1;
+        return list[(idx + 1) % list.Count];
+    }
+
+    public Control? FindPrevValidFocus()
+    {
+        var list = new List<Control>();
+        CollectFocusable(this, list);
+        if (list.Count == 0) return null;
+        int idx = _focusedControl != null ? list.IndexOf(_focusedControl) : 0;
+        idx = idx <= 0 ? list.Count - 1 : idx - 1;
+        return list[idx];
+    }
+
+    #endregion
+
     #region Event routing (tunnel then bubble)
 
     private static List<Control> GetPathToTarget(Control root, Control? target)
@@ -197,6 +276,28 @@ public class UIRoot : Control
             path[i].OnMouseMove(args);
     }
 
+    private void RouteKeyDown(Control? focus, KeyEventArgs args)
+    {
+        if (focus == null) return;
+        var path = GetPathToTarget(this, focus);
+        for (int i = 0; i < path.Count && !args.Handled; i++)
+            path[i].OnPreviewKeyDown(args);
+        if (args.Handled) return;
+        for (int i = path.Count - 1; i >= 0 && !args.Handled; i--)
+            path[i].OnKeyDown(args);
+    }
+
+    private void RouteKeyUp(Control? focus, KeyEventArgs args)
+    {
+        if (focus == null) return;
+        var path = GetPathToTarget(this, focus);
+        for (int i = 0; i < path.Count && !args.Handled; i++)
+            path[i].OnPreviewKeyUp(args);
+        if (args.Handled) return;
+        for (int i = path.Count - 1; i >= 0 && !args.Handled; i--)
+            path[i].OnKeyUp(args);
+    }
+
     #endregion
 
     #region Input processing
@@ -210,6 +311,8 @@ public class UIRoot : Control
 
         if (Input.IsLeftMouseButtonPressed())
         {
+            if (hit != null && hit.FocusMode != FocusMode.None)
+                hit.GrabFocus();
             var args = new MouseButtonEventArgs
             {
                 Position = pos,
@@ -259,6 +362,36 @@ public class UIRoot : Control
             };
             RouteMouseMove(hit, moveArgs);
             _lastMousePosition = pos;
+        }
+
+        ProcessKeyboardEvents();
+    }
+
+    private void ProcessKeyboardEvents()
+    {
+        var focus = _focusedControl;
+        if (focus == null) return;
+
+        if (Input.IsKeyPressed(Keys.Tab))
+        {
+            var next = Input.IsKeyDown(Keys.LeftShift) || Input.IsKeyDown(Keys.RightShift)
+                ? FindPrevValidFocus()
+                : FindNextValidFocus();
+            if (next != null)
+                GrabFocus(next);
+        }
+        else
+        {
+            foreach (var key in Input.GetKeysPressedThisFrame())
+            {
+                var args = new KeyEventArgs { Key = key, Pressed = true };
+                RouteKeyDown(focus, args);
+            }
+            foreach (var key in Input.GetKeysReleasedThisFrame())
+            {
+                var args = new KeyEventArgs { Key = key, Pressed = false };
+                RouteKeyUp(focus, args);
+            }
         }
     }
 

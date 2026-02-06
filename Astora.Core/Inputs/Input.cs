@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Astora.Core.Nodes;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
@@ -50,6 +51,40 @@ public static class Input
     public static bool IsKeyPressed(Keys key)
     {
         return _currentKey.IsKeyDown(key) && !_previousKey.IsKeyDown(key);
+    }
+
+    /// <summary>
+    /// Check if a key was just released this frame
+    /// </summary>
+    public static bool IsKeyReleased(Keys key)
+    {
+        return !_currentKey.IsKeyDown(key) && _previousKey.IsKeyDown(key);
+    }
+
+    /// <summary>
+    /// Enumerate keys that were pressed this frame (for UI key routing).
+    /// </summary>
+    public static IEnumerable<Keys> GetKeysPressedThisFrame()
+    {
+        foreach (Keys key in System.Enum.GetValues(typeof(Keys)))
+        {
+            if (key == Keys.None) continue;
+            if (_currentKey.IsKeyDown(key) && !_previousKey.IsKeyDown(key))
+                yield return key;
+        }
+    }
+
+    /// <summary>
+    /// Enumerate keys that were released this frame (for UI key routing).
+    /// </summary>
+    public static IEnumerable<Keys> GetKeysReleasedThisFrame()
+    {
+        foreach (Keys key in System.Enum.GetValues(typeof(Keys)))
+        {
+            if (key == Keys.None) continue;
+            if (!_currentKey.IsKeyDown(key) && _previousKey.IsKeyDown(key))
+                yield return key;
+        }
     }
 
     /// <summary>

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Astora.Core.Nodes;
 using Astora.Core.Rendering.RenderPipeline;
@@ -72,6 +73,114 @@ public class Control : Node, ILayoutable
     /// </summary>
     public bool ClipContent { get; set; }
 
+    /// <summary>
+    /// Minimum size constraint for layout. Containers (e.g. BoxContainer) use this as lower bound when allocating space.
+    /// </summary>
+    public Vector2 MinSize { get; set; }
+
+    /// <summary>
+    /// Stretch ratio in container layout. When parent has extra space, children with StretchRatio &gt; 0 share it proportionally.
+    /// </summary>
+    public float StretchRatio { get; set; }
+
+    /// <summary>
+    /// When true, this control's FinalRect is computed from anchor and offset relative to parent (Godot-style).
+    /// Used by UIRoot when arranging direct children.
+    /// </summary>
+    public bool UseAnchorLayout { get; set; }
+
+    private float _anchorLeft = 0f, _anchorTop = 0f, _anchorRight = 0f, _anchorBottom = 0f;
+    private int _offsetLeft, _offsetTop, _offsetRight, _offsetBottom;
+
+    public float AnchorLeft { get => _anchorLeft; set { _anchorLeft = value; InvalidateLayout(); } }
+    public float AnchorTop { get => _anchorTop; set { _anchorTop = value; InvalidateLayout(); } }
+    public float AnchorRight { get => _anchorRight; set { _anchorRight = value; InvalidateLayout(); } }
+    public float AnchorBottom { get => _anchorBottom; set { _anchorBottom = value; InvalidateLayout(); } }
+    public int OffsetLeft { get => _offsetLeft; set { _offsetLeft = value; InvalidateLayout(); } }
+    public int OffsetTop { get => _offsetTop; set { _offsetTop = value; InvalidateLayout(); } }
+    public int OffsetRight { get => _offsetRight; set { _offsetRight = value; InvalidateLayout(); } }
+    public int OffsetBottom { get => _offsetBottom; set { _offsetBottom = value; InvalidateLayout(); } }
+
+    /// <summary>
+    /// Compute this control's rectangle from parent rect using anchor (0–1) and offset. Used when UseAnchorLayout is true.
+    /// </summary>
+    public Rectangle GetRectFromAnchorAndOffset(Rectangle parentRect)
+    {
+        int x = (int)(parentRect.X + _anchorLeft * parentRect.Width) + _offsetLeft;
+        int y = (int)(parentRect.Y + _anchorTop * parentRect.Height) + _offsetTop;
+        int right = (int)(parentRect.X + _anchorRight * parentRect.Width) + _offsetRight;
+        int bottom = (int)(parentRect.Y + _anchorBottom * parentRect.Height) + _offsetBottom;
+        int w = right - x;
+        int h = bottom - y;
+        if (w < 0) w = 0;
+        if (h < 0) h = 0;
+        return new Rectangle(x, y, w, h);
+    }
+
+    #endregion
+
+    #region Theme
+
+    private Theme? _theme;
+    private Dictionary<string, Color>? _themeColorOverrides;
+    private Dictionary<string, int>? _themeConstantOverrides;
+
+    /// <summary>
+    /// Theme resource for this control. When null, inherited from parent. Set on UIRoot or a container to provide defaults.
+    /// </summary>
+    public Theme? Theme
+    {
+        get => _theme;
+        set => _theme = value;
+    }
+
+    /// <summary>
+    /// Override a theme color by name. Takes precedence over inherited theme.
+    /// </summary>
+    public void AddThemeColorOverride(string name, Color color)
+    {
+        _themeColorOverrides ??= new Dictionary<string, Color>();
+        _themeColorOverrides[name] = color;
+    }
+
+    /// <summary>
+    /// Override a theme constant (int) by name.
+    /// </summary>
+    public void AddThemeConstantOverride(string name, int value)
+    {
+        _themeConstantOverrides ??= new Dictionary<string, int>();
+        _themeConstantOverrides[name] = value;
+    }
+
+    /// <summary>
+    /// Resolve a theme color: local override, then parent chain, then theme resource, then default.
+    /// </summary>
+    public Color GetThemeColor(string name, Color defaultColor = default)
+    {
+        if (defaultColor == default) defaultColor = Color.White;
+        if (_themeColorOverrides != null && _themeColorOverrides.TryGetValue(name, out var over))
+            return over;
+        if (Parent is Control parent)
+            return parent.GetThemeColor(name, defaultColor);
+        if (_theme != null && _theme.GetColor(name, out var fromTheme))
+            return fromTheme;
+        return defaultColor;
+    }
+
+    /// <summary>
+    /// Resolve a theme constant: local override, then parent chain, then theme resource, then default.
+    /// </summary>
+    public int GetThemeConstant(string name, int defaultValue = 0)
+    {
+        if (_themeConstantOverrides != null && _themeConstantOverrides.TryGetValue(name, out var over))
+            return over;
+        if (Parent is Control parent)
+            return parent.GetThemeConstant(name, defaultValue);
+        if (_theme != null && _theme.GetConstant(name, out var fromTheme))
+            return fromTheme;
+        return defaultValue;
+    }
+
     #endregion
 
     #region Visibility and interaction
@@ -113,9 +222,26 @@ public class Control : Node, ILayoutable
     }
 
     /// <summary>
-    /// True when this control has focus. Set by UI focus manager.
+    /// True when this control has focus. Set by UI focus manager (UIRoot).
     /// </summary>
-    public bool IsFocused { get; protected set; }
+    public bool IsFocused { get; internal set; }
+
+    /// <summary>
+    /// Request focus for this control. Finds the UIRoot ancestor and calls GrabFocus there.
+    /// Only has effect when FocusMode is not None.
+    /// </summary>
+    public void GrabFocus()
+    {
+        if (FocusMode == FocusMode.None) return;
+        for (var n = Parent; n != null; n = n.Parent)
+        {
+            if (n is UIRoot root)
+            {
+                root.GrabFocus(this);
+                break;
+            }
+        }
+    }
 
     #endregion
 
@@ -286,7 +412,33 @@ public class Control : Node, ILayoutable
     public override void Draw(IRenderBatcher renderBatcher)
     {
         // Placeholder: no drawing by default. Subclasses and leaf widgets draw.
-        // ClipContent is applied by renderer when drawing children (e.g. UIRoot or a future InvalidationBox).
+    }
+
+    /// <summary>
+    /// Draw children in ZIndex order (ascending; same as Godot). Non-Control children use ZIndex 0.
+    /// When ClipContent is true, children are clipped to this control's FinalRect.
+    /// </summary>
+    protected override void DrawChildren(IRenderBatcher renderBatcher)
+    {
+        if (Children.Count == 0) return;
+
+        if (ClipContent)
+            renderBatcher.PushScissorRect(FinalRect);
+
+        var indices = new List<int>(Children.Count);
+        for (int i = 0; i < Children.Count; i++) indices.Add(i);
+        indices.Sort((i, j) =>
+        {
+            int zi = Children[i] is Control ci ? ci.ZIndex : 0;
+            int zj = Children[j] is Control cj ? cj.ZIndex : 0;
+            if (zi != zj) return zi.CompareTo(zj);
+            return i.CompareTo(j);
+        });
+        foreach (int i in indices)
+            Children[i].InternalDraw(renderBatcher);
+
+        if (ClipContent)
+            renderBatcher.PopScissorRect();
     }
 
     #endregion
@@ -304,6 +456,20 @@ public class Control : Node, ILayoutable
     public virtual void OnPreviewMouseMove(MouseMoveEventArgs e) { }
 
     public virtual void OnMouseMove(MouseMoveEventArgs e) { }
+
+    public virtual void OnPreviewKeyDown(KeyEventArgs e) { }
+
+    public virtual void OnKeyDown(KeyEventArgs e) { }
+
+    public virtual void OnPreviewKeyUp(KeyEventArgs e) { }
+
+    public virtual void OnKeyUp(KeyEventArgs e) { }
+
+    /// <summary>Called when this control gains focus.</summary>
+    public virtual void OnFocusEnter() { }
+
+    /// <summary>Called when this control loses focus.</summary>
+    public virtual void OnFocusExit() { }
 
     #endregion
 }

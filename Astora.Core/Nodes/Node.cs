@@ -161,16 +161,23 @@ public class Node
 
         _children.RemoveAll(c => c.IsQueuedForDeletion);
     }
+    /// <summary>
+    /// Override to customize how children are drawn (e.g. Control sorts by ZIndex).
+    /// </summary>
+    protected virtual void DrawChildren(IRenderBatcher renderBatcher)
+    {
+        foreach (var child in Children)
+        {
+            child.InternalDraw(renderBatcher);
+        }
+    }
+
     internal void InternalDraw(IRenderBatcher renderBatcher)
     {
         if (IsQueuedForDeletion) return;
 
         Draw(renderBatcher);
-
-        foreach (var child in Children)
-        {
-            child.InternalDraw(renderBatcher);
-        }
+        DrawChildren(renderBatcher);
     }
     #endregion
 }
