@@ -1,4 +1,5 @@
-﻿using Astora.Core.Rendering.RenderPipeline.RenderPass;
+using Astora.Core;
+using Astora.Core.Rendering.RenderPipeline.RenderPass;
 using Astora.Core.Scene;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -12,10 +13,14 @@ public class RenderPipeline
     private RenderTarget2D _mainTarget;
     private List<IRenderPass> _passes;
     private RenderContext _context;
+    private Point _designResolution;
+    private readonly Func<Matrix>? _getScaleMatrix;
 
-    public RenderPipeline(GraphicsDevice graphicsDevice)
+    public RenderPipeline(GraphicsDevice graphicsDevice, Point designResolution, Func<Matrix>? getScaleMatrix = null)
     {
         _graphicsDevice = graphicsDevice;
+        _designResolution = designResolution;
+        _getScaleMatrix = getScaleMatrix;
         _renderBatcher = new RenderBatcher(graphicsDevice);
         _passes = new List<IRenderPass>();
         _context = new RenderContext
@@ -24,22 +29,26 @@ public class RenderPipeline
             RenderBatcher = _renderBatcher
         };
         
-        UpdateRenderTarget();
+        UpdateRenderTarget(_designResolution);
         AddPass(new SceneRenderPass());
-        AddPass(new FinalCompositionPass());
+        AddPass(new FinalCompositionPass(_getScaleMatrix ?? (() => Engine.GetScaleMatrix())));
     }
 
     public void AddPass(IRenderPass pass) => _passes.Add(pass);
     public void RemovePass(IRenderPass pass) => _passes.Remove(pass);
     public void ClearPasses() => _passes.Clear();
     
-    public void UpdateRenderTarget()
+    /// <summary>
+    /// Updates the main render target to match the given design resolution.
+    /// </summary>
+    public void UpdateRenderTarget(Point designResolution)
     {
+        _designResolution = designResolution;
         _mainTarget?.Dispose();
         _mainTarget = new RenderTarget2D(
             _graphicsDevice,
-            Engine.DesignResolution.X,
-            Engine.DesignResolution.Y,
+            _designResolution.X,
+            _designResolution.Y,
             false,
             _graphicsDevice.PresentationParameters.BackBufferFormat,
             DepthFormat.Depth24);

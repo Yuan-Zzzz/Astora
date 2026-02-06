@@ -1,17 +1,22 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace Astora.Core.Rendering.RenderPipeline.RenderPass;
 
 public class FinalCompositionPass : RenderPass
 {
-    public FinalCompositionPass() : base("CompositionPass") { }
+    private readonly Func<Matrix> _getScaleMatrix;
+
+    public FinalCompositionPass(Func<Matrix> getScaleMatrix) : base("CompositionPass")
+    {
+        _getScaleMatrix = getScaleMatrix ?? (() => Matrix.Identity);
+    }
 
     public override void Execute(RenderContext context)
     {
         var sourceTexture = context.SourceBuffer;
         if (sourceTexture == null) return;
-        Matrix scaleMatrix = Engine.GetScaleMatrix();
+        Matrix scaleMatrix = _getScaleMatrix();
         context.RenderBatcher.Begin(scaleMatrix, SamplerState.PointClamp);
         context.RenderBatcher.Draw(
             sourceTexture,

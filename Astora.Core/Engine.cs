@@ -1,8 +1,8 @@
 using Astora.Core.Project;
 using Astora.Core.Rendering.RenderPipeline;
-using Astora.Core.Rendering.RenderPipeline.RenderPass;
 using Astora.Core.Resources;
 using Astora.Core.Scene;
+using Astora.Core.Utils;
 using Astora.Core.Tweener;
 using Astora.Core.Utils;
 using Microsoft.Xna.Framework;
@@ -19,202 +19,142 @@ public static class Engine
     /// Default Sampler State
     /// </summary>
     public static SamplerState DefaultSamplerState { get; } = SamplerState.PointClamp;
-    
+
     /// <summary>
-    /// Content Manager
+    /// Current engine context. Set by <see cref="Initialize"/>.
     /// </summary>
-    public static ContentManager Content { get; private set; }
+    public static IEngineContext CurrentContext { get; private set; }
+
     /// <summary>
-    /// Graphics Device
+    /// Content Manager. Null when engine is not initialized.
     /// </summary>
-    public static GraphicsDeviceManager GDM{ get; private set; }
+    public static ContentManager Content => CurrentContext?.Content;
+
+    /// <summary>
+    /// Graphics Device. Null when engine is not initialized.
+    /// </summary>
+    public static GraphicsDeviceManager GDM => CurrentContext?.GDM;
+
     /// <summary>
     /// Current Scene Tree
     /// </summary>
-    public static SceneTree CurrentScene { get; set; }
+    public static SceneTree CurrentScene
+    {
+        get => CurrentContext?.CurrentScene;
+        set { if (CurrentContext != null) CurrentContext.CurrentScene = value; }
+    }
+
     /// <summary>
     /// Scene Serializer
     /// </summary>
-    public static ISceneSerializer Serializer { get; set; } = new YamlSceneSerializer();
-    
+    public static ISceneSerializer Serializer
+    {
+        get => CurrentContext?.Serializer ?? new YamlSceneSerializer(new NodeTypeRegistry());
+        set { if (CurrentContext != null) CurrentContext.Serializer = value; }
+    }
+
     /// <summary>
     /// Design Resolution
     /// </summary>
-    public static Point DesignResolution { get; private set; } = new Point(1920, 1080);
-    
+    public static Point DesignResolution => CurrentContext?.DesignResolution ?? new Point(1920, 1080);
+
     /// <summary>
     /// Scaling Mode
     /// </summary>
-    public static ScalingMode ScalingMode { get; private set; } = ScalingMode.Fit;
-    
+    public static ScalingMode ScalingMode => CurrentContext?.ScalingMode ?? ScalingMode.Fit;
+
     /// <summary>
     /// Current View Matrix
     /// </summary>
-    public static Matrix CurrentViewMatrix { get; private set; } = Matrix.Identity;
-    
+    public static Matrix CurrentViewMatrix
+    {
+        get => CurrentContext?.CurrentViewMatrix ?? Matrix.Identity;
+        set { if (CurrentContext != null) CurrentContext.CurrentViewMatrix = value; }
+    }
+
     /// <summary>
     /// Current Global Transform Matrix
     /// </summary>
-    public static Matrix CurrentGlobalTransformMatrix { get; private set; } = Matrix.Identity;
-    
-    public static RenderPipeline RenderPipeline { get; private set; } 
-    
-    /// <summary>
-    /// Initialize the Engine
-    /// </summary>
-    public static void Initialize(ContentManager content, GraphicsDeviceManager gdm)
+    public static Matrix CurrentGlobalTransformMatrix
     {
-        Content = content;
-        GDM = gdm;
-        CurrentScene = new SceneTree();
-        RenderPipeline = new RenderPipeline(GDM.GraphicsDevice);
+        get => CurrentContext?.CurrentGlobalTransformMatrix ?? Matrix.Identity;
+        set { if (CurrentContext != null) CurrentContext.CurrentGlobalTransformMatrix = value; }
+    }
+
+    public static RenderPipeline RenderPipeline => CurrentContext?.RenderPipeline;
+
+    /// <summary>
+    /// Initialize the Engine. Optionally pass a custom node factory (e.g. editor's NodeTypeRegistry with priority assembly).
+    /// </summary>
+    public static void Initialize(ContentManager content, GraphicsDeviceManager gdm, INodeFactory? nodeFactory = null)
+    {
+        CurrentContext = new EngineContext(content, gdm, nodeFactory);
         ResourceLoader.Initialize(content);
     }
 
     public static void LoadProjectConfig()
     {
-            var configPath = "project.yaml";
-            if (!File.Exists(configPath))
-            {
-                configPath =  Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "project.yaml");
-            }
-                
-            var deserializer = new DeserializerBuilder()
-                .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .Build();
-                
-            var yaml = File.ReadAllText(configPath);
-            var config = deserializer.Deserialize<GameProjectConfig>(yaml);
-                
-            if (config != null)
-            {
-                SetDesignResolution(config);
-                SetWindowSize(config.DesignWidth, config.DesignHeight);
-                GDM.ApplyChanges();
-                Content.RootDirectory = config.ContentRootDirectory; 
-            }
-  
+        var configPath = "project.yaml";
+        if (!File.Exists(configPath))
+        {
+            configPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "project.yaml");
+        }
+
+        var deserializer = new DeserializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .Build();
+
+        var yaml = File.ReadAllText(configPath);
+        var config = deserializer.Deserialize<GameProjectConfig>(yaml);
+
+        if (config != null)
+        {
+            SetDesignResolution(config);
+            SetWindowSize(config.DesignWidth, config.DesignHeight);
+            GDM.ApplyChanges();
+            Content.RootDirectory = config.ContentRootDirectory;
+        }
     }
-    
+
     /// <summary>
     /// Set DesignResolution
     /// </summary>
     public static void SetDesignResolution(int width, int height, ScalingMode scalingMode = ScalingMode.Fit)
     {
-        DesignResolution = new Point(width, height);
-        ScalingMode = scalingMode;
-        RenderPipeline.UpdateRenderTarget();
+        CurrentContext?.SetDesignResolution(width, height, scalingMode);
     }
-    
+
     /// <summary>
     /// SetDesignResolutionWith GameConfig
     /// </summary>
     public static void SetDesignResolution(GameProjectConfig config)
     {
-        if (config != null)
-        {
-            DesignResolution = new Point(config.DesignWidth, config.DesignHeight);
-            ScalingMode = config.ScalingMode;
-            RenderPipeline.UpdateRenderTarget();
-        }
+        CurrentContext?.SetDesignResolution(config);
     }
 
     public static void SetWindowSize(int width, int height)
     {
-        if (GDM == null) return;
-        GDM.PreferredBackBufferWidth = width;
-        GDM.PreferredBackBufferHeight = height;
-        GDM.ApplyChanges();
+        CurrentContext?.SetWindowSize(width, height);
     }
-    
+
     /// <summary>
-    /// Caculate the ScaleMatrix
+    /// Calculate the ScaleMatrix
     /// </summary>
     public static Matrix GetScaleMatrix()
     {
-        if (GDM == null)
-            return Matrix.Identity;
-        
-        var viewport = GDM.GraphicsDevice.Viewport;
-        var actualWidth = viewport.Width;
-        var actualHeight = viewport.Height;
-        var designWidth = DesignResolution.X;
-        var designHeight = DesignResolution.Y;
-        
-        if (designWidth <= 0 || designHeight <= 0)
-            return Matrix.Identity;
-        
-        float scaleX, scaleY;
-        float offsetX = 0, offsetY = 0;
-        
-        switch (ScalingMode)
-        {
-            case ScalingMode.None:
-                scaleX = 1.0f;
-                scaleY = 1.0f;
-                break;
-                
-            case ScalingMode.Fit:
-                // Hold aspect ratio, fit within the screen
-                scaleX = scaleY = Math.Min((float)actualWidth / designWidth, (float)actualHeight / designHeight);
-                offsetX = (actualWidth - designWidth * scaleX) * 0.5f;
-                offsetY = (actualHeight - designHeight * scaleY) * 0.5f;
-                break;
-                
-            case ScalingMode.Fill:
-                // Hold aspect ratio, fill the screen (may crop)
-                scaleX = scaleY = Math.Max((float)actualWidth / designWidth, (float)actualHeight / designHeight);
-                offsetX = (actualWidth - designWidth * scaleX) * 0.5f;
-                offsetY = (actualHeight - designHeight * scaleY) * 0.5f;
-                break;
-                
-            case ScalingMode.Stretch:
-                // Stretch to fill the screen (ignore aspect ratio)
-                scaleX = (float)actualWidth / designWidth;
-                scaleY = (float)actualHeight / designHeight;
-                break;
-                
-            case ScalingMode.PixelPerfect:
-                // Scale by integer multiples only
-                var scale = Math.Min((float)actualWidth / designWidth, (float)actualHeight / designHeight);
-                var pixelScale = Math.Max(1, (int)Math.Floor(scale));
-                scaleX = scaleY = pixelScale;
-                offsetX = (actualWidth - designWidth * scaleX) * 0.5f;
-                offsetY = (actualHeight - designHeight * scaleY) * 0.5f;
-                break;
-                
-            default:
-                scaleX = scaleY = 1.0f;
-                break;
-        }
-        
-        return Matrix.CreateScale(scaleX, scaleY, 1.0f) * Matrix.CreateTranslation(offsetX, offsetY, 0);
+        return CurrentContext?.GetScaleMatrix() ?? Matrix.Identity;
     }
-    
+
     /// <summary>
-    /// return the scaled viewport according to the design resolution and scaling mode
+    /// Return the scaled viewport according to the design resolution and scaling mode
     /// </summary>
     public static Viewport GetScaledViewport()
     {
-        if (GDM == null)
+        if (CurrentContext == null)
             return new Viewport();
-        
-        var viewport = GDM.GraphicsDevice.Viewport;
-        var scaleMatrix = GetScaleMatrix();
-        var scale = scaleMatrix.M11; // 获取X缩放
-        
-        return new Viewport
-        {
-            X = viewport.X,
-            Y = viewport.Y,
-            Width = (int)(DesignResolution.X * scale),
-            Height = (int)(DesignResolution.Y * scale),
-            MinDepth = viewport.MinDepth,
-            MaxDepth = viewport.MaxDepth
-        };
+        return CurrentContext.GetScaledViewport();
     }
-    
-    
+
     /// <summary>
     /// GameLoop Update
     /// </summary>
@@ -224,9 +164,9 @@ public static class Engine
         TweenCore.Update(delta);
         CurrentScene?.Update(gameTime);
     }
-    
+
     public static void Render(GameTime gameTime, Color? clearColor = null)
-    { 
+    {
         RenderPipeline.Render(CurrentScene, gameTime, clearColor ?? Color.Black);
     }
 }

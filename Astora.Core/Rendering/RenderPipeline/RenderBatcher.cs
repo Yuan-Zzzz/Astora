@@ -1,9 +1,9 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace Astora.Core.Rendering.RenderPipeline;
 
-public class RenderBatcher
+public class RenderBatcher : IRenderBatcher
 {
     private readonly SpriteBatch _spriteBatch;
     private readonly GraphicsDevice _device;
@@ -21,7 +21,7 @@ public class RenderBatcher
         _spriteBatch = new SpriteBatch(_device);
     }
     
-    public void Begin(Matrix transformMatrix, SamplerState sampler = null)
+    public void Begin(Matrix transformMatrix, SamplerState? sampler = null)
     {
         if (_isBatching) End();
 
@@ -53,10 +53,10 @@ public class RenderBatcher
         }
     }
     
-    public void Draw(Texture2D texture, Vector2 position, Rectangle? sourceRectangle, 
-                     Color color, float rotation, Vector2 origin, Vector2 scale, 
-                     SpriteEffects effects, float layerDepth, 
-                     BlendState blendState = null, Effect effect = null)
+    public void Draw(Texture2D texture, Vector2 position, Rectangle? sourceRectangle,
+        Color color, float rotation, Vector2 origin, Vector2 scale,
+        SpriteEffects effects, float layerDepth,
+        BlendState? blendState = null, Effect? effect = null)
     {
         var targetBlend = blendState ?? BlendState.AlphaBlend;
         var targetEffect = effect;

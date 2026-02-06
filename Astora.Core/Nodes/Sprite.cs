@@ -104,7 +104,7 @@ public class Sprite : Node2D
             _origin = new Vector2(DefaultSize / 2f, DefaultSize / 2f);
     }
 
-    public override void Draw(RenderBatcher renderBatcher)
+    public override void Draw(IRenderBatcher renderBatcher)
     {
         if (_texture == null && !string.IsNullOrEmpty(_texturePath))
         {

@@ -1,6 +1,7 @@
 using Astora.Core.Inputs;
 using Astora.Core.Nodes;
 using Astora.Core.Rendering.RenderPipeline;
+using Astora.Core.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -8,6 +9,16 @@ namespace Astora.Core.Scene;
 
 public class SceneTree
 {
+    private readonly ISceneSerializer? _serializer;
+
+    /// <summary>
+    /// Optional serializer for load/save. When null, uses Engine.CurrentContext.Serializer.
+    /// </summary>
+    public SceneTree(ISceneSerializer? serializer = null)
+    {
+        _serializer = serializer;
+    }
+
     /// <summary>
     /// Root Node of the Scene
     /// </summary>
@@ -16,6 +27,11 @@ public class SceneTree
     /// Currently Active Camera
     /// </summary>
     public Camera2D ActiveCamera { get; set; }
+
+    private ISceneSerializer GetSerializer()
+    {
+        return _serializer ?? Engine.CurrentContext?.Serializer ?? throw new InvalidOperationException("Scene serializer not set. Set Engine.CurrentContext or pass a serializer to SceneTree.");
+    }
 
     /// <summary>
     /// Change the current scene root (alias for AttachScene)
@@ -53,19 +69,13 @@ public class SceneTree
     /// </summary>
     public void AttachScene(string scenePath)
     {
-        if (Engine.Serializer == null)
-            throw new InvalidOperationException("Scene serializer not set.");
-        
-        var scene = Engine.Serializer.Load(scenePath);
+        var scene = GetSerializer().Load(scenePath);
         AttachScene(scene);
     }
 
     public void SaveScene(string scenePath)
     {
-        if (Engine.Serializer == null)
-           throw new InvalidOperationException("Scene serializer not set.");
-
-        Engine.Serializer.Save(Root, scenePath);
+        GetSerializer().Save(Root, scenePath);
         Logger.Info($"Scene saved to {scenePath}");
     }
 
@@ -87,7 +97,7 @@ public class SceneTree
     /// <summary>
     /// Draw Nodes
     /// </summary>
-    public void Draw(RenderBatcher renderBatcher)
+    public void Draw(IRenderBatcher renderBatcher)
     {
         if (Root != null)
         {

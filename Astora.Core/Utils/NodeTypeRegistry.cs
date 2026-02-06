@@ -1,6 +1,7 @@
 using System.Reflection;
 using Astora.Core;
 using Astora.Core.Nodes;
+using Astora.Core.Scene;
 
 namespace Astora.Core.Utils;
 
@@ -40,9 +41,9 @@ public class NodeTypeInfo
     }
     
     /// <summary>
-    /// Node Type Registry
+    /// Node Type Registry. Discovers node types from assemblies and creates instances (implements INodeFactory).
     /// </summary>
-    public class NodeTypeRegistry
+    public class NodeTypeRegistry : INodeFactory
     {
         private readonly List<NodeTypeInfo> _nodeTypes = new List<NodeTypeInfo>();
         private readonly Dictionary<string, NodeTypeInfo> _nodeTypesByName = new Dictionary<string, NodeTypeInfo>();

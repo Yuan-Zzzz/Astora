@@ -1,5 +1,7 @@
 using Astora.Core;
 using Astora.Core.Nodes;
+using Astora.Core.Resources;
+using Astora.Core.Scene;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections;
@@ -7,7 +9,6 @@ using System.Reflection;
 using Astora.Core.Attributes;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using Astora.Core.Resources;
 
 namespace Astora.Core.Utils;
 
@@ -26,16 +27,7 @@ public class SerializedNode
     {
         private readonly IDeserializer _deserializer;
         private readonly ISerializer _serializer;
-
-        private static readonly Dictionary<string, Func<string, Node>> NodeFactories = new()
-        {
-            { nameof(Node), name => new Node(name) },
-            { nameof(Node2D), name => new Node2D(name) },
-            { nameof(Sprite), name => new Sprite(name, null) },
-            { nameof(Camera2D), name => new Camera2D(name) },
-            { nameof(CPUParticles2D), name => new CPUParticles2D(name)},
-            { nameof(AnimatedSprite), name => new AnimatedSprite(name)}
-        };
+        private readonly INodeFactory _nodeFactory;
 
         private static readonly HashSet<string> IgnoredFieldNames = new()
         {
@@ -54,8 +46,9 @@ public class SerializedNode
             "GlobalPosition"
         };
 
-        public YamlSceneSerializer()
+        public YamlSceneSerializer(INodeFactory nodeFactory)
         {
+            _nodeFactory = nodeFactory ?? throw new ArgumentNullException(nameof(nodeFactory));
             _serializer = new SerializerBuilder()
                 .WithNamingConvention(CamelCaseNamingConvention.Instance)
                 .Build();
@@ -208,16 +201,8 @@ public class SerializedNode
 
         private Node DeserializeNode(SerializedNode serialized)
         {
-            Node node;
-            
-            if (NodeFactories.TryGetValue(serialized.Type, out var factory))
-            {
-                node = factory(serialized.Name);
-            }
-            else if ((node = TryCreateNodeWithRegistry(serialized.Type, serialized.Name)) != null)
-            {
-            }
-            else
+            var node = _nodeFactory.CreateNode(serialized.Type, serialized.Name);
+            if (node == null)
             {
                 node = CreateNodeByReflection(serialized.Type, serialized.Name);
             }
@@ -487,38 +472,4 @@ public class SerializedNode
                 $"Searched assemblies: {assemblyList}...");
         }
 
-        public static void RegisterNodeType(string typeName, Func<string, Node> factory)
-        {
-            NodeFactories[typeName] = factory;
-        }
-
-        /// <summary>
-        /// Use a NodeTypeRegistry to optimize custom node creation
-        /// </summary>
-        private static NodeTypeRegistry? _nodeTypeRegistry;
-
-        /// <summary>
-        /// Sets the NodeTypeRegistry for custom node creation
-        /// </summary>
-        public static void SetNodeTypeRegistry(NodeTypeRegistry? registry)
-        {
-            _nodeTypeRegistry = registry;
-        }
-
-        /// <summary>
-        /// Try to create a node using the NodeTypeRegistry
-        /// </summary>
-        private Node? TryCreateNodeWithRegistry(string typeName, string nodeName)
-        {
-            if (_nodeTypeRegistry != null)
-            {
-                var node = _nodeTypeRegistry.CreateNode(typeName, nodeName);
-                if (node != null)
-                {
-                    return node;
-                }
-            }
-
-            return null;
-        }
     }

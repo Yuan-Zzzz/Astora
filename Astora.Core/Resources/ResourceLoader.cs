@@ -20,7 +20,10 @@ public static class ResourceLoader
         RegisterImporter<Texture2DResource>(new Texture2DImporter());
     }
 
-    private static void RegisterImporter<T>(IResourceImporter importer) where T : Resource
+    /// <summary>
+    /// Registers a resource importer for the given resource type. Call this to support custom resource types.
+    /// </summary>
+    public static void RegisterImporter<T>(IResourceImporter importer) where T : Resource
     {
         _importers[typeof(T)] = importer;
     }

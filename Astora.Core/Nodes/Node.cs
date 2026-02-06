@@ -88,7 +88,7 @@ public class Node
     #region Lifecycle Methods
     public virtual void Ready() { }
     public virtual void Update(float delta) { }
-    public virtual void Draw(RenderBatcher renderBatcher) { }
+    public virtual void Draw(IRenderBatcher renderBatcher) { }
     public virtual void ExitTree()
     {
         OnExitTree?.Invoke();
@@ -161,7 +161,7 @@ public class Node
 
         _children.RemoveAll(c => c.IsQueuedForDeletion);
     }
-    internal void InternalDraw(RenderBatcher renderBatcher)
+    internal void InternalDraw(IRenderBatcher renderBatcher)
     {
         if (IsQueuedForDeletion) return;
 

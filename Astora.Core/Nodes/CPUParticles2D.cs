@@ -452,7 +452,7 @@ public class CPUParticles2D : Node2D
     /// Draw the particles
     /// </summary>
     /// <param name="spriteBatch"></param>
-    public override void Draw(RenderBatcher renderBatcher)
+    public override void Draw(IRenderBatcher renderBatcher)
     {
         var tex = Texture ?? GetDefaultTexture(Engine.GDM.GraphicsDevice);
         Vector2 origin = new Vector2(tex.Width / 2f, tex.Height / 2f);
