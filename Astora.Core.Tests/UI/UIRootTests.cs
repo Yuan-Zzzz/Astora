@@ -107,6 +107,20 @@ public class UIRootTests
         args.Handled.Should().BeTrue();
         root.BubblingReceived.Should().BeFalse();
     }
+
+    [Fact]
+    public void Route_PreviewRunsBeforeBubble_TunnelThenBubbleOrder()
+    {
+        var root = new TestControlTunnelOrder { Size = new Vector2(100, 100) };
+        var child = new Control { Size = new Vector2(50, 50) };
+        root.AddChild(child);
+        root.DoLayout(TestViewport);
+
+        var args = new MouseButtonEventArgs { Position = new Vector2(25, 25), Button = MouseButton.Left, Pressed = true };
+        root.RouteMouseButtonDownPublic(child, args);
+
+        root.OrderLog.Should().ContainInOrder("Preview", "Bubble");
+    }
 }
 
 internal class TestControlRoot : Control
@@ -127,4 +141,24 @@ internal class TestControlThatHandles : Control
     {
         e.Handled = true;
     }
+}
+
+internal class TestControlTunnelOrder : Control
+{
+    private readonly List<string> _orderLog = new();
+    public IReadOnlyList<string> OrderLog => _orderLog;
+
+    public override void OnPreviewMouseButtonDown(MouseButtonEventArgs e)
+    {
+        _orderLog.Add("Preview");
+    }
+
+    public override void OnMouseButtonDown(MouseButtonEventArgs e)
+    {
+        _orderLog.Add("Bubble");
+    }
+
+    public void RouteMouseButtonDownPublic(Control? hitTarget, MouseButtonEventArgs args) =>
+        typeof(Control).GetMethod("RouteMouseButtonDown", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(this, new object?[] { hitTarget, args });
 }
