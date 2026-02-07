@@ -25,6 +25,8 @@ public class Game1 : Game
         Window.ClientSizeChanged += OnClientSizeChanged;
         _demoRunner = new DemoRunner(new IUIDemoCase[]
         {
+            new LabelFontSizesDemoCase(),
+            new LabelButtonDemoCase(),
             new ButtonClickDemoCase(),
             new BoxContainerDemoCase(),
             new MarginContainerDemoCase(),

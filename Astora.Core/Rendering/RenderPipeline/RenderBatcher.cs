@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -80,7 +81,7 @@ public class RenderBatcher : IRenderBatcher
         _spriteBatch.Draw(texture, position, sourceRectangle, color, rotation, origin, scale, effects, layerDepth);
     }
 
-    public void DrawString(SpriteFont font, string text, Vector2 position, Color color)
+    public void DrawString(SpriteFontBase font, string text, Vector2 position, Color color)
     {
         if (font == null || string.IsNullOrEmpty(text)) return;
         _spriteBatch.DrawString(font, text, position, color);

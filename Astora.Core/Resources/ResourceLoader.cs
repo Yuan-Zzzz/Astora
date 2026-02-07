@@ -18,6 +18,7 @@ public static class ResourceLoader
     private static void RegisterDefaultImporter()
     {
         RegisterImporter<Texture2DResource>(new Texture2DImporter());
+        RegisterImporter<FontResource>(new FontResourceImporter());
     }
 
     /// <summary>

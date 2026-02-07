@@ -4,6 +4,7 @@ using Astora.Core;
 using Astora.Core.Inputs;
 using Astora.Core.Nodes;
 using Astora.Core.Rendering.RenderPipeline;
+using Astora.Core.Resources;
 using Astora.Core.Scene;
 using Astora.Core.UI.Events;
 using Astora.Core.UI.Layout;
@@ -128,6 +129,7 @@ public class Control : Node, ILayoutable
     private Theme? _theme;
     private Dictionary<string, Color>? _themeColorOverrides;
     private Dictionary<string, int>? _themeConstantOverrides;
+    private Dictionary<string, FontResource>? _themeFontOverrides;
 
     /// <summary>
     /// Theme resource for this control. When null, inherited from parent. Set on UI root or a container to provide defaults.
@@ -183,6 +185,29 @@ public class Control : Node, ILayoutable
         if (_theme != null && _theme.GetConstant(name, out var fromTheme))
             return fromTheme;
         return defaultValue;
+    }
+
+    /// <summary>
+    /// Override a theme font by name. Takes precedence over inherited theme.
+    /// </summary>
+    public void AddThemeFontOverride(string name, FontResource font)
+    {
+        _themeFontOverrides ??= new Dictionary<string, FontResource>();
+        _themeFontOverrides[name] = font;
+    }
+
+    /// <summary>
+    /// Resolve a theme font: local override, then parent chain, then theme resource, then null.
+    /// </summary>
+    public FontResource? GetThemeFont(string name)
+    {
+        if (_themeFontOverrides != null && _themeFontOverrides.TryGetValue(name, out var over))
+            return over;
+        if (Parent is Control parent)
+            return parent.GetThemeFont(name);
+        if (_theme != null && _theme.GetFont(name, out var fromTheme))
+            return fromTheme;
+        return null;
     }
 
     #endregion

@@ -18,6 +18,10 @@
       <Folder Include="Scenes\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="Content\Fonts\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
     <Target Name="GenerateScenes" AfterTargets="PostBuildEvent">
         <Exec Command="dotnet run --project ../Astora.SceneGenerator/Astora.SceneGenerator.csproj -- $(TargetPath) $(MSBuildProjectDirectory) $(MSBuildProjectDirectory)/Content" ConsoleToMSBuild="true" />
     </Target>
