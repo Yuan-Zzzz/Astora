@@ -1,3 +1,4 @@
+using Astora.Core.UI.Text;
 using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -18,6 +19,10 @@ public interface IRenderBatcher
         BlendState? blendState = null, Effect? effect = null);
     /// <summary>Draw text using a FontStashSharp font. Used by Label.</summary>
     void DrawString(SpriteFontBase font, string text, Vector2 position, Color color);
+    /// <summary>Draw text with optional shadow and outline (multi-pass).</summary>
+    void DrawString(SpriteFontBase font, string text, Vector2 position, Color color, TextDrawOptions options);
+    /// <summary>Draw rich text layout (FSS RichTextLayout). Used by Label when RichText is true.</summary>
+    void DrawRichText(FontStashSharp.RichText.RichTextLayout layout, Vector2 position, Color baseColor, HorizontalAlignment alignment = HorizontalAlignment.Left);
     /// <summary>Push a scissor rectangle (e.g. for Control.ClipContent). Must be paired with PopScissorRect.</summary>
     void PushScissorRect(Rectangle rect);
     /// <summary>Pop the last scissor rectangle.</summary>

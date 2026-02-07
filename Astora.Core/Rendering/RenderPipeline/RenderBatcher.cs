@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Astora.Core.UI.Text;
 using FontStashSharp;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -85,6 +86,48 @@ public class RenderBatcher : IRenderBatcher
     {
         if (font == null || string.IsNullOrEmpty(text)) return;
         _spriteBatch.DrawString(font, text, position, color);
+    }
+
+    private static readonly Vector2[] OutlineDirections =
+    {
+        new(-1, -1), new(-1, 0), new(-1, 1),
+        new(0, -1), new(0, 1),
+        new(1, -1), new(1, 0), new(1, 1)
+    };
+
+    public void DrawString(SpriteFontBase font, string text, Vector2 position, Color color, TextDrawOptions options)
+    {
+        if (font == null || string.IsNullOrEmpty(text)) return;
+
+        if (options.ShadowColor.HasValue)
+        {
+            var shadowPos = position + options.ShadowOffset;
+            _spriteBatch.DrawString(font, text, shadowPos, options.ShadowColor.Value);
+        }
+
+        if (options.OutlineColor.HasValue && options.OutlineThickness > 0)
+        {
+            var outlineColor = options.OutlineColor.Value;
+            foreach (var dir in OutlineDirections)
+            {
+                var offset = dir * options.OutlineThickness;
+                _spriteBatch.DrawString(font, text, position + offset, outlineColor);
+            }
+        }
+
+        _spriteBatch.DrawString(font, text, position, color);
+    }
+
+    public void DrawRichText(FontStashSharp.RichText.RichTextLayout layout, Vector2 position, Color baseColor, HorizontalAlignment alignment = HorizontalAlignment.Left)
+    {
+        if (layout == null) return;
+        var fssAlign = alignment switch
+        {
+            HorizontalAlignment.Center => FontStashSharp.RichText.TextHorizontalAlignment.Center,
+            HorizontalAlignment.Right => FontStashSharp.RichText.TextHorizontalAlignment.Right,
+            _ => FontStashSharp.RichText.TextHorizontalAlignment.Left
+        };
+        layout.Draw(_spriteBatch, position, baseColor, 0, default, null, 0, fssAlign);
     }
 
     private void FlushAndChangeState(BlendState newBlend, Effect newEffect)

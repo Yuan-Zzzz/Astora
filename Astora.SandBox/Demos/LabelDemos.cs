@@ -2,6 +2,7 @@ using Astora.Core.Nodes;
 using Astora.Core.Resources;
 using Astora.Core.UI;
 using Astora.Core.UI.Container;
+using Astora.Core.UI.Text;
 using Microsoft.Xna.Framework;
 
 namespace Astora.SandBox.Demos;
@@ -74,5 +75,97 @@ public static class LabelDemos
             clickCount++;
             feedback.Text = $"Clicked {clickCount} time(s)";
         };
+    }
+
+    /// <summary>Label effects: shadow, outline, rich text, BBCode, animation.</summary>
+    public static void BuildLabelEffects(Node root)
+    {
+        var font = ResourceLoader.Load<FontResource>(FontPath);
+        var box = new BoxContainer { Vertical = true, Spacing = 16 };
+        root.AddChild(box);
+
+        var shadow = new Label("Shadow")
+        {
+            FontResource = font,
+            FontSize = 24,
+            Text = "Shadow text",
+            Modulate = Color.White,
+            ShadowColor = new Color(0, 0, 0, 120),
+            ShadowOffset = new Vector2(2, 2)
+        };
+        box.AddChild(shadow);
+
+        var outlineBlack = new Label("OutlineBlack")
+        {
+            FontResource = font,
+            FontSize = 24,
+            Text = "Black outline",
+            Modulate = Color.White,
+            OutlineColor = Color.Black,
+            OutlineThickness = 2
+        };
+        box.AddChild(outlineBlack);
+
+        var outlineRed = new Label("OutlineRed")
+        {
+            FontResource = font,
+            FontSize = 22,
+            Text = "Red outline",
+            Modulate = Color.White,
+            OutlineColor = Color.Red,
+            OutlineThickness = 2
+        };
+        box.AddChild(outlineRed);
+
+        var outlineBlue = new Label("OutlineBlue")
+        {
+            FontResource = font,
+            FontSize = 22,
+            Text = "Blue outline",
+            Modulate = Color.White,
+            OutlineColor = new Color(60, 120, 255, 255),
+            OutlineThickness = 2
+        };
+        box.AddChild(outlineBlue);
+
+        var outlineGreen = new Label("OutlineGreen")
+        {
+            FontResource = font,
+            FontSize = 22,
+            Text = "Green outline",
+            Modulate = Color.White,
+            OutlineColor = new Color(40, 180, 80, 255),
+            OutlineThickness = 2
+        };
+        box.AddChild(outlineGreen);
+
+        var rich = new Label("RichText")
+        {
+            FontResource = font,
+            FontSize = 20,
+            RichText = true,
+            Text = "Plain /c[red]red/cd and /c[#0080ff]blue/cd /nnew line"
+        };
+        box.AddChild(rich);
+
+        var bbcode = new Label("BBCode")
+        {
+            FontResource = font,
+            FontSize = 20,
+            RichText = true,
+            UseBBCode = true,
+            Text = "[color=#008000]Green[/color] [b]bold[/b] [color=red]red[/color]"
+        };
+        box.AddChild(bbcode);
+
+        var anim = new Label("Animation")
+        {
+            FontResource = font,
+            FontSize = 22,
+            RichText = true,
+            UseBBCode = true,
+            Text = "[rainbow]Rainbow[/rainbow] [wave]Wave[/wave]"
+        };
+        box.AddChild(anim);
     }
 }

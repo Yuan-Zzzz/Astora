@@ -24,3 +24,14 @@ public sealed class LabelButtonDemoCase : IUIDemoCase
         LabelDemos.BuildButtonWithLabel(root);
     }
 }
+
+/// <summary>Demo case: Label effects (shadow, outline, rich text, BBCode, animation).</summary>
+public sealed class LabelEffectsDemoCase : IUIDemoCase
+{
+    public string Name => "Label: Effects (shadow, outline, rich, BBCode)";
+
+    public void Build(Node root)
+    {
+        LabelDemos.BuildLabelEffects(root);
+    }
+}

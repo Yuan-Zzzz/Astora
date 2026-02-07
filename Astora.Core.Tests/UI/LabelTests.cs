@@ -1,4 +1,5 @@
 using Astora.Core.UI;
+using Astora.Core.UI.Text;
 using FluentAssertions;
 using Microsoft.Xna.Framework;
 
@@ -119,6 +120,51 @@ public class LabelTests
     {
         var label = new Label { Text = "" };
         label.ArrangeChildren(new Rectangle(0, 0, 100, 30));
+        label.Invoking(l => l.Draw(null!)).Should().NotThrow();
+    }
+
+    [Fact]
+    public void ShadowColor_And_OutlineColor_DefaultNull()
+    {
+        var label = new Label();
+        label.ShadowColor.Should().BeNull();
+        label.OutlineColor.Should().BeNull();
+        label.OutlineThickness.Should().Be(0);
+    }
+
+    [Fact]
+    public void HorizontalAlignment_DefaultIsLeft()
+    {
+        var label = new Label();
+        label.HorizontalAlignment.Should().Be(HorizontalAlignment.Left);
+    }
+
+    [Fact]
+    public void RichText_DefaultFalse()
+    {
+        var label = new Label();
+        label.RichText.Should().BeFalse();
+    }
+
+    [Fact]
+    public void UseBBCode_DefaultFalse()
+    {
+        var label = new Label();
+        label.UseBBCode.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Draw_WithShadowAndOutlineSet_DoesNotThrow()
+    {
+        var label = new Label
+        {
+            Text = "Hi",
+            ShadowColor = Color.Black,
+            ShadowOffset = new Vector2(1, 1),
+            OutlineColor = Color.Black,
+            OutlineThickness = 1
+        };
+        label.ArrangeChildren(new Rectangle(0, 0, 50, 20));
         label.Invoking(l => l.Draw(null!)).Should().NotThrow();
     }
 }

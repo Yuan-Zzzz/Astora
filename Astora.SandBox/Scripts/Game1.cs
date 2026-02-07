@@ -27,6 +27,7 @@ public class Game1 : Game
         {
             new LabelFontSizesDemoCase(),
             new LabelButtonDemoCase(),
+            new LabelEffectsDemoCase(),
             new ButtonClickDemoCase(),
             new BoxContainerDemoCase(),
             new MarginContainerDemoCase(),
