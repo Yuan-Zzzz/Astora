@@ -1,6 +1,10 @@
+using System.Collections.Generic;
+using System.Linq;
+using Astora.Core;
 using Astora.Core.Inputs;
 using Astora.Core.Nodes;
 using Astora.Core.Rendering.RenderPipeline;
+using Astora.Core.UI;
 using Astora.Core.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -10,6 +14,7 @@ namespace Astora.Core.Scene;
 public class SceneTree
 {
     private readonly ISceneSerializer? _serializer;
+    private Control? _focusedControl;
 
     /// <summary>
     /// Optional serializer for load/save. When null, uses Engine.CurrentContext.Serializer.
@@ -91,7 +96,101 @@ public class SceneTree
         if (Root != null)
         {
             Root.InternalUpdate(gameTime);
+            ProcessUILayoutAndInput();
         }
+    }
+
+    /// <summary>
+    /// Currently focused control (global). Tab cycles within the same UI tree.
+    /// </summary>
+    public Control? GetFocusedControl() => _focusedControl;
+
+    /// <summary>
+    /// Set the focused control. Only has effect if the control has FocusMode != None.
+    /// </summary>
+    public void SetFocusedControl(Control? control)
+    {
+        if (control != null && control.FocusMode == FocusMode.None) return;
+        if (_focusedControl == control) return;
+        var old = _focusedControl;
+        _focusedControl = control;
+        if (old != null)
+        {
+            old.IsFocused = false;
+            old.OnFocusExit();
+        }
+        if (control != null)
+        {
+            control.IsFocused = true;
+            control.OnFocusEnter();
+        }
+    }
+
+    /// <summary>
+    /// Collect all UI roots: direct Control children of Root (layer 0), and direct Control children of each CanvasLayer (that layer).
+    /// Sorted by layer ascending (draw/layout order). Hit test uses reverse order (top layer first).
+    /// </summary>
+    public IEnumerable<(int Layer, Control Root)> GetUIRoots()
+    {
+        if (Root == null) yield break;
+        var list = new List<(int, Control)>();
+        foreach (var child in Root.Children)
+        {
+            if (child is CanvasLayer cl)
+            {
+                foreach (var c in cl.Children.OfType<Control>())
+                    list.Add((cl.Layer, c));
+            }
+            else if (child is Control c)
+            {
+                list.Add((0, c));
+            }
+        }
+        foreach (var item in list.OrderBy(x => x.Item1))
+            yield return item;
+    }
+
+    /// <summary>
+    /// Run layout for each UI root, then hit-test and route input (Godot-style driver).
+    /// </summary>
+    private void ProcessUILayoutAndInput()
+    {
+        var roots = GetUIRoots().ToList();
+        if (roots.Count == 0) return;
+
+        var canvasRect = new Rectangle(0, 0, Engine.DesignResolution.X, Engine.DesignResolution.Y);
+        foreach (var (_, root) in roots)
+            root.DoLayout(canvasRect);
+
+        var pos = Input.MouseScreenPosition;
+        Control? hitControl = null;
+        Control? hitRoot = null;
+        foreach (var (_, root) in roots.OrderByDescending(x => x.Layer))
+        {
+            var hit = root.HitTest(pos);
+            if (hit != null)
+            {
+                hitControl = hit;
+                hitRoot = root;
+                break;
+            }
+        }
+
+        var focusRoot = GetRootContaining(_focusedControl, roots);
+        var driverRoot = hitRoot ?? focusRoot;
+        if (driverRoot != null)
+            driverRoot.ProcessInputEvents(hitControl);
+    }
+
+    private static Control? GetRootContaining(Control? control, List<(int Layer, Control Root)> roots)
+    {
+        if (control == null) return null;
+        for (var n = control.Parent; n != null; n = n.Parent)
+        {
+            if (n is Control c && roots.Any(r => r.Root == c))
+                return c;
+        }
+        return null;
     }
 
     /// <summary>

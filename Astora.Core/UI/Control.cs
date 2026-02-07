@@ -1,11 +1,15 @@
 using System.Collections.Generic;
 using System.Linq;
+using Astora.Core;
+using Astora.Core.Inputs;
 using Astora.Core.Nodes;
 using Astora.Core.Rendering.RenderPipeline;
+using Astora.Core.Scene;
 using Astora.Core.UI.Events;
 using Astora.Core.UI.Layout;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 
 namespace Astora.Core.UI;
 
@@ -85,7 +89,7 @@ public class Control : Node, ILayoutable
 
     /// <summary>
     /// When true, this control's FinalRect is computed from anchor and offset relative to parent (Godot-style).
-    /// Used by UIRoot when arranging direct children.
+    /// Used by UI root when arranging direct children.
     /// </summary>
     public bool UseAnchorLayout { get; set; }
 
@@ -126,7 +130,7 @@ public class Control : Node, ILayoutable
     private Dictionary<string, int>? _themeConstantOverrides;
 
     /// <summary>
-    /// Theme resource for this control. When null, inherited from parent. Set on UIRoot or a container to provide defaults.
+    /// Theme resource for this control. When null, inherited from parent. Set on UI root or a container to provide defaults.
     /// </summary>
     public Theme? Theme
     {
@@ -222,25 +226,17 @@ public class Control : Node, ILayoutable
     }
 
     /// <summary>
-    /// True when this control has focus. Set by UI focus manager (UIRoot).
+    /// True when this control has focus. Set by SceneTree (global focus).
     /// </summary>
     public bool IsFocused { get; internal set; }
 
     /// <summary>
-    /// Request focus for this control. Finds the UIRoot ancestor and calls GrabFocus there.
-    /// Only has effect when FocusMode is not None.
+    /// Request focus for this control. Uses SceneTree global focus. Only has effect when FocusMode is not None.
     /// </summary>
     public void GrabFocus()
     {
         if (FocusMode == FocusMode.None) return;
-        for (var n = Parent; n != null; n = n.Parent)
-        {
-            if (n is UIRoot root)
-            {
-                root.GrabFocus(this);
-                break;
-            }
-        }
+        Engine.CurrentScene?.SetFocusedControl(this);
     }
 
     #endregion
@@ -397,7 +393,269 @@ public class Control : Node, ILayoutable
     public virtual void ArrangeChildren(Rectangle finalRect)
     {
         FinalRect = finalRect;
-        // Base does not arrange children; containers override and call child.ArrangeChildren(rect) per child.
+        if (IsUIRoot && GetType() == typeof(Control) && Children.OfType<Control>().Any())
+        {
+            foreach (var child in Children.OfType<Control>())
+            {
+                if (child.UseAnchorLayout)
+                {
+                    var rect = child.GetRectFromAnchorAndOffset(finalRect);
+                    child.ArrangeChildren(rect);
+                }
+                else
+                    child.ArrangeChildren(finalRect);
+            }
+        }
+    }
+
+    /// <summary>
+    /// True when this control acts as a UI root (parent is not a Control).
+    /// </summary>
+    private bool IsUIRoot => Parent is not Control;
+
+    /// <summary>
+    /// Run layout if dirty: Pass 1 bottom-up ComputeDesiredSize, Pass 2 top-down ArrangeChildren. Called by SceneTree for each UI root with design resolution rect.
+    /// </summary>
+    public void DoLayout(Rectangle viewportRect)
+    {
+        if (!IsLayoutDirty) return;
+        ComputeDesiredSizeRecursive(this);
+        ArrangeChildren(viewportRect);
+        ClearLayoutDirty();
+    }
+
+    private static Vector2 ComputeDesiredSizeRecursive(Control c)
+    {
+        foreach (var child in c.Children.OfType<Control>())
+            ComputeDesiredSizeRecursive(child);
+        return c.ComputeDesiredSize();
+    }
+
+    /// <summary>
+    /// Find the topmost control that contains the point (in design resolution). Uses MouseFilter and Visible.
+    /// </summary>
+    public Control? HitTest(Vector2 pointInScreenSpace)
+    {
+        return HitTestRecursive(this, pointInScreenSpace);
+    }
+
+    private static Control? HitTestRecursive(Control c, Vector2 pointInLocalSpace)
+    {
+        if (!c.Visible || c.MouseFilter == MouseFilter.Ignore)
+            return null;
+        var localBounds = new Rectangle(0, 0, c.FinalRect.Width, c.FinalRect.Height);
+        if (!localBounds.Contains(pointInLocalSpace.X, pointInLocalSpace.Y))
+            return null;
+
+        var withIndex = c.Children
+            .Select((node, index) => (Control: node as Control, Index: index))
+            .Where(x => x.Control != null)
+            .OrderByDescending(x => x.Control!.ZIndex)
+            .ThenByDescending(x => x.Index)
+            .Select(x => x.Control!)
+            .ToList();
+
+        foreach (var child in withIndex)
+        {
+            if (!child.Visible || child.MouseFilter == MouseFilter.Ignore) continue;
+            if (!child.FinalRect.Contains(pointInLocalSpace.X, pointInLocalSpace.Y)) continue;
+            if (child.MouseFilter == MouseFilter.Stop)
+                return child;
+            var childLocalPoint = new Vector2(
+                pointInLocalSpace.X - child.FinalRect.X,
+                pointInLocalSpace.Y - child.FinalRect.Y);
+            var hit = HitTestRecursive(child, childLocalPoint);
+            if (hit != null) return hit;
+            return child;
+        }
+
+        return c;
+    }
+
+    #endregion
+
+    #region Event routing and input (for UI root)
+
+    private Vector2 _lastMousePosition;
+
+    private static List<Control> GetPathToTarget(Control root, Control? target)
+    {
+        if (target == null) return new List<Control> { root };
+        var path = new List<Control>();
+        for (var n = target; n != null; n = n.Parent as Control)
+            path.Add(n);
+        path.Reverse();
+        return path;
+    }
+
+    private void RouteMouseButtonDown(Control? hitTarget, MouseButtonEventArgs args)
+    {
+        var path = GetPathToTarget(this, hitTarget ?? this);
+        for (int i = 0; i < path.Count && !args.Handled; i++)
+            path[i].OnPreviewMouseButtonDown(args);
+        if (args.Handled) return;
+        for (int i = path.Count - 1; i >= 0 && !args.Handled; i--)
+            path[i].OnMouseButtonDown(args);
+    }
+
+    private void RouteMouseButtonUp(Control? hitTarget, MouseButtonEventArgs args)
+    {
+        var path = GetPathToTarget(this, hitTarget ?? this);
+        for (int i = 0; i < path.Count && !args.Handled; i++)
+            path[i].OnPreviewMouseButtonUp(args);
+        if (args.Handled) return;
+        for (int i = path.Count - 1; i >= 0 && !args.Handled; i--)
+            path[i].OnMouseButtonUp(args);
+    }
+
+    private void RouteMouseMove(Control? hitTarget, MouseMoveEventArgs args)
+    {
+        var path = GetPathToTarget(this, hitTarget ?? this);
+        for (int i = 0; i < path.Count && !args.Handled; i++)
+            path[i].OnPreviewMouseMove(args);
+        if (args.Handled) return;
+        for (int i = path.Count - 1; i >= 0 && !args.Handled; i--)
+            path[i].OnMouseMove(args);
+    }
+
+    private void RouteKeyDown(Control? focus, KeyEventArgs args)
+    {
+        if (focus == null) return;
+        var path = GetPathToTarget(this, focus);
+        for (int i = 0; i < path.Count && !args.Handled; i++)
+            path[i].OnPreviewKeyDown(args);
+        if (args.Handled) return;
+        for (int i = path.Count - 1; i >= 0 && !args.Handled; i--)
+            path[i].OnKeyDown(args);
+    }
+
+    private void RouteKeyUp(Control? focus, KeyEventArgs args)
+    {
+        if (focus == null) return;
+        var path = GetPathToTarget(this, focus);
+        for (int i = 0; i < path.Count && !args.Handled; i++)
+            path[i].OnPreviewKeyUp(args);
+        if (args.Handled) return;
+        for (int i = path.Count - 1; i >= 0 && !args.Handled; i--)
+            path[i].OnKeyUp(args);
+    }
+
+    private static void CollectFocusable(Control c, List<Control> list)
+    {
+        if (!c.Visible || c.FocusMode == FocusMode.None) return;
+        list.Add(c);
+        foreach (var child in c.Children.OfType<Control>())
+            CollectFocusable(child, list);
+    }
+
+    private Control? FindNextValidFocus()
+    {
+        var list = new List<Control>();
+        CollectFocusable(this, list);
+        if (list.Count == 0) return null;
+        var focus = Engine.CurrentScene?.GetFocusedControl();
+        int idx = focus != null ? list.IndexOf(focus) : -1;
+        return list[(idx + 1) % list.Count];
+    }
+
+    private Control? FindPrevValidFocus()
+    {
+        var list = new List<Control>();
+        CollectFocusable(this, list);
+        if (list.Count == 0) return null;
+        var focus = Engine.CurrentScene?.GetFocusedControl();
+        int idx = focus != null ? list.IndexOf(focus) : 0;
+        idx = idx <= 0 ? list.Count - 1 : idx - 1;
+        return list[idx];
+    }
+
+    /// <summary>
+    /// Process mouse and keyboard for this UI tree. Called by SceneTree with the hit target (or null).
+    /// Uses global focus from SceneTree for keyboard and Tab.
+    /// </summary>
+    internal void ProcessInputEvents(Control? hitTarget)
+    {
+        var pos = Input.MouseScreenPosition;
+
+        if (Input.IsLeftMouseButtonPressed())
+        {
+            if (hitTarget != null && hitTarget.FocusMode != FocusMode.None)
+                hitTarget.GrabFocus();
+            var args = new MouseButtonEventArgs
+            {
+                Position = pos,
+                Button = MouseButton.Left,
+                Pressed = true
+            };
+            RouteMouseButtonDown(hitTarget, args);
+        }
+        if (Input.IsRightMouseButtonPressed())
+        {
+            var args = new MouseButtonEventArgs
+            {
+                Position = pos,
+                Button = MouseButton.Right,
+                Pressed = true
+            };
+            RouteMouseButtonDown(hitTarget, args);
+        }
+
+        if (Input.IsLeftMouseButtonReleased())
+        {
+            var args = new MouseButtonEventArgs
+            {
+                Position = pos,
+                Button = MouseButton.Left,
+                Pressed = false
+            };
+            RouteMouseButtonUp(hitTarget, args);
+        }
+        if (Input.IsRightMouseButtonReleased())
+        {
+            var args = new MouseButtonEventArgs
+            {
+                Position = pos,
+                Button = MouseButton.Right,
+                Pressed = false
+            };
+            RouteMouseButtonUp(hitTarget, args);
+        }
+
+        if (pos != _lastMousePosition)
+        {
+            var moveArgs = new MouseMoveEventArgs
+            {
+                Position = pos,
+                PreviousPosition = _lastMousePosition
+            };
+            RouteMouseMove(hitTarget, moveArgs);
+            _lastMousePosition = pos;
+        }
+
+        var focus = Engine.CurrentScene?.GetFocusedControl();
+        if (focus == null) return;
+
+        if (Input.IsKeyPressed(Keys.Tab))
+        {
+            var next = Input.IsKeyDown(Keys.LeftShift) || Input.IsKeyDown(Keys.RightShift)
+                ? FindPrevValidFocus()
+                : FindNextValidFocus();
+            if (next != null)
+                Engine.CurrentScene?.SetFocusedControl(next);
+        }
+        else
+        {
+            foreach (var key in Input.GetKeysPressedThisFrame())
+            {
+                var args = new KeyEventArgs { Key = key, Pressed = true };
+                RouteKeyDown(focus, args);
+            }
+            foreach (var key in Input.GetKeysReleasedThisFrame())
+            {
+                var args = new KeyEventArgs { Key = key, Pressed = false };
+                RouteKeyUp(focus, args);
+            }
+        }
     }
 
     #endregion
@@ -406,7 +664,7 @@ public class Control : Node, ILayoutable
 
     public override void Update(float delta)
     {
-        // Layout is driven by UIRoot.DoLayout(), not here. Control.Update can be used for animation etc.
+        // Layout is driven by SceneTree (ProcessUILayoutAndInput calls DoLayout on each UI root). Control.Update can be used for animation etc.
     }
 
     public override void Draw(IRenderBatcher renderBatcher)

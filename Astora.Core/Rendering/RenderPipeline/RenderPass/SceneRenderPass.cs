@@ -15,8 +15,9 @@ public class SceneRenderPass : RenderPass
 
     public override void Execute(RenderContext context)
     {
-        var root = context.CurrentScene.Root;
-        if (root == null) return;
+        var scene = context.CurrentScene;
+        var root = scene?.Root;
+        if (root == null || scene == null) return;
 
         _whiteTextureProvider ??= new WhiteTextureProvider(context.GraphicsDevice);
 
@@ -27,29 +28,26 @@ public class SceneRenderPass : RenderPass
         DrawSceneRecursive(root, context.RenderBatcher);
         context.RenderBatcher.End();
 
-        foreach (var child in root.Children)
+        foreach (var (_, controlRoot) in scene.GetUIRoots())
         {
-            if (child is UIRoot uiRoot)
+            UIDrawContext.SetCurrent(_whiteTextureProvider);
+            try
             {
-                UIDrawContext.SetCurrent(_whiteTextureProvider);
-                try
-                {
-                    context.RenderBatcher.Begin(Matrix.Identity, SamplerState.PointClamp);
-                    uiRoot.InternalDraw(context.RenderBatcher);
-                    context.RenderBatcher.End();
-                }
-                finally
-                {
-                    UIDrawContext.SetCurrent(null);
-                }
-                break;
+                context.RenderBatcher.Begin(Matrix.Identity, SamplerState.PointClamp);
+                controlRoot.InternalDraw(context.RenderBatcher);
+                context.RenderBatcher.End();
+            }
+            finally
+            {
+                UIDrawContext.SetCurrent(null);
             }
         }
     }
 
     private static void DrawSceneRecursive(Node node, IRenderBatcher batcher)
     {
-        if (node is UIRoot) return;
+        if (node is CanvasLayer) return;
+        if (node is Control c && c.Parent is not Control) return;
         node.Draw(batcher);
         foreach (var child in node.Children)
             DrawSceneRecursive(child, batcher);
