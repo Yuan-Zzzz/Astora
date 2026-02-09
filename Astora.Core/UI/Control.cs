@@ -431,6 +431,11 @@ public class Control : Node, ILayoutable
                     child.ArrangeChildren(finalRect);
             }
         }
+        else if (Children.OfType<Control>().Any())
+        {
+            foreach (var child in Children.OfType<Control>())
+                child.ArrangeChildren(finalRect);
+        }
     }
 
     /// <summary>
@@ -483,12 +488,18 @@ public class Control : Node, ILayoutable
         foreach (var child in withIndex)
         {
             if (!child.Visible || child.MouseFilter == MouseFilter.Ignore) continue;
-            if (!child.FinalRect.Contains(pointInLocalSpace.X, pointInLocalSpace.Y)) continue;
+            // Child rect in this control's local space (FinalRect is in screen space)
+            var childRectInLocal = new Rectangle(
+                child.FinalRect.X - c.FinalRect.X,
+                child.FinalRect.Y - c.FinalRect.Y,
+                child.FinalRect.Width,
+                child.FinalRect.Height);
+            if (!childRectInLocal.Contains((int)pointInLocalSpace.X, (int)pointInLocalSpace.Y)) continue;
             if (child.MouseFilter == MouseFilter.Stop)
                 return child;
             var childLocalPoint = new Vector2(
-                pointInLocalSpace.X - child.FinalRect.X,
-                pointInLocalSpace.Y - child.FinalRect.Y);
+                pointInLocalSpace.X - childRectInLocal.X,
+                pointInLocalSpace.Y - childRectInLocal.Y);
             var hit = HitTestRecursive(child, childLocalPoint);
             if (hit != null) return hit;
             return child;
