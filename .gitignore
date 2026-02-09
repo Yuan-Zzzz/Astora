@@ -3,6 +3,7 @@ bin/
 obj/
 .vs/
 .idea/
+.cursor/
 *.user
 *.suo
 site/
