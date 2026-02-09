@@ -27,7 +27,7 @@ namespace Astora.Editor.UI
             _imGuiRenderer = imGuiRenderer;
         }
         
-       public void Render(Node node)
+       public void Render(Node? node)
         {
             ImGui.Begin("Inspector");
             

@@ -1,5 +1,6 @@
 using Astora.Editor.Project;
 using Astora.Editor.Utils;
+using Astora.Editor.Core;
 using ImGuiNET;
 
 namespace Astora.Editor.UI
@@ -10,17 +11,17 @@ namespace Astora.Editor.UI
     public class AssetPanel
     {
         private readonly ProjectManager _projectManager;
-        private readonly Editor _editor;
+        private readonly IEditorContext _ctx;
         private readonly HashSet<string> _expandedFolders = new();
         private readonly HashSet<string> _skipFolders = new()
         {
             "bin", "obj", ".vs", ".idea", ".vscode"
         };
 
-        public AssetPanel(ProjectManager projectManager, Editor editor)
+        public AssetPanel(ProjectManager projectManager, IEditorContext ctx)
         {
             _projectManager = projectManager;
-            _editor = editor;
+            _ctx = ctx;
         }
 
         public void Render()
@@ -202,7 +203,7 @@ namespace Astora.Editor.UI
             {
                 case ".scene":
                     // 加载场景
-                    _editor.LoadScene(filePath);
+                    _ctx.Actions.LoadScene(filePath);
                     break;
 
                 case ".cs":

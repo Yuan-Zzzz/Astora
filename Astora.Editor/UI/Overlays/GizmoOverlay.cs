@@ -1,5 +1,6 @@
 using Astora.Core.Nodes;
 using Astora.Core.Scene;
+using Astora.Editor.Core.Actions;
 using Astora.Editor.Tools;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -11,16 +12,16 @@ namespace Astora.Editor.UI.Overlays;
 public class GizmoOverlay : ISceneViewOverlay
 {
     private readonly GizmoRenderer _gizmoRenderer;
-    private readonly Editor _editor;
+    private readonly IEditorActions _actions;
     private readonly Func<ITool> _getCurrentTool;
     
     public bool Enabled { get; set; } = true;
     public int RenderOrder => 4; // 最后渲染，在所有内容之上
     
-    public GizmoOverlay(GizmoRenderer gizmoRenderer, Editor editor, Func<ITool> getCurrentTool)
+    public GizmoOverlay(GizmoRenderer gizmoRenderer, IEditorActions actions, Func<ITool> getCurrentTool)
     {
         _gizmoRenderer = gizmoRenderer;
-        _editor = editor;
+        _actions = actions;
         _getCurrentTool = getCurrentTool;
     }
     
@@ -28,7 +29,7 @@ public class GizmoOverlay : ISceneViewOverlay
     {
         if (!Enabled) return;
         
-        var selectedNode = _editor.GetSelectedNode();
+        var selectedNode = _actions.GetSelectedNode();
         if (selectedNode is not Node2D node2d) return;
         
         var currentTool = _getCurrentTool();

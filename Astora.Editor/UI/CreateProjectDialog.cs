@@ -1,5 +1,6 @@
 using Astora.Editor.Project;
 using Astora.Editor.Utils;
+using Astora.Editor.Core;
 using ImGuiNET;
 
 namespace Astora.Editor.UI
@@ -9,16 +10,16 @@ namespace Astora.Editor.UI
     /// </summary>
     public class CreateProjectDialog
     {
-        private readonly Editor _editor;
+        private readonly IEditorContext _ctx;
         private string _projectName = "MyGame";
         private string _projectLocation = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         private ProjectTemplateType _selectedTemplate = ProjectTemplateType.Minimal;
         private string _errorMessage = string.Empty;
         private bool _shouldShow = false;
 
-        public CreateProjectDialog(Editor editor)
+        public CreateProjectDialog(IEditorContext ctx)
         {
-            _editor = editor;
+            _ctx = ctx;
         }
 
         public void Show()
@@ -96,14 +97,14 @@ namespace Astora.Editor.UI
                     {
                         try
                         {
-                            var projectInfo = _editor.ProjectManager.CreateProject(
+                            var projectInfo = _ctx.ProjectService.ProjectManager.CreateProject(
                                 _projectName,
                                 _projectLocation,
                                 _selectedTemplate
                             );
                             
                             // 加载创建的项目
-                            _editor.LoadProject(projectInfo.ProjectPath);
+                            _ctx.Actions.LoadProject(projectInfo.ProjectPath);
                             
                             // 关闭对话框
                             ImGui.CloseCurrentPopup();

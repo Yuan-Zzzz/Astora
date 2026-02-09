@@ -301,6 +301,38 @@ public class SerializedNode
                     return absolutePath;
                 }
 
+                // 兼容旧场景：如果是绝对路径但文件不存在，尝试映射到当前 Content.RootDirectory
+                // 典型场景：之前误把纹理路径写成了 <Editor>/Content/...，迁移后应指向 <Project>/Content/...
+                if (!File.Exists(pathValue))
+                {
+                    try
+                    {
+                        var normalized = pathValue.Replace('\\', '/');
+                        var marker = "/Content/";
+                        var idx = normalized.LastIndexOf(marker, StringComparison.OrdinalIgnoreCase);
+                        if (idx >= 0)
+                        {
+                            var rel = normalized[(idx + marker.Length)..];
+                            var mapped = Path.GetFullPath(Path.Combine(Engine.Content.RootDirectory, rel));
+                            if (File.Exists(mapped))
+                                return mapped;
+                        }
+
+                        // 最后兜底：仅使用文件名尝试在 Content 根目录下查找
+                        var fileName = Path.GetFileName(pathValue);
+                        if (!string.IsNullOrEmpty(fileName))
+                        {
+                            var mapped = Path.GetFullPath(Path.Combine(Engine.Content.RootDirectory, fileName));
+                            if (File.Exists(mapped))
+                                return mapped;
+                        }
+                    }
+                    catch
+                    {
+                        // ignore fallback errors, keep original
+                    }
+                }
+
                 return pathValue;
             }
 

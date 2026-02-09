@@ -1,4 +1,7 @@
 using Astora.Core.Nodes;
+using Astora.Editor.Core;
+using Astora.Editor.Core.Actions;
+using Astora.Editor.Core.Commands;
 using Astora.Editor.Tools;
 using ImGuiNET;
 using System.Numerics;
@@ -13,7 +16,8 @@ namespace Astora.Editor.UI;
 public class SceneViewInputHandler
 {
     private readonly SceneViewCamera _camera;
-    private readonly Editor _editor;
+    private readonly IEditorActions _actions;
+    private readonly CommandManager _commands;
     private readonly SelectionTool _selectionTool;
     private readonly MoveTool _moveTool;
     private readonly RotateTool _rotateTool;
@@ -22,16 +26,24 @@ public class SceneViewInputHandler
     // 输入状态
     private bool _isPanning = false;
     private XnaVector2 _lastMousePos;
+
+    // 命令化拖拽：记录一次拖拽前后状态
+    private bool _isToolDragging = false;
+    private Node2D? _dragNode;
+    private XnaVector2 _beforePos;
+    private float _beforeRot;
     
     public SceneViewInputHandler(
         SceneViewCamera camera,
-        Editor editor,
+        IEditorActions actions,
+        CommandManager commands,
         SelectionTool selectionTool,
         MoveTool moveTool,
         RotateTool rotateTool)
     {
         _camera = camera;
-        _editor = editor;
+        _actions = actions;
+        _commands = commands;
         _selectionTool = selectionTool;
         _moveTool = moveTool;
         _rotateTool = rotateTool;
@@ -118,7 +130,7 @@ public class SceneViewInputHandler
     private void HandleNodeInteraction(Vector2 mousePos)
     {
         var worldPos = _camera.ScreenToWorld(mousePos);
-        var selectedNode = _editor.GetSelectedNode() as Node2D;
+        var selectedNode = _actions.GetSelectedNode() as Node2D;
         var currentTool = GetCurrentTool();
         
         // 左键点击选择节点
@@ -126,12 +138,23 @@ public class SceneViewInputHandler
         {
             // 使用选择工具查找节点
             var clickedNode = _selectionTool.FindNodeAtPosition(worldPos);
-            _editor.SetSelectedNode(clickedNode);
+            if (!ReferenceEquals(clickedNode, selectedNode))
+            {
+                // 选择变化命令化（默认不进入历史栈）
+                _commands.TryExecute(new SelectNodeCommand(_actions, selectedNode, clickedNode));
+            }
             
             // 如果点击了节点且不是选择工具，通知当前工具开始操作
             if (clickedNode is Node2D node2d && _currentTool != ToolMode.Select)
             {
-                currentTool.OnMouseDown(worldPos, node2d);
+                var handled = currentTool.OnMouseDown(worldPos, node2d);
+                if (handled)
+                {
+                    _isToolDragging = true;
+                    _dragNode = node2d;
+                    _beforePos = node2d.Position;
+                    _beforeRot = node2d.Rotation;
+                }
             }
         }
         
@@ -144,7 +167,35 @@ public class SceneViewInputHandler
         // 结束拖拽
         if (ImGui.IsMouseReleased(ImGuiMouseButton.Left))
         {
-            currentTool.OnMouseUp(worldPos, selectedNode);
+            var ended = currentTool.OnMouseUp(worldPos, selectedNode);
+            if (_isToolDragging && ended && _dragNode != null)
+            {
+                var afterPos = _dragNode.Position;
+                var afterRot = _dragNode.Rotation;
+
+                if (afterPos != _beforePos || Math.Abs(afterRot - _beforeRot) > 0.0001f)
+                {
+                    var name = _currentTool switch
+                    {
+                        ToolMode.Move => "Move Node",
+                        ToolMode.Rotate => "Rotate Node",
+                        _ => "Transform Node"
+                    };
+
+                    // 注意：拖拽过程中已经实时修改节点；这里再 Execute 一次只是幂等应用最终状态。
+                    _commands.TryExecute(new Node2DTransformCommand(
+                        name,
+                        _dragNode,
+                        _beforePos,
+                        _beforeRot,
+                        afterPos,
+                        afterRot
+                    ));
+                }
+            }
+
+            _isToolDragging = false;
+            _dragNode = null;
         }
     }
     

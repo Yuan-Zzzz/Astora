@@ -93,7 +93,7 @@ namespace Astora.Editor.UI
             return name;
         }
         
-        public void Render(ref Node selectedNode)
+        public void Render(ref Node? selectedNode)
         {
             ImGui.Begin("Hierarchy");
             
@@ -156,7 +156,7 @@ namespace Astora.Editor.UI
             ImGui.End();
         }
         
-        private void RenderNode(Node node, ref Node selectedNode)
+        private void RenderNode(Node node, ref Node? selectedNode)
         {
             // 使用 PushID 确保 ID 作用域正确
             ImGui.PushID(node.GetHashCode());

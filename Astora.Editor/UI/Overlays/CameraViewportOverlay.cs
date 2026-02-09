@@ -1,7 +1,7 @@
 using Astora.Core;
 using Astora.Core.Nodes;
 using Astora.Core.Scene;
-using Astora.Editor;
+using Astora.Editor.Core;
 using Astora.Editor.Tools;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -15,15 +15,15 @@ namespace Astora.Editor.UI.Overlays;
 public class CameraViewportOverlay : ISceneViewOverlay
 {
     private readonly GizmoRenderer _gizmoRenderer;
-    private readonly Editor _editor;
+    private readonly IEditorContext _ctx;
     
     public bool Enabled { get; set; } = true;
     public int RenderOrder => 3; // 在场景内容之上
     
-    public CameraViewportOverlay(GizmoRenderer gizmoRenderer, Editor editor)
+    public CameraViewportOverlay(GizmoRenderer gizmoRenderer, IEditorContext ctx)
     {
         _gizmoRenderer = gizmoRenderer;
-        _editor = editor;
+        _ctx = ctx;
     }
     
     public void Draw(SpriteBatch spriteBatch, SceneViewCamera camera, SceneTree sceneTree, int viewportWidth, int viewportHeight)
@@ -37,7 +37,7 @@ public class CameraViewportOverlay : ISceneViewOverlay
         
         foreach (var cam in cameras)
         {
-            var bounds = GetCameraViewportBounds(cam, _editor);
+            var bounds = GetCameraViewportBounds(cam);
             var isActive = cam == activeCamera;
             
             // ActiveCamera 用绿色，其他用黄色
@@ -85,13 +85,13 @@ public class CameraViewportOverlay : ISceneViewOverlay
     /// <summary>
     /// 计算相机的世界坐标视口边界
     /// </summary>
-    private RectangleF GetCameraViewportBounds(Camera2D camera, Editor editor)
+    private RectangleF GetCameraViewportBounds(Camera2D camera)
     {
         // 获取设计分辨率（从项目配置）
         int designWidth = 1920;
         int designHeight = 1080;
         
-        var projectManager = editor.ProjectManager;
+        var projectManager = _ctx.ProjectService.ProjectManager;
         if (projectManager?.CurrentProject?.GameConfig != null)
         {
             var config = projectManager.CurrentProject.GameConfig;

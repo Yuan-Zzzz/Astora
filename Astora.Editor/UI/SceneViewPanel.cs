@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Astora.Core.Scene;
+using Astora.Editor.Core;
 using Astora.Editor.Services;
 using Astora.Editor.Tools;
 using Astora.Editor.UI.Overlays;
@@ -15,24 +16,13 @@ using Vector4 = System.Numerics.Vector4;
 namespace Astora.Editor.UI;
 
 /// <summary>
-/// 工具模式枚举
-/// </summary>
-public enum ToolMode
-{
-    Select,
-    Move,
-    Rotate
-}
-
-/// <summary>
 /// 场景视图面板 - 显示场景的编辑器视图，包含网格、坐标轴、Gizmo等辅助内容
 /// </summary>
 public class SceneViewPanel
 {
     private readonly SceneTree _sceneTree;
     private readonly ImGuiRenderer _imGuiRenderer;
-    private readonly Editor _editor;
-    private readonly RenderService _renderService;
+    private readonly IEditorContext _ctx;
     
     // 核心组件
     private readonly SceneViewCamera _camera;
@@ -48,12 +38,11 @@ public class SceneViewPanel
     // 覆盖层
     private readonly List<ISceneViewOverlay> _overlays;
     
-    public SceneViewPanel(SceneTree sceneTree, ImGuiRenderer imGuiRenderer, Editor editor)
+    public SceneViewPanel(SceneTree sceneTree, ImGuiRenderer imGuiRenderer, IEditorContext ctx)
     {
         _sceneTree = sceneTree;
         _imGuiRenderer = imGuiRenderer;
-        _editor = editor;
-        _renderService = new RenderService();
+        _ctx = ctx;
         
         // 初始化相机
         _camera = new SceneViewCamera();
@@ -70,7 +59,8 @@ public class SceneViewPanel
         // 初始化输入处理器
         _inputHandler = new SceneViewInputHandler(
             _camera,
-            editor,
+            _ctx.Actions,
+            _ctx.Commands,
             _selectionTool,
             _moveTool,
             _rotateTool
@@ -81,8 +71,8 @@ public class SceneViewPanel
         {
             new GridOverlay(_gizmoRenderer),
             new AxisOverlay(_gizmoRenderer),
-            new CameraViewportOverlay(_gizmoRenderer, editor),
-            new GizmoOverlay(_gizmoRenderer, editor, GetCurrentTool)
+            new CameraViewportOverlay(_gizmoRenderer, _ctx),
+            new GizmoOverlay(_gizmoRenderer, _ctx.Actions, GetCurrentTool)
         };
     }
     
@@ -208,7 +198,7 @@ public class SceneViewPanel
             DrawRulers(viewportScreenPos, viewportSize, rulerSize);
             
             // 绘制场景和覆盖层
-            var spriteBatch = _renderService.GetSpriteBatch();
+            var spriteBatch = _ctx.RenderService.GetSpriteBatch();
             if (spriteBatch != null)
             {
                 Draw(spriteBatch);

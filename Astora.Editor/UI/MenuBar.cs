@@ -1,11 +1,13 @@
-﻿using Astora.Editor.Utils;
+using Astora.Editor.Core;
+using Astora.Editor.Utils;
 using ImGuiNET;
 
 namespace Astora.Editor.UI
 {
     public class MenuBar
     {
-        private Editor _editor;
+        private readonly IEditorContext _ctx;
+        private readonly Action _showCreateProjectDialog;
         private bool _showOpenProjectDialog = false;
         private bool _showOpenSceneDialog = false;
         private bool _showSaveSceneDialog = false;
@@ -13,9 +15,10 @@ namespace Astora.Editor.UI
         private string _scenePathInput = string.Empty;
         private string _newSceneNameInput = string.Empty;
         
-        public MenuBar(Editor editor)
+        public MenuBar(IEditorContext ctx, Action showCreateProjectDialog)
         {
-            _editor = editor;
+            _ctx = ctx;
+            _showCreateProjectDialog = showCreateProjectDialog;
         }
         
         public void Render()
@@ -26,7 +29,7 @@ namespace Astora.Editor.UI
                 {
                     if (ImGui.MenuItem("New Project...", "Ctrl+Shift+N"))
                     {
-                        _editor.ShowCreateProjectDialog();
+                        _showCreateProjectDialog();
                     }
                     
                     if (ImGui.MenuItem("Open Project...", "Ctrl+O"))
@@ -34,12 +37,12 @@ namespace Astora.Editor.UI
                         ShowOpenProjectDialog();
                     }
                     
-                    if (_editor.IsProjectLoaded)
+                    if (_ctx.EditorService.State.IsProjectLoaded)
                     {
                         ImGui.Separator();
                         if (ImGui.MenuItem("Close Project"))
                         {
-                            _editor.CloseProject();
+                            _ctx.Actions.CloseProject();
                         }
                         ImGui.Separator();
                     }
@@ -48,7 +51,7 @@ namespace Astora.Editor.UI
                         ImGui.Separator();
                     }
                     
-                    if (_editor.IsProjectLoaded)
+                    if (_ctx.EditorService.State.IsProjectLoaded)
                     {
                         if (ImGui.MenuItem("New Scene", "Ctrl+N"))
                         {
@@ -64,24 +67,24 @@ namespace Astora.Editor.UI
                         
                         if (ImGui.MenuItem("Save Scene", "Ctrl+S"))
                         {
-                            _editor.SaveScene();
+                            _ctx.Actions.SaveScene();
                         }
                         
                         if (ImGui.MenuItem("Save Scene As...", "Ctrl+Shift+S"))
                         {
                             _showSaveSceneDialog = true;
-                            _scenePathInput = _editor.CurrentScenePath ?? string.Empty;
+                            _scenePathInput = _ctx.EditorService.State.CurrentScenePath ?? string.Empty;
                         }
                     }
                     
                     ImGui.EndMenu();
                 }
                 
-                if (_editor.IsProjectLoaded && ImGui.BeginMenu("Project"))
+                if (_ctx.EditorService.State.IsProjectLoaded && ImGui.BeginMenu("Project"))
                 {
                     if (ImGui.MenuItem("Build Project", "Ctrl+B"))
                     {
-                        var result = _editor.ProjectManager.CompileProject();
+                        var result = _ctx.ProjectService.ProjectManager.CompileProject();
                         if (result.Success)
                         {
                             System.Console.WriteLine("Build successful");
@@ -94,7 +97,7 @@ namespace Astora.Editor.UI
                     
                     if (ImGui.MenuItem("Reload Assembly", "Ctrl+R"))
                     {
-                        _editor.RebuildProject();
+                        _ctx.Actions.RebuildProject();
                     }
                     
                     ImGui.EndMenu();
@@ -102,14 +105,11 @@ namespace Astora.Editor.UI
                 
                 if (ImGui.BeginMenu("Edit"))
                 {
-                    if (ImGui.MenuItem("Undo", "Ctrl+Z"))
-                    {
-                        // Undo operation
-                    }
-                    if (ImGui.MenuItem("Redo", "Ctrl+Y"))
-                    {
-                        // Redo operation
-                    }
+                    if (ImGui.MenuItem("Undo", "Ctrl+Z", false, _ctx.Commands.CanUndo))
+                        _ctx.Commands.TryUndo();
+
+                    if (ImGui.MenuItem("Redo", "Ctrl+Y", false, _ctx.Commands.CanRedo))
+                        _ctx.Commands.TryRedo();
                     ImGui.EndMenu();
                 }
                 
@@ -117,7 +117,7 @@ namespace Astora.Editor.UI
                 {
                     if (ImGui.MenuItem("Play", "F5"))
                     {
-                        _editor.SetPlaying(true);
+                        _ctx.Actions.SetPlaying(true);
                     }
                     if (ImGui.MenuItem("Pause", "F6"))
                     {
@@ -125,12 +125,27 @@ namespace Astora.Editor.UI
                     }
                     if (ImGui.MenuItem("Stop", "Shift+F5"))
                     {
-                        _editor.SetPlaying(false);
+                        _ctx.Actions.SetPlaying(false);
                     }
                     ImGui.EndMenu();
                 }
                 
                 ImGui.EndMainMenuBar();
+            }
+
+            // 全局快捷键（避免打字时触发）
+            var io = ImGui.GetIO();
+            if (!io.WantTextInput)
+            {
+                // Ctrl+Z / Ctrl+Y
+                if (io.KeyCtrl && ImGui.IsKeyPressed(ImGuiKey.Z))
+                    _ctx.Commands.TryUndo();
+                if (io.KeyCtrl && ImGui.IsKeyPressed(ImGuiKey.Y))
+                    _ctx.Commands.TryRedo();
+
+                // Ctrl+Shift+Z（常见 redo）
+                if (io.KeyCtrl && io.KeyShift && ImGui.IsKeyPressed(ImGuiKey.Z))
+                    _ctx.Commands.TryRedo();
             }
 
             // 打开项目对话框
@@ -160,7 +175,7 @@ namespace Astora.Editor.UI
                 {
                     if (!string.IsNullOrEmpty(_projectPathInput) && File.Exists(_projectPathInput))
                     {
-                        _editor.LoadProject(_projectPathInput);
+                        _ctx.Actions.LoadProject(_projectPathInput);
                         ImGui.CloseCurrentPopup();
                     }
                 }
@@ -184,7 +199,7 @@ namespace Astora.Editor.UI
                 {
                     if (!string.IsNullOrWhiteSpace(_newSceneNameInput))
                     {
-                        _editor.CreateNewScene(_newSceneNameInput);
+                        _ctx.Actions.CreateNewScene(_newSceneNameInput);
                         ImGui.CloseCurrentPopup();
                     }
                 }
@@ -209,13 +224,13 @@ namespace Astora.Editor.UI
             {
                 ImGui.Text("Select scene file:");
                 
-                var scenes = _editor.SceneManager.ScanScenes();
+                var scenes = _ctx.ProjectService.SceneManager.ScanScenes();
                 foreach (var scenePath in scenes)
                 {
-                    var sceneName = _editor.SceneManager.GetSceneName(scenePath);
+                    var sceneName = _ctx.ProjectService.SceneManager.GetSceneName(scenePath);
                     if (ImGui.Selectable(sceneName))
                     {
-                        _editor.LoadScene(scenePath);
+                        _ctx.Actions.LoadScene(scenePath);
                         ImGui.CloseCurrentPopup();
                     }
                 }
@@ -244,7 +259,7 @@ namespace Astora.Editor.UI
                 {
                     if (!string.IsNullOrEmpty(_scenePathInput))
                     {
-                        _editor.SaveScene(_scenePathInput);
+                        _ctx.Actions.SaveScene(_scenePathInput);
                         ImGui.CloseCurrentPopup();
                     }
                 }

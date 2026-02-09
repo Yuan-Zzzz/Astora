@@ -1,5 +1,6 @@
 using Astora.Core.Project;
 using Astora.Editor.Project;
+using Astora.Editor.Core;
 using ImGuiNET;
 
 namespace Astora.Editor.UI
@@ -11,7 +12,7 @@ namespace Astora.Editor.UI
     {
         private readonly ProjectManager _projectManager;
         private readonly SceneManager _sceneManager;
-        private readonly Editor _editor;
+        private readonly IEditorContext _ctx;
         private string _newSceneName = "NewScene";
         
         // 项目设置临时变量
@@ -20,11 +21,11 @@ namespace Astora.Editor.UI
         private ScalingMode _tempScalingMode;
         private bool _settingsDirty = false;
 
-        public ProjectPanel(ProjectManager projectManager, SceneManager sceneManager, Editor editor)
+        public ProjectPanel(ProjectManager projectManager, SceneManager sceneManager, IEditorContext ctx)
         {
             _projectManager = projectManager;
             _sceneManager = sceneManager;
-            _editor = editor;
+            _ctx = ctx;
         }
 
         public void Render()
@@ -76,7 +77,7 @@ namespace Astora.Editor.UI
                 {
                     if (!string.IsNullOrWhiteSpace(_newSceneName))
                     {
-                        _editor.CreateNewScene(_newSceneName);
+                        _ctx.Actions.CreateNewScene(_newSceneName);
                         _newSceneName = "NewScene";
                         ImGui.CloseCurrentPopup();
                     }
@@ -104,7 +105,7 @@ namespace Astora.Editor.UI
                 foreach (var scenePath in scenes)
                 {
                     var sceneName = _sceneManager.GetSceneName(scenePath);
-                    var isCurrentScene = _editor.CurrentScenePath == scenePath;
+                    var isCurrentScene = _ctx.EditorService.State.CurrentScenePath == scenePath;
                     
                     if (isCurrentScene)
                     {
@@ -114,7 +115,7 @@ namespace Astora.Editor.UI
                     // Display scene name, double-click to open
                     if (ImGui.Selectable(sceneName, isCurrentScene))
                     {
-                        _editor.LoadScene(scenePath);
+                        _ctx.Actions.LoadScene(scenePath);
                     }
 
                     if (isCurrentScene)
@@ -127,7 +128,7 @@ namespace Astora.Editor.UI
                     {
                         if (ImGui.MenuItem("Open"))
                         {
-                            _editor.LoadScene(scenePath);
+                            _ctx.Actions.LoadScene(scenePath);
                         }
                         
                         if (ImGui.MenuItem("Rename"))
@@ -211,7 +212,7 @@ namespace Astora.Editor.UI
             ImGui.SameLine();
             if (ImGui.Button("Reload Assembly"))
             {
-                _editor.RebuildProject();
+                _ctx.Actions.RebuildProject();
             }
 
             // Display build status

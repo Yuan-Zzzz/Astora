@@ -1,5 +1,6 @@
 using Astora.Core.Utils;
 using Astora.Editor.Project;
+using Astora.Core;
 
 namespace Astora.Editor.Services;
 
@@ -18,9 +19,6 @@ public class ProjectService
         _sceneManager = new SceneManager(_projectManager);
         _nodeTypeRegistry = new NodeTypeRegistry();
         _nodeTypeRegistry.DiscoverNodeTypes();
-        
-        // 将节点类型注册表设置到序列化器
-        YamlSceneSerializer.SetNodeTypeRegistry(_nodeTypeRegistry);
     }
     
     /// <summary>
@@ -46,6 +44,20 @@ public class ProjectService
         try
         {
             var projectInfo = _projectManager.LoadProject(csprojPath);
+
+            // 关键：让引擎资源根目录指向“项目的 Content 目录”
+            // 否则场景反序列化时会把相对路径错误地解析到 Editor 自己的 Content 下。
+            var contentRoot = projectInfo.GameConfig?.ContentRootDirectory ?? "Content";
+            var projectContentDir = Path.Combine(projectInfo.ProjectRoot, contentRoot);
+            if (Directory.Exists(projectContentDir) && Engine.Content != null)
+            {
+                Engine.Content.RootDirectory = projectContentDir;
+                System.Console.WriteLine($"[ProjectService] Content.RootDirectory => {Engine.Content.RootDirectory}");
+            }
+            else
+            {
+                System.Console.WriteLine($"[ProjectService] 警告：项目 Content 目录不存在: {projectContentDir}");
+            }
             
             // 初始化场景管理器
             _sceneManager.Initialize();
@@ -69,9 +81,6 @@ public class ProjectService
                 // 重新发现节点类型（包括项目中的自定义节点）
                 _nodeTypeRegistry.MarkDirty();
                 _nodeTypeRegistry.DiscoverNodeTypes();
-                
-                // 更新序列化器的节点类型注册表
-                YamlSceneSerializer.SetNodeTypeRegistry(_nodeTypeRegistry);
             }
             else
             {
@@ -97,7 +106,10 @@ public class ProjectService
         YamlSceneSerializer.SetPriorityAssembly(null);
         _nodeTypeRegistry.MarkDirty();
         _nodeTypeRegistry.DiscoverNodeTypes();
-        YamlSceneSerializer.SetNodeTypeRegistry(_nodeTypeRegistry);
+
+        // 恢复默认 Content 根目录（Editor 自身）
+        if (Engine.Content != null)
+            Engine.Content.RootDirectory = "Content";
     }
     
     /// <summary>
@@ -131,8 +143,7 @@ public class ProjectService
             _nodeTypeRegistry.MarkDirty();
             _nodeTypeRegistry.DiscoverNodeTypes();
             
-            // 更新序列化器的节点类型注册表和优先程序集，确保使用最新的类型
-            YamlSceneSerializer.SetNodeTypeRegistry(_nodeTypeRegistry);
+            // 更新序列化器的优先程序集，确保使用最新的类型
             YamlSceneSerializer.SetPriorityAssembly(loadedAssembly);
             
             System.Console.WriteLine("程序集重新加载成功");

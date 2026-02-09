@@ -1,4 +1,5 @@
 using Astora.Editor.Project;
+using Astora.Editor.Core;
 using ImGuiNET;
 
 namespace Astora.Editor.UI
@@ -8,12 +9,15 @@ namespace Astora.Editor.UI
     /// </summary>
     public class ProjectLauncherPanel
     {
-        private readonly Editor _editor;
-        private bool _showCreateProjectDialog = false;
+        private readonly IEditorContext _ctx;
+        private readonly Action _showOpenProjectDialog;
+        private readonly Action _showCreateProjectDialog;
 
-        public ProjectLauncherPanel(Editor editor)
+        public ProjectLauncherPanel(IEditorContext ctx, Action showOpenProjectDialog, Action showCreateProjectDialog)
         {
-            _editor = editor;
+            _ctx = ctx;
+            _showOpenProjectDialog = showOpenProjectDialog;
+            _showCreateProjectDialog = showCreateProjectDialog;
         }
 
         public void Render()
@@ -39,7 +43,7 @@ namespace Astora.Editor.UI
             ImGui.Text("Recent Projects");
             ImGui.Separator();
             
-            var recentProjects = _editor.ProjectManager.GetRecentProjects();
+            var recentProjects = _ctx.ProjectService.ProjectManager.GetRecentProjects();
             if (recentProjects.Count == 0)
             {
                 ImGui.TextColored(new System.Numerics.Vector4(0.7f, 0.7f, 0.7f, 1.0f), "No recent projects");
@@ -58,7 +62,7 @@ namespace Astora.Editor.UI
                     {
                         if (File.Exists(projectPath))
                         {
-                            _editor.LoadProject(projectPath);
+                            _ctx.Actions.LoadProject(projectPath);
                         }
                         else
                         {
@@ -85,14 +89,14 @@ namespace Astora.Editor.UI
             
             if (ImGui.Button("Open Project", new System.Numerics.Vector2(buttonWidth, 0)))
             {
-                _editor.ShowOpenProjectDialog();
+                _showOpenProjectDialog();
             }
             
             ImGui.SameLine();
             
             if (ImGui.Button("Create New Project", new System.Numerics.Vector2(buttonWidth, 0)))
             {
-                _editor.ShowCreateProjectDialog();
+                _showCreateProjectDialog();
             }
 
             ImGui.End();
