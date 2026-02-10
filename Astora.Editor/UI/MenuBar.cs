@@ -1,4 +1,5 @@
 using Astora.Editor.Core;
+using Astora.Editor.Project;
 using Astora.Editor.Utils;
 using ImGuiNET;
 
@@ -10,9 +11,7 @@ namespace Astora.Editor.UI
         private readonly Action _showCreateProjectDialog;
         private bool _showOpenProjectDialog = false;
         private bool _showOpenSceneDialog = false;
-        private bool _showSaveSceneDialog = false;
         private string _projectPathInput = string.Empty;
-        private string _scenePathInput = string.Empty;
         private string _newSceneNameInput = string.Empty;
         
         public MenuBar(IEditorContext ctx, Action showCreateProjectDialog)
@@ -62,18 +61,11 @@ namespace Astora.Editor.UI
                         if (ImGui.MenuItem("Open Scene...", "Ctrl+Shift+O"))
                         {
                             _showOpenSceneDialog = true;
-                            _scenePathInput = string.Empty;
                         }
                         
                         if (ImGui.MenuItem("Save Scene", "Ctrl+S"))
                         {
                             _ctx.Actions.SaveScene();
-                        }
-                        
-                        if (ImGui.MenuItem("Save Scene As...", "Ctrl+Shift+S"))
-                        {
-                            _showSaveSceneDialog = true;
-                            _scenePathInput = _ctx.EditorService.State.CurrentScenePath ?? string.Empty;
                         }
                     }
                     
@@ -224,7 +216,7 @@ namespace Astora.Editor.UI
                 ImGui.EndPopup();
             }
 
-            // Open scene dialog
+            // Open scene dialog (list IScene implementations)
             if (_showOpenSceneDialog)
             {
                 ImGui.OpenPopup("Open Scene");
@@ -233,49 +225,27 @@ namespace Astora.Editor.UI
 
             if (ImGui.BeginPopupModal("Open Scene"))
             {
-                ImGui.Text("Select scene file:");
+                ImGui.Text("Select a scene:");
                 
-                var scenes = _ctx.ProjectService.SceneManager.ScanScenes();
-                foreach (var scenePath in scenes)
+                var scenes = _ctx.ProjectService.SceneManager.Scenes;
+                if (scenes.Count == 0)
                 {
-                    var sceneName = _ctx.ProjectService.SceneManager.GetSceneName(scenePath);
-                    if (ImGui.Selectable(sceneName))
+                    ImGui.TextDisabled("No scenes found. Build the project first.");
+                }
+                else
+                {
+                    foreach (var sceneInfo in scenes)
                     {
-                        _ctx.Actions.LoadScene(scenePath);
-                        ImGui.CloseCurrentPopup();
+                        var isCurrent = _ctx.EditorService.State.CurrentScene?.ClassName == sceneInfo.ClassName;
+                        if (ImGui.Selectable(sceneInfo.ClassName, isCurrent))
+                        {
+                            _ctx.Actions.LoadScene(sceneInfo);
+                            ImGui.CloseCurrentPopup();
+                        }
                     }
                 }
                 
-                if (ImGui.Button("Cancel"))
-                {
-                    ImGui.CloseCurrentPopup();
-                }
-                
-                ImGui.EndPopup();
-            }
-
-            // Save scene dialog
-            if (_showSaveSceneDialog)
-            {
-                ImGui.OpenPopup("Save Scene As");
-                _showSaveSceneDialog = false;
-            }
-
-            if (ImGui.BeginPopupModal("Save Scene As"))
-            {
-                ImGui.Text("Enter scene file path:");
-                ImGui.InputText("##ScenePath", ref _scenePathInput, 512);
-                
-                if (ImGui.Button("Save"))
-                {
-                    if (!string.IsNullOrEmpty(_scenePathInput))
-                    {
-                        _ctx.Actions.SaveScene(_scenePathInput);
-                        ImGui.CloseCurrentPopup();
-                    }
-                }
-                
-                ImGui.SameLine();
+                ImGui.Separator();
                 if (ImGui.Button("Cancel"))
                 {
                     ImGui.CloseCurrentPopup();

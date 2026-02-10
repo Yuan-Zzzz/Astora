@@ -496,8 +496,19 @@ namespace Astora.Editor.UI
         {
             switch (extension)
             {
-                case ".scene":
-                    _ctx.Actions.LoadScene(filePath);
+                case ".scene.cs":
+                case ".cs":
+                    // Check if this is a scene file - try to find matching IScene
+                    var sceneName = Path.GetFileNameWithoutExtension(filePath);
+                    if (sceneName.EndsWith(".scene"))
+                        sceneName = Path.GetFileNameWithoutExtension(sceneName);
+                    var sceneInfo = _ctx.ProjectService.SceneManager.FindScene(sceneName);
+                    if (sceneInfo != null)
+                    {
+                        _ctx.Actions.LoadScene(sceneInfo);
+                        break;
+                    }
+                    FileOperations.OpenFileInExternalEditor(filePath);
                     break;
                 default:
                     FileOperations.OpenFileInExternalEditor(filePath);

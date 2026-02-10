@@ -1,4 +1,5 @@
 using Astora.Core.Nodes;
+using Astora.Editor.Project;
 
 namespace Astora.Editor.Core;
 
@@ -32,9 +33,33 @@ public class EditorState
     public bool IsPlaying { get; set; }
     
     /// <summary>
-    /// 当前场景路径
+    /// 当前场景信息 (Code-as-Scene: 对应 IScene 类型)
     /// </summary>
-    public string? CurrentScenePath { get; set; }
+    public SceneInfo? CurrentScene { get; set; }
+    
+    /// <summary>
+    /// 当前场景路径（兼容属性，返回 CurrentScene 的 ScenePath）
+    /// </summary>
+    public string? CurrentScenePath
+    {
+        get => CurrentScene?.ScenePath;
+        set
+        {
+            // For backward compat during transition - create minimal SceneInfo
+            if (value != null && CurrentScene == null)
+            {
+                CurrentScene = new SceneInfo
+                {
+                    ClassName = Path.GetFileNameWithoutExtension(value),
+                    ScenePath = value,
+                };
+            }
+            else if (value == null)
+            {
+                CurrentScene = null;
+            }
+        }
+    }
     
     /// <summary>
     /// 项目是否已加载

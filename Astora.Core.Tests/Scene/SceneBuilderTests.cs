@@ -68,4 +68,27 @@ public class SceneBuilderTests
         root.Children.Should().HaveCount(1);
         root.Children[0].Name.Should().Be("SimpleChild");
     }
+
+    [Fact]
+    public void Configure_SetsPropertiesOnCurrentParent()
+    {
+        var root = SceneBuilder.Create<Node>("Root")
+            .AddChild<Node2D>("Branch", b => b
+                .Configure<Node2D>(n =>
+                {
+                    n.Position = new Microsoft.Xna.Framework.Vector2(10, 20);
+                })
+                .Add<Node>("Leaf")
+            )
+            .Build();
+
+        root.Children.Should().HaveCount(1);
+        var branch = root.Children[0] as Node2D;
+        branch.Should().NotBeNull();
+        branch!.Name.Should().Be("Branch");
+        branch.Position.X.Should().Be(10f);
+        branch.Position.Y.Should().Be(20f);
+        branch.Children.Should().HaveCount(1);
+        branch.Children[0].Name.Should().Be("Leaf");
+    }
 }

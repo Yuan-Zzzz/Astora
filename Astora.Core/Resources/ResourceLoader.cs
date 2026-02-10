@@ -49,15 +49,27 @@ public static class ResourceLoader
             throw new InvalidOperationException($"No importer registered for type {typeof(T).Name}");
         }
         
-        // Load Resource
+        // Resolve relative paths against the content root directory
         var fullpath = path;
+        if (!Path.IsPathRooted(fullpath) && _contentManager != null)
+        {
+            var contentRoot = _contentManager.RootDirectory;
+            if (!string.IsNullOrEmpty(contentRoot))
+            {
+                var resolved = Path.GetFullPath(Path.Combine(contentRoot, fullpath));
+                if (File.Exists(resolved))
+                    fullpath = resolved;
+            }
+        }
+
         Logger.Debug($"Loading resource: {fullpath}");
         var resource = importer.Import(fullpath, _contentManager);
         if (resource == null)
             throw new InvalidOperationException($"Failed to load resource: {path}");
         
-        resource.ResourcePath = fullpath;
-        resource.ResourceId = fullpath;
+        // Cache using original path so callers can look up by the same key
+        resource.ResourcePath = path;
+        resource.ResourceId = path;
         resource.ReferenceCount = 1;
         resource.IsLoaded = true;
         _resourceCache[fullpath] = resource;

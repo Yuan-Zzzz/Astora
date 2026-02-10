@@ -1,4 +1,5 @@
 using Astora.Core.Nodes;
+using Astora.Editor.Project;
 
 namespace Astora.Editor.Core.Actions;
 
@@ -12,8 +13,8 @@ public interface IEditorActions
 
     bool RebuildProject();
 
-    void LoadScene(string path);
-    void SaveScene(string? path = null);
+    void LoadScene(SceneInfo sceneInfo);
+    void SaveScene();
     void CreateNewScene(string sceneName);
 
     void SetPlaying(bool playing);
@@ -21,4 +22,3 @@ public interface IEditorActions
     Node? GetSelectedNode();
     void SetSelectedNode(Node? node);
 }
-

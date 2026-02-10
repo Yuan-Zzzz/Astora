@@ -50,6 +50,17 @@ public class SceneBuilder
         return this;
     }
 
+    /// <summary>
+    /// Configure the current parent node's properties. Used inside AddChild callbacks
+    /// to set properties on a branch node that also has children.
+    /// </summary>
+    public SceneBuilder Configure<T>(Action<T> configure) where T : Node
+    {
+        if (_currentParent is T typed)
+            configure(typed);
+        return this;
+    }
+
     public Node Build()
     {
         return _rootNode; 

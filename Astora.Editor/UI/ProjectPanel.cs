@@ -94,28 +94,27 @@ namespace Astora.Editor.UI
 
             ImGui.Separator();
 
-            // Display scene list
-            var scenes = project.Scenes;
+            // Display scene list (Code-as-Scene: list IScene implementations)
+            var scenes = _sceneManager.Scenes;
             if (scenes.Count == 0)
             {
-                ImGui.Text("No scene files");
+                ImGui.Text("No scenes found");
+                ImGui.TextDisabled("Build project to discover IScene types");
             }
             else
             {
-                foreach (var scenePath in scenes)
+                foreach (var sceneInfo in scenes)
                 {
-                    var sceneName = _sceneManager.GetSceneName(scenePath);
-                    var isCurrentScene = _ctx.EditorService.State.CurrentScenePath == scenePath;
+                    var isCurrentScene = _ctx.EditorService.State.CurrentScene?.ClassName == sceneInfo.ClassName;
                     
                     if (isCurrentScene)
                     {
-                        ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1, 1, 0, 1)); // Yellow highlight
+                        ImGui.PushStyleColor(ImGuiCol.Text, new System.Numerics.Vector4(1, 1, 0, 1));
                     }
 
-                    // Display scene name, double-click to open
-                    if (ImGui.Selectable(sceneName, isCurrentScene))
+                    if (ImGui.Selectable(sceneInfo.ClassName, isCurrentScene))
                     {
-                        _ctx.Actions.LoadScene(scenePath);
+                        _ctx.Actions.LoadScene(sceneInfo);
                     }
 
                     if (isCurrentScene)
@@ -124,67 +123,16 @@ namespace Astora.Editor.UI
                     }
 
                     // Right-click context menu
-                    if (ImGui.BeginPopupContextItem($"##{sceneName}"))
+                    if (ImGui.BeginPopupContextItem($"##{sceneInfo.ClassName}"))
                     {
                         if (ImGui.MenuItem("Open"))
                         {
-                            _ctx.Actions.LoadScene(scenePath);
-                        }
-                        
-                        if (ImGui.MenuItem("Rename"))
-                        {
-                            ImGui.OpenPopup($"RenameScene_{sceneName}");
+                            _ctx.Actions.LoadScene(sceneInfo);
                         }
                         
                         if (ImGui.MenuItem("Delete"))
                         {
-                            ImGui.OpenPopup($"DeleteScene_{sceneName}");
-                        }
-                        
-                        ImGui.EndPopup();
-                    }
-
-                    // Rename popup
-                    if (ImGui.BeginPopupModal($"RenameScene_{sceneName}"))
-                    {
-                        var newName = sceneName;
-                        ImGui.Text($"Rename Scene: {sceneName}");
-                        ImGui.InputText("New Name", ref newName, 256);
-                        
-                        if (ImGui.Button("OK"))
-                        {
-                            if (!string.IsNullOrWhiteSpace(newName))
-                            {
-                                _sceneManager.RenameScene(scenePath, newName);
-                                ImGui.CloseCurrentPopup();
-                            }
-                        }
-                        
-                        ImGui.SameLine();
-                        if (ImGui.Button("Cancel"))
-                        {
-                            ImGui.CloseCurrentPopup();
-                        }
-                        
-                        ImGui.EndPopup();
-                    }
-
-                    // Delete confirmation popup
-                    if (ImGui.BeginPopupModal($"DeleteScene_{sceneName}"))
-                    {
-                        ImGui.Text($"Are you sure you want to delete scene '{sceneName}'?");
-                        ImGui.Text("This action cannot be undone!");
-                        
-                        if (ImGui.Button("Delete"))
-                        {
-                            _sceneManager.DeleteScene(scenePath);
-                            ImGui.CloseCurrentPopup();
-                        }
-                        
-                        ImGui.SameLine();
-                        if (ImGui.Button("Cancel"))
-                        {
-                            ImGui.CloseCurrentPopup();
+                            _sceneManager.DeleteScene(sceneInfo);
                         }
                         
                         ImGui.EndPopup();
@@ -253,7 +201,6 @@ namespace Astora.Editor.UI
             
             ImGui.Text("Design Resolution");
             
-            // 设计分辨率宽度
             ImGui.Text("Width:");
             ImGui.SameLine();
             ImGui.SetNextItemWidth(100);
@@ -263,7 +210,6 @@ namespace Astora.Editor.UI
                 _settingsDirty = true;
             }
             
-            // 设计分辨率高度
             ImGui.Text("Height:");
             ImGui.SameLine();
             ImGui.SetNextItemWidth(100);
@@ -273,7 +219,6 @@ namespace Astora.Editor.UI
                 _settingsDirty = true;
             }
             
-            // 常用分辨率快捷按钮
             ImGui.Text("Presets:");
             if (ImGui.Button("1920x1080"))
             {
@@ -298,7 +243,6 @@ namespace Astora.Editor.UI
             
             ImGui.Separator();
             
-            // 缩放模式
             ImGui.Text("Scaling Mode");
             var scalingModeNames = new[] { "None", "Fit", "Fill", "Stretch", "PixelPerfect" };
             var currentModeIndex = (int)_tempScalingMode;
@@ -309,7 +253,6 @@ namespace Astora.Editor.UI
                 _settingsDirty = true;
             }
             
-            // 显示缩放模式说明
             var modeDescription = _tempScalingMode switch
             {
                 ScalingMode.None => "不缩放，1:1显示",
@@ -323,7 +266,6 @@ namespace Astora.Editor.UI
             
             ImGui.Separator();
             
-            // 保存按钮
             if (_settingsDirty)
             {
                 if (ImGui.Button("Save Settings"))
@@ -355,4 +297,3 @@ namespace Astora.Editor.UI
         }
     }
 }
-

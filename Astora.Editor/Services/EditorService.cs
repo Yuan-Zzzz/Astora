@@ -3,6 +3,7 @@ using Astora.Core.Nodes;
 using Astora.Core.Scene;
 using Astora.Core.Utils;
 using Astora.Editor.Core;
+using Astora.Editor.Project;
 
 namespace Astora.Editor.Services;
 
@@ -69,24 +70,20 @@ public class EditorService
     }
     
     /// <summary>
-    /// 保存场景快照（播放前调用）
+    /// 保存场景快照（播放前调用）—— 暂保留 YAML 序列化用于临时快照
     /// </summary>
     private void SaveSceneSnapshot()
     {
         if (_sceneTree.Root == null)
-        {
-            // 没有场景，无需保存
             return;
-        }
         
         try
         {
-            // 创建临时文件路径
             var tempDir = Path.GetTempPath();
             var tempFileName = $"astora_scene_snapshot_{Guid.NewGuid()}.scene";
             _state.SavedSceneSnapshotPath = Path.Combine(tempDir, tempFileName);
             
-            // 保存场景到临时文件
+            // 使用 YAML 序列化器保存临时快照
             Engine.Serializer.Save(_sceneTree.Root, _state.SavedSceneSnapshotPath);
         }
         catch (Exception ex)
@@ -102,120 +99,85 @@ public class EditorService
     private void RestoreSceneSnapshot()
     {
         if (string.IsNullOrEmpty(_state.SavedSceneSnapshotPath) || !File.Exists(_state.SavedSceneSnapshotPath))
-        {
-            // 没有快照或文件不存在，无需恢复
             return;
-        }
         
         try
         {
-            // 从临时文件加载场景
             var restoredScene = Engine.Serializer.Load(_state.SavedSceneSnapshotPath);
-            
-            // 恢复场景
             _sceneTree.ChangeScene(restoredScene);
-            
-            // 清除选中的节点（因为节点对象已改变）
             _state.SelectedNode = null;
             
-            // 清理临时文件
-            try
-            {
-                File.Delete(_state.SavedSceneSnapshotPath);
-            }
-            catch
-            {
-                // 忽略删除失败的错误
-            }
-            
+            try { File.Delete(_state.SavedSceneSnapshotPath); } catch { }
             _state.SavedSceneSnapshotPath = null;
         }
         catch (Exception ex)
         {
             System.Console.WriteLine($"恢复场景快照失败: {ex.Message}");
-            // 清理临时文件
             try
             {
                 if (File.Exists(_state.SavedSceneSnapshotPath))
-                {
                     File.Delete(_state.SavedSceneSnapshotPath);
-                }
             }
-            catch
-            {
-                // 忽略删除失败的错误
-            }
+            catch { }
             _state.SavedSceneSnapshotPath = null;
         }
     }
     
     /// <summary>
-    /// 加载场景
+    /// 加载场景（Code-as-Scene: 通过反射调用 IScene.Build()）
     /// </summary>
-    public void LoadScene(string path)
+    public void LoadScene(SceneInfo sceneInfo)
     {
-        var scene = _projectService.SceneManager.LoadScene(path);
+        var scene = _projectService.SceneManager.LoadScene(sceneInfo);
         if (scene != null)
         {
             _sceneTree.ChangeScene(scene);
-            _state.CurrentScenePath = path;
-            var sceneName = System.IO.Path.GetFileNameWithoutExtension(path);
-            _state.NotificationManager.ShowSuccess($"场景 '{sceneName}' 加载成功");
-            System.Console.WriteLine($"场景已加载: {path}");
+            _state.CurrentScene = sceneInfo;
+            _state.NotificationManager.ShowSuccess($"场景 '{sceneInfo.ClassName}' 加载成功");
+            System.Console.WriteLine($"场景已加载: {sceneInfo.ClassName}");
         }
         else
         {
             _state.NotificationManager.ShowError($"加载场景失败，请查看控制台了解详细信息");
-            System.Console.WriteLine($"加载场景失败: {path}");
+            System.Console.WriteLine($"加载场景失败: {sceneInfo.ClassName}");
         }
     }
     
     /// <summary>
-    /// 保存场景
+    /// 保存场景（Code-as-Scene: 生成 C# 代码写入 .scene.cs）
     /// </summary>
-    public void SaveScene(string? path = null)
+    public void SaveScene()
     {
         if (_sceneTree.Root == null)
         {
             _state.NotificationManager.ShowError("无法保存：没有场景可保存");
-            System.Console.WriteLine("保存失败：场景树的根节点为空");
             return;
         }
         
-        var savePath = path ?? _state.CurrentScenePath;
-        if (string.IsNullOrEmpty(savePath))
+        var sceneInfo = _state.CurrentScene;
+        if (sceneInfo == null)
         {
-            // 确保 SceneManager 已初始化（设置了 _scenesDirectory）
-            var scenesDir = _projectService.SceneManager.GetScenesDirectory();
-            if (string.IsNullOrEmpty(scenesDir))
+            // 没有关联的 SceneInfo，用根节点名创建一个
+            var className = _sceneTree.Root.Name;
+            sceneInfo = new SceneInfo
             {
-                _projectService.SceneManager.Initialize();
-                scenesDir = _projectService.SceneManager.GetScenesDirectory();
-            }
-            
-            if (string.IsNullOrEmpty(scenesDir))
-            {
-                _state.NotificationManager.ShowError("无法保存：请先使用「另存为」指定保存路径");
-                System.Console.WriteLine("保存失败：无法确定场景保存目录，请先打开项目或使用另存为");
-                return;
-            }
-            
-            savePath = _projectService.SceneManager.GetScenePath(_sceneTree.Root.Name);
+                ClassName = className,
+                ScenePath = $"Scenes/{className}",
+                SourceFilePath = null // SceneManager will determine the path
+            };
+            _state.CurrentScene = sceneInfo;
         }
         
-        var result = _projectService.SceneManager.SaveScene(savePath, _sceneTree.Root);
+        var result = _projectService.SceneManager.SaveScene(sceneInfo, _sceneTree.Root);
         
         if (result)
         {
-            _state.CurrentScenePath = savePath;
-            var sceneName = System.IO.Path.GetFileNameWithoutExtension(savePath);
-            _state.NotificationManager.ShowSuccess($"场景 '{sceneName}' 保存成功");
-            System.Console.WriteLine($"场景已保存到: {savePath}");
+            _state.NotificationManager.ShowSuccess($"场景 '{sceneInfo.ClassName}' 保存成功");
+            System.Console.WriteLine($"场景已保存: {sceneInfo.ClassName}");
         }
         else
         {
             _state.NotificationManager.ShowError($"保存场景失败，请查看控制台了解详细信息");
-            System.Console.WriteLine($"保存场景失败: {savePath}");
         }
     }
     
@@ -226,9 +188,14 @@ public class EditorService
     {
         try
         {
-            var scenePath = _projectService.SceneManager.CreateNewScene(sceneName);
-            LoadScene(scenePath);
-            System.Console.WriteLine($"新场景已创建: {scenePath}");
+            var sceneInfo = _projectService.SceneManager.CreateNewScene(sceneName);
+            
+            // Load the newly created scene (it has a root Node)
+            var rootNode = new Node(sceneInfo.ClassName);
+            _sceneTree.ChangeScene(rootNode);
+            _state.CurrentScene = sceneInfo;
+            
+            System.Console.WriteLine($"新场景已创建: {sceneInfo.ClassName}");
         }
         catch (Exception ex)
         {
@@ -242,28 +209,18 @@ public class EditorService
     /// </summary>
     public void OnProjectClosed()
     {
-        // 如果正在播放，先停止
         if (_state.IsPlaying)
-        {
             SetPlaying(false);
-        }
         
         // 清理临时快照文件
         if (!string.IsNullOrEmpty(_state.SavedSceneSnapshotPath) && File.Exists(_state.SavedSceneSnapshotPath))
         {
-            try
-            {
-                File.Delete(_state.SavedSceneSnapshotPath);
-            }
-            catch
-            {
-                // 忽略删除失败的错误
-            }
+            try { File.Delete(_state.SavedSceneSnapshotPath); } catch { }
             _state.SavedSceneSnapshotPath = null;
         }
         
         _sceneTree.ChangeScene(null);
-        _state.CurrentScenePath = null;
+        _state.CurrentScene = null;
         _state.SelectedNode = null;
         _state.IsPlaying = false;
         _state.IsProjectLoaded = false;

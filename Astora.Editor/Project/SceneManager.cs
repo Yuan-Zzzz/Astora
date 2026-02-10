@@ -1,23 +1,49 @@
+using System.Reflection;
 using Astora.Core;
 using Astora.Core.Nodes;
+using Astora.Core.Scene;
 using Astora.Core.Utils;
 
 namespace Astora.Editor.Project
 {
     /// <summary>
-    /// 场景管理器 - 负责场景文件的扫描、加载、保存
+    /// Scene info discovered from assembly IScene implementations.
+    /// </summary>
+    public class SceneInfo
+    {
+        /// <summary>Scene class name (e.g. "SampleScene")</summary>
+        public string ClassName { get; set; } = string.Empty;
+
+        /// <summary>Scene path from IScene.ScenePath (e.g. "Scenes/SampleScene")</summary>
+        public string ScenePath { get; set; } = string.Empty;
+
+        /// <summary>The Type implementing IScene</summary>
+        public Type SceneType { get; set; } = null!;
+
+        /// <summary>Full path to the .scene.cs source file on disk (if known)</summary>
+        public string? SourceFilePath { get; set; }
+    }
+
+    /// <summary>
+    /// 场景管理器 - 负责场景发现(IScene)、加载(Build)、保存(CodeEmitter)
     /// </summary>
     public class SceneManager
     {
         private readonly ProjectManager _projectManager;
-        private readonly ISceneSerializer _serializer;
+        private readonly SceneCodeEmitter _emitter = new();
+
         private string _scenesDirectory = string.Empty;
+        private List<SceneInfo> _scenes = new();
 
         public SceneManager(ProjectManager projectManager)
         {
             _projectManager = projectManager;
-            _serializer = Engine.Serializer;
         }
+
+        /// <summary>
+        /// All discovered scenes
+        /// </summary>
+        public IReadOnlyList<SceneInfo> Scenes => _scenes;
 
         /// <summary>
         /// 初始化场景目录
@@ -25,289 +51,241 @@ namespace Astora.Editor.Project
         public void Initialize()
         {
             if (_projectManager.CurrentProject == null)
-            {
                 return;
-            }
 
             _scenesDirectory = Path.Combine(_projectManager.CurrentProject.ProjectRoot, "Scenes");
-            
-            // 如果目录不存在，创建它
+
             if (!Directory.Exists(_scenesDirectory))
-            {
                 Directory.CreateDirectory(_scenesDirectory);
-            }
         }
 
         /// <summary>
-        /// 扫描场景文件
+        /// 扫描程序集中的 IScene 实现（替代原来的文件扫描）
         /// </summary>
-        public List<string> ScanScenes()
+        public List<SceneInfo> ScanScenes()
         {
-            if (string.IsNullOrEmpty(_scenesDirectory) || !Directory.Exists(_scenesDirectory))
+            _scenes.Clear();
+
+            var assembly = _projectManager.GetLoadedAssembly();
+            if (assembly == null)
             {
-                return new List<string>();
-            }
-
-            var sceneFiles = Directory.GetFiles(_scenesDirectory, $"*{_serializer.GetExtension()}", SearchOption.TopDirectoryOnly)
-                .Select(Path.GetFullPath)
-                .ToList();
-
-            if (_projectManager.CurrentProject != null)
-            {
-                _projectManager.CurrentProject.Scenes = sceneFiles;
-            }
-
-            return sceneFiles;
-        }
-
-        /// <summary>
-        /// 获取场景名称（不含路径和扩展名）
-        /// </summary>
-        public string GetSceneName(string scenePath)
-        {
-            return Path.GetFileNameWithoutExtension(scenePath);
-        }
-
-        /// <summary>
-        /// 加载场景
-        /// </summary>
-        public Node? LoadScene(string scenePath)
-        {
-            System.Console.WriteLine($"尝试加载场景: {scenePath}");
-            
-            if (!File.Exists(scenePath))
-            {
-                System.Console.WriteLine($"错误：场景文件不存在: {scenePath}");
-                return null;
+                // Fallback: also update old ProjectInfo.Scenes for compatibility
+                if (_projectManager.CurrentProject != null)
+                    _projectManager.CurrentProject.Scenes = new List<string>();
+                return _scenes;
             }
 
             try
             {
-                var fileInfo = new FileInfo(scenePath);
-                System.Console.WriteLine($"场景文件信息 - 大小: {fileInfo.Length} 字节, 最后修改: {fileInfo.LastWriteTime}");
-                
-                var scene = _serializer.Load(scenePath);
-                
-                if (scene != null)
+                var sceneInterface = typeof(IScene);
+                var types = assembly.GetTypes()
+                    .Where(t => sceneInterface.IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
+
+                foreach (var type in types)
                 {
-                    System.Console.WriteLine($"场景加载成功: {scene.Name}");
+                    try
+                    {
+                        var pathProp = type.GetProperty("ScenePath", BindingFlags.Public | BindingFlags.Static);
+                        var scenePath = pathProp?.GetValue(null) as string ?? $"Scenes/{type.Name}";
+
+                        var info = new SceneInfo
+                        {
+                            ClassName = type.Name,
+                            ScenePath = scenePath,
+                            SceneType = type,
+                            SourceFilePath = FindSourceFile(type.Name)
+                        };
+
+                        _scenes.Add(info);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Console.WriteLine($"[SceneManager] Error scanning IScene type {type.Name}: {ex.Message}");
+                    }
                 }
-                else
-                {
-                    System.Console.WriteLine("警告：场景加载返回了 null");
-                }
-                
-                return scene;
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"加载场景时发生异常: {ex.GetType().Name}");
-                System.Console.WriteLine($"错误消息: {ex.Message}");
-                System.Console.WriteLine($"堆栈跟踪:\n{ex.StackTrace}");
-                
-                if (ex.InnerException != null)
+                System.Console.WriteLine($"[SceneManager] Error scanning assembly: {ex.Message}");
+            }
+
+            // Update old ProjectInfo.Scenes for compatibility with other code
+            if (_projectManager.CurrentProject != null)
+            {
+                _projectManager.CurrentProject.Scenes = _scenes.Select(s => s.ScenePath).ToList();
+            }
+
+            System.Console.WriteLine($"[SceneManager] Found {_scenes.Count} IScene implementations");
+            return _scenes;
+        }
+
+        /// <summary>
+        /// 通过反射调用 IScene.Build() 加载场景
+        /// </summary>
+        public Node? LoadScene(SceneInfo sceneInfo)
+        {
+            try
+            {
+                System.Console.WriteLine($"[SceneManager] Loading scene via Build(): {sceneInfo.ClassName}");
+
+                var buildMethod = sceneInfo.SceneType.GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
+                if (buildMethod == null)
                 {
-                    System.Console.WriteLine($"内部异常: {ex.InnerException.Message}");
+                    System.Console.WriteLine($"[SceneManager] Error: Build() method not found on {sceneInfo.ClassName}");
+                    return null;
                 }
-                
+
+                var node = (Node?)buildMethod.Invoke(null, null);
+
+                if (node != null)
+                    System.Console.WriteLine($"[SceneManager] Scene loaded: {node.Name}");
+                else
+                    System.Console.WriteLine("[SceneManager] Warning: Build() returned null");
+
+                return node;
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"[SceneManager] Error loading scene {sceneInfo.ClassName}: {ex.Message}");
+                if (ex.InnerException != null)
+                    System.Console.WriteLine($"  Inner: {ex.InnerException.Message}");
                 return null;
             }
         }
 
         /// <summary>
-        /// 保存场景
+        /// 保存场景：生成 C# 代码写入 .scene.cs 文件
         /// </summary>
-        public bool SaveScene(string scenePath, Node root)
+        public bool SaveScene(SceneInfo sceneInfo, Node root)
         {
             try
             {
-                System.Console.WriteLine($"开始保存场景: {scenePath}");
-                
-                // 验证根节点
-                if (root == null)
+                var namespaceName = GetDefaultNamespace();
+                var className = sceneInfo.ClassName;
+                var scenePath = sceneInfo.ScenePath;
+
+                var code = _emitter.Emit(root, namespaceName, className, scenePath);
+
+                // Determine output path
+                var outputPath = sceneInfo.SourceFilePath;
+                if (string.IsNullOrEmpty(outputPath))
                 {
-                    System.Console.WriteLine("错误：根节点为 null，无法保存场景");
-                    return false;
-                }
-                
-                // 确保目录存在
-                var directory = Path.GetDirectoryName(scenePath);
-                if (!string.IsNullOrEmpty(directory))
-                {
-                    if (!Directory.Exists(directory))
-                    {
-                        System.Console.WriteLine($"创建场景目录: {directory}");
-                        Directory.CreateDirectory(directory);
-                    }
-                }
-                else
-                {
-                    System.Console.WriteLine("错误：无法确定场景目录");
-                    return false;
-                }
-                
-                // 检查是否有写入权限
-                try
-                {
-                    // 尝试创建或打开文件以验证写入权限
-                    using (var fs = File.Open(scenePath, FileMode.OpenOrCreate, FileAccess.Write))
-                    {
-                        // 只是测试权限，不写入任何内容
-                    }
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    System.Console.WriteLine($"错误：没有写入权限: {scenePath}");
-                    return false;
-                }
-                catch (IOException ioEx)
-                {
-                    System.Console.WriteLine($"IO 错误：{ioEx.Message}");
-                    return false;
+                    outputPath = Path.Combine(_scenesDirectory, $"{className}.scene.cs");
+                    sceneInfo.SourceFilePath = outputPath;
                 }
 
-                // 保存场景
-                _serializer.Save(root, scenePath);
-                System.Console.WriteLine($"场景已成功保存到: {scenePath}");
-                
-                // 验证文件是否真的被写入
-                if (File.Exists(scenePath))
-                {
-                    var fileInfo = new FileInfo(scenePath);
-                    System.Console.WriteLine($"文件大小: {fileInfo.Length} 字节, 最后修改时间: {fileInfo.LastWriteTime}");
-                }
-                else
-                {
-                    System.Console.WriteLine("警告：文件保存后未找到，可能保存失败");
-                    return false;
-                }
-                
-                // 更新场景列表
-                ScanScenes();
-                
+                // Ensure directory exists
+                var dir = Path.GetDirectoryName(outputPath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
+
+                File.WriteAllText(outputPath, code);
+                System.Console.WriteLine($"[SceneManager] Scene saved to: {outputPath}");
                 return true;
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"保存场景时发生异常: {ex.GetType().Name}");
-                System.Console.WriteLine($"错误消息: {ex.Message}");
-                System.Console.WriteLine($"堆栈跟踪:\n{ex.StackTrace}");
-                
-                if (ex.InnerException != null)
-                {
-                    System.Console.WriteLine($"内部异常: {ex.InnerException.Message}");
-                }
-                
+                System.Console.WriteLine($"[SceneManager] Error saving scene: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>
-        /// 创建新场景
+        /// 保存场景（兼容旧接口：通过路径和根节点保存，用于新建场景等）
         /// </summary>
-        public string CreateNewScene(string sceneName)
+        public bool SaveScene(string className, Node root)
         {
-            if (string.IsNullOrEmpty(_scenesDirectory))
+            var sceneInfo = _scenes.FirstOrDefault(s => s.ClassName == className);
+            if (sceneInfo == null)
             {
-                Initialize();
+                // Create new SceneInfo for a brand-new scene
+                sceneInfo = new SceneInfo
+                {
+                    ClassName = className,
+                    ScenePath = $"Scenes/{className}",
+                    SceneType = typeof(IScene), // placeholder
+                    SourceFilePath = Path.Combine(_scenesDirectory, $"{className}.scene.cs")
+                };
             }
 
-            // 确保场景名称合法
-            sceneName = SanitizeSceneName(sceneName);
-            
-            var scenePath = Path.Combine(_scenesDirectory, $"{sceneName}{_serializer.GetExtension()}");
+            return SaveScene(sceneInfo, root);
+        }
 
-            // 如果文件已存在，添加数字后缀
+        /// <summary>
+        /// 创建新场景（生成 .scene.cs 文件）
+        /// </summary>
+        public SceneInfo CreateNewScene(string sceneName)
+        {
+            if (string.IsNullOrEmpty(_scenesDirectory))
+                Initialize();
+
+            sceneName = SanitizeSceneName(sceneName);
+            var className = SanitizeClassName(sceneName);
+
+            // Ensure unique name
             int counter = 1;
-            var originalPath = scenePath;
-            while (File.Exists(scenePath))
+            var originalClassName = className;
+            while (_scenes.Any(s => s.ClassName == className) ||
+                   File.Exists(Path.Combine(_scenesDirectory, $"{className}.scene.cs")))
             {
-                scenePath = Path.Combine(_scenesDirectory, $"{sceneName}_{counter}{_serializer.GetExtension()}");
+                className = $"{originalClassName}{counter}";
                 counter++;
             }
 
-            // 创建空场景（根节点）
-            var rootNode = new Node(sceneName);
-            SaveScene(scenePath, rootNode);
+            var sceneInfo = new SceneInfo
+            {
+                ClassName = className,
+                ScenePath = $"Scenes/{className}",
+                SceneType = typeof(IScene), // placeholder until recompile
+                SourceFilePath = Path.Combine(_scenesDirectory, $"{className}.scene.cs")
+            };
 
-            return scenePath;
+            // Create a minimal scene with root node
+            var rootNode = new Node(className);
+            SaveScene(sceneInfo, rootNode);
+
+            _scenes.Add(sceneInfo);
+            return sceneInfo;
         }
 
         /// <summary>
         /// 删除场景
         /// </summary>
-        public bool DeleteScene(string scenePath)
+        public bool DeleteScene(SceneInfo sceneInfo)
         {
-            if (!File.Exists(scenePath))
+            if (sceneInfo.SourceFilePath != null && File.Exists(sceneInfo.SourceFilePath))
             {
-                return false;
+                try
+                {
+                    File.Delete(sceneInfo.SourceFilePath);
+                    _scenes.Remove(sceneInfo);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    System.Console.WriteLine($"[SceneManager] Error deleting scene: {ex.Message}");
+                    return false;
+                }
             }
 
-            try
-            {
-                File.Delete(scenePath);
-                ScanScenes();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                System.Console.WriteLine($"删除场景失败: {ex.Message}");
-                return false;
-            }
+            _scenes.Remove(sceneInfo);
+            return true;
         }
 
         /// <summary>
-        /// 重命名场景
+        /// 获取场景名称
         /// </summary>
-        public bool RenameScene(string oldPath, string newName)
+        public string GetSceneName(SceneInfo sceneInfo)
         {
-            if (!File.Exists(oldPath))
-            {
-                return false;
-            }
-
-            newName = SanitizeSceneName(newName);
-            var newPath = Path.Combine(Path.GetDirectoryName(oldPath) ?? _scenesDirectory, 
-                $"{newName}{_serializer.GetExtension()}");
-
-            if (File.Exists(newPath))
-            {
-                System.Console.WriteLine($"场景文件已存在: {newPath}");
-                return false;
-            }
-
-            try
-            {
-                File.Move(oldPath, newPath);
-                ScanScenes();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                System.Console.WriteLine($"重命名场景失败: {ex.Message}");
-                return false;
-            }
+            return sceneInfo.ClassName;
         }
 
         /// <summary>
-        /// 获取场景的完整路径
+        /// 查找场景（按类名）
         /// </summary>
-        public string GetScenePath(string sceneName)
+        public SceneInfo? FindScene(string className)
         {
-            return Path.Combine(_scenesDirectory, $"{sceneName}{_serializer.GetExtension()}");
-        }
-
-        /// <summary>
-        /// 清理场景名称（移除非法字符）
-        /// </summary>
-        private string SanitizeSceneName(string name)
-        {
-            var invalidChars = Path.GetInvalidFileNameChars();
-            foreach (var c in invalidChars)
-            {
-                name = name.Replace(c, '_');
-            }
-            return name.Trim();
+            return _scenes.FirstOrDefault(s => s.ClassName == className);
         }
 
         /// <summary>
@@ -317,6 +295,74 @@ namespace Astora.Editor.Project
         {
             return _scenesDirectory;
         }
+
+        /// <summary>
+        /// 获取项目默认命名空间
+        /// </summary>
+        private string GetDefaultNamespace()
+        {
+            var assemblyName = _projectManager.CurrentProject?.AssemblyName ?? "MyGame";
+            return $"{assemblyName}.Scenes";
+        }
+
+        /// <summary>
+        /// 尝试找到 IScene 类型对应的 .scene.cs 源文件
+        /// </summary>
+        private string? FindSourceFile(string className)
+        {
+            if (string.IsNullOrEmpty(_scenesDirectory) || !Directory.Exists(_scenesDirectory))
+                return null;
+
+            // Look for ClassName.scene.cs
+            var sceneFile = Path.Combine(_scenesDirectory, $"{className}.scene.cs");
+            if (File.Exists(sceneFile))
+                return sceneFile;
+
+            // Look in project root
+            if (_projectManager.CurrentProject != null)
+            {
+                var rootFile = Path.Combine(_projectManager.CurrentProject.ProjectRoot, "Scenes", $"{className}.scene.cs");
+                if (File.Exists(rootFile))
+                    return rootFile;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 清理场景名称
+        /// </summary>
+        private string SanitizeSceneName(string name)
+        {
+            var invalidChars = Path.GetInvalidFileNameChars();
+            foreach (var c in invalidChars)
+                name = name.Replace(c, '_');
+            return name.Trim();
+        }
+
+        /// <summary>
+        /// 将名称转为合法的 C# 类名
+        /// </summary>
+        private static string SanitizeClassName(string name)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var c in name)
+            {
+                if (char.IsLetterOrDigit(c) || c == '_')
+                    sb.Append(c);
+            }
+
+            if (sb.Length == 0)
+                return "NewScene";
+
+            // Ensure starts with letter or underscore
+            if (char.IsDigit(sb[0]))
+                sb.Insert(0, '_');
+
+            // PascalCase the first char
+            sb[0] = char.ToUpper(sb[0]);
+
+            return sb.ToString();
+        }
     }
 }
-

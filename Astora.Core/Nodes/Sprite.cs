@@ -94,6 +94,11 @@ public class Sprite : Node2D
         _origin = new Vector2(DefaultSize / 2f, DefaultSize / 2f);
     }
 
+    public Sprite(string name) : base(name)
+    {
+        _origin = new Vector2(DefaultSize / 2f, DefaultSize / 2f);
+    }
+
     public Sprite(string name, Texture2D texture) : base(name)
     {
         _texture = texture;

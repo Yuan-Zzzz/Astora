@@ -64,19 +64,16 @@ public class ProjectService
                 var contentRoot = projectInfo.GameConfig?.ContentRootDirectory ?? "Content";
                 var projectContentDir = Path.Combine(projectInfo.ProjectRoot, contentRoot);
 
-                // Content 路径设置需要在主线程执行（MonoGame 线程安全问题）
-                // 这里先记录下来
                 string? contentDir = null;
                 if (Directory.Exists(projectContentDir))
                     contentDir = projectContentDir;
 
-                // 阶段 3：初始化和扫描场景
-                state.LoadMessage = "Scanning scenes...";
+                // 阶段 3：初始化场景目录
+                state.LoadMessage = "Initializing scenes...";
                 state.LoadProgress = 0.3f;
                 state.LoadState = ProjectLoadState.Loading;
 
                 _sceneManager.Initialize();
-                _sceneManager.ScanScenes();
 
                 // 阶段 4：编译项目
                 state.LoadMessage = "Compiling project...";
@@ -104,6 +101,11 @@ public class ProjectService
                     YamlSceneSerializer.SetPriorityAssembly(loadedAssembly);
                     _nodeTypeRegistry.MarkDirty();
                     _nodeTypeRegistry.DiscoverNodeTypes();
+
+                    // 阶段 7：扫描 IScene 实现（必须在程序集加载之后）
+                    state.LoadMessage = "Scanning scenes...";
+                    state.LoadProgress = 0.9f;
+                    _sceneManager.ScanScenes();
                 }
                 else
                 {
@@ -177,7 +179,6 @@ public class ProjectService
             }
 
             _sceneManager.Initialize();
-            _sceneManager.ScanScenes();
 
             var compileResult = _projectManager.CompileProject();
             if (compileResult.Success)
@@ -188,6 +189,9 @@ public class ProjectService
                 YamlSceneSerializer.SetPriorityAssembly(loadedAssembly);
                 _nodeTypeRegistry.MarkDirty();
                 _nodeTypeRegistry.DiscoverNodeTypes();
+
+                // 扫描 IScene 实现（必须在程序集加载之后）
+                _sceneManager.ScanScenes();
             }
             else
             {
@@ -237,6 +241,9 @@ public class ProjectService
             _nodeTypeRegistry.MarkDirty();
             _nodeTypeRegistry.DiscoverNodeTypes();
             YamlSceneSerializer.SetPriorityAssembly(loadedAssembly);
+
+            // 重新扫描 IScene 实现
+            _sceneManager.ScanScenes();
             System.Console.WriteLine("程序集重新加载成功");
         }
         else

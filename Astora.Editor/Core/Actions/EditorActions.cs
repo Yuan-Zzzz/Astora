@@ -1,4 +1,5 @@
 using Astora.Core.Nodes;
+using Astora.Editor.Project;
 using Astora.Editor.Services;
 
 namespace Astora.Editor.Core.Actions;
@@ -38,13 +39,20 @@ public sealed class EditorActions : IEditorActions
             return false;
         }
 
-        var savedScenePath = _editorService.State.CurrentScenePath;
+        // Remember current scene before rebuild
+        var savedScene = _editorService.State.CurrentScene;
         var ok = _projectService.RebuildProject();
 
-        if (ok && !string.IsNullOrEmpty(savedScenePath) && File.Exists(savedScenePath))
+        if (ok && savedScene != null)
         {
-            System.Console.WriteLine($"重新加载场景: {savedScenePath}");
-            _editorService.LoadScene(savedScenePath);
+            // After rebuild, rescan scenes and find the same scene by class name
+            _projectService.SceneManager.ScanScenes();
+            var reloadedScene = _projectService.SceneManager.FindScene(savedScene.ClassName);
+            if (reloadedScene != null)
+            {
+                System.Console.WriteLine($"重新加载场景: {reloadedScene.ClassName}");
+                _editorService.LoadScene(reloadedScene);
+            }
         }
 
         return ok;
@@ -65,8 +73,8 @@ public sealed class EditorActions : IEditorActions
         }
     }
 
-    public void LoadScene(string path) => _editorService.LoadScene(path);
-    public void SaveScene(string? path = null) => _editorService.SaveScene(path);
+    public void LoadScene(SceneInfo sceneInfo) => _editorService.LoadScene(sceneInfo);
+    public void SaveScene() => _editorService.SaveScene();
     public void CreateNewScene(string sceneName) => _editorService.CreateNewScene(sceneName);
 
     public void SetPlaying(bool playing) => _editorService.SetPlaying(playing);
