@@ -185,7 +185,21 @@ public class EditorService
         var savePath = path ?? _state.CurrentScenePath;
         if (string.IsNullOrEmpty(savePath))
         {
-            // 如果没有路径，使用当前场景名称
+            // 确保 SceneManager 已初始化（设置了 _scenesDirectory）
+            var scenesDir = _projectService.SceneManager.GetScenesDirectory();
+            if (string.IsNullOrEmpty(scenesDir))
+            {
+                _projectService.SceneManager.Initialize();
+                scenesDir = _projectService.SceneManager.GetScenesDirectory();
+            }
+            
+            if (string.IsNullOrEmpty(scenesDir))
+            {
+                _state.NotificationManager.ShowError("无法保存：请先使用「另存为」指定保存路径");
+                System.Console.WriteLine("保存失败：无法确定场景保存目录，请先打开项目或使用另存为");
+                return;
+            }
+            
             savePath = _projectService.SceneManager.GetScenePath(_sceneTree.Root.Name);
         }
         

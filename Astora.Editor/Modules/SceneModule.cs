@@ -40,10 +40,9 @@ public sealed class SceneModule : IEditorModule
 
     private void DrawViewport(SpriteBatch spriteBatch)
     {
-        if (_ctx.EditorService.State.IsPlaying)
-            _gameView.Draw(spriteBatch);
-        else
-            _sceneView.Draw(spriteBatch);
+        // Scene 和 Game 视图始终渲染
+        _sceneView.Draw(spriteBatch);
+        _gameView.Draw(spriteBatch);
     }
 
     private void RenderImGui()
@@ -57,10 +56,9 @@ public sealed class SceneModule : IEditorModule
 
         _inspector.Render(selected);
 
-        if (_ctx.EditorService.State.IsPlaying)
-            _gameView.RenderUI();
-        else
-            _sceneView.RenderUI();
+        // Scene 和 Game 视图始终显示（参考 Unity）
+        _sceneView.RenderUI();
+        _gameView.RenderUI();
     }
 }
 

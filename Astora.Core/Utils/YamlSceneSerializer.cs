@@ -88,17 +88,10 @@ public class SerializedNode
                 Properties = new Dictionary<string, object?>()
             };
 
-            var type = node.GetType();
-            var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-                .Where(f => !IgnoredFieldNames.Contains(f.Name) && !f.IsStatic);
-
-            foreach (var field in fields)
+            // 遍历类型继承链（从基类到派生类），获取所有字段（包括基类的 private 字段）
+            // 必须使用 DeclaredOnly，否则 GetFields 不会返回基类的 private 字段
+            foreach (var field in GetAllSerializableFields(node.GetType()))
             {
-                bool shouldSerialize = field.IsPublic || field.IsDefined(typeof(SerializeFieldAttribute), false);
-                
-                if (!shouldSerialize)
-                    continue;
-
                 var value = field.GetValue(node);
                 
                 var serializedValue = SerializeField(field, value);
@@ -114,6 +107,36 @@ public class SerializedNode
             }
 
             return serialized;
+        }
+
+        /// <summary>
+        /// 遍历类型继承链，收集所有可序列化字段（包括基类的 private 字段）
+        /// </summary>
+        private static IEnumerable<FieldInfo> GetAllSerializableFields(Type type)
+        {
+            var typeHierarchy = new List<Type>();
+            var currentType = type;
+            while (currentType != null && currentType != typeof(object))
+            {
+                typeHierarchy.Add(currentType);
+                currentType = currentType.BaseType;
+            }
+            // 从基类到派生类
+            typeHierarchy.Reverse();
+
+            foreach (var declaringType in typeHierarchy)
+            {
+                var fields = declaringType.GetFields(
+                        BindingFlags.DeclaredOnly | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                    .Where(f => !IgnoredFieldNames.Contains(f.Name) && !f.IsStatic);
+
+                foreach (var field in fields)
+                {
+                    bool shouldSerialize = field.IsPublic || field.IsDefined(typeof(SerializeFieldAttribute), false);
+                    if (shouldSerialize)
+                        yield return field;
+                }
+            }
         }
 
         private object? SerializeField(FieldInfo fieldInfo, object value)
@@ -209,17 +232,9 @@ public class SerializedNode
 
             if (serialized.Properties != null)
             {
-                var type = node.GetType();
-                var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
-                    .Where(f => !IgnoredFieldNames.Contains(f.Name) && !f.IsStatic);
-
-                foreach (var field in fields)
+                // 遍历类型继承链获取所有可序列化字段（包括基类的 private 字段）
+                foreach (var field in GetAllSerializableFields(node.GetType()))
                 {
-                    bool shouldDeserialize = field.IsPublic || field.IsDefined(typeof(SerializeFieldAttribute), false);
-                    
-                    if (!shouldDeserialize)
-                        continue;
-
                     if (!serialized.Properties.TryGetValue(field.Name, out var value))
                         continue;
 

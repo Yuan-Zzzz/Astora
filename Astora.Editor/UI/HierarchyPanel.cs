@@ -3,9 +3,13 @@ using Astora.Core.Nodes;
 using Astora.Core.Scene;
 using Astora.Core.Utils;
 using ImGuiNET;
+using System.Numerics;
 
 namespace Astora.Editor.UI
 {
+    /// <summary>
+    /// 场景树面板 - Godot 风格：搜索、图标、拖拽、可见性/锁定
+    /// </summary>
     public class HierarchyPanel
     {
         private SceneTree _sceneTree;
@@ -13,75 +17,87 @@ namespace Astora.Editor.UI
         private NodeTypeRegistry? _nodeTypeRegistry;
         private Node? _lastSelectedNode;
         private Queue<Node> _nodesToDelete = new Queue<Node>();
-        
+
+        // 搜索
+        private string _searchQuery = string.Empty;
+        private HashSet<Node> _searchMatchNodes = new HashSet<Node>();
+
+        // 可见性和锁定（编辑器层面跟踪，不修改 Node 核心类）
+        private HashSet<Node> _hiddenNodes = new HashSet<Node>();
+        private HashSet<Node> _lockedNodes = new HashSet<Node>();
+
+        // 拖拽
+        private Node? _dragSourceNode;
+
+        // 节点类型图标映射
+        private static readonly Dictionary<string, (string Icon, Vector4 Color)> NodeTypeIcons = new()
+        {
+            { "Node",           ("[N]",   new Vector4(0.7f, 0.7f, 0.7f, 1f)) },
+            { "Node2D",         ("[2D]",  new Vector4(0.55f, 0.75f, 1.0f, 1f)) },
+            { "Sprite",         ("[S]",   new Vector4(0.55f, 0.85f, 0.45f, 1f)) },
+            { "Camera2D",       ("[C]",   new Vector4(0.95f, 0.75f, 0.3f, 1f)) },
+            { "AnimatedSprite", ("[AS]",  new Vector4(0.85f, 0.55f, 0.85f, 1f)) },
+            { "CPUParticles2D", ("[P]",   new Vector4(1.0f, 0.55f, 0.35f, 1f)) },
+            { "Control",        ("[UI]",  new Vector4(0.45f, 0.85f, 0.45f, 1f)) },
+            { "Label",          ("[Lbl]", new Vector4(0.45f, 0.85f, 0.45f, 1f)) },
+            { "Button",         ("[Btn]", new Vector4(0.45f, 0.85f, 0.45f, 1f)) },
+            { "Panel",          ("[Pnl]", new Vector4(0.45f, 0.85f, 0.45f, 1f)) },
+            { "CanvasLayer",    ("[CL]",  new Vector4(0.6f, 0.6f, 0.9f, 1f)) },
+        };
+
         public HierarchyPanel(SceneTree sceneTree, NodeTypeRegistry? nodeTypeRegistry = null)
         {
             _sceneTree = sceneTree;
             _nodeTypeRegistry = nodeTypeRegistry;
-            
-            if (_nodeTypeRegistry == null)
-            {
-                System.Console.WriteLine("警告: HierarchyPanel 初始化时 NodeTypeRegistry 为 null，节点创建菜单将无法正常工作");
-            }
         }
-        
-        /// <summary>
-        /// 设置节点类型注册表
-        /// </summary>
+
         public void SetNodeTypeRegistry(NodeTypeRegistry registry)
         {
             _nodeTypeRegistry = registry;
         }
-        
+
         /// <summary>
-        /// 从展开集合中移除节点及其所有子节点
+        /// 检查节点是否被隐藏（编辑器层面）
         /// </summary>
+        public bool IsNodeHidden(Node node) => _hiddenNodes.Contains(node);
+
+        /// <summary>
+        /// 检查节点是否被锁定（编辑器层面）
+        /// </summary>
+        public bool IsNodeLocked(Node node) => _lockedNodes.Contains(node);
+
         private void RemoveNodeFromExpandedSet(Node node)
         {
             _expandedNodes.Remove(node);
             foreach (var child in node.Children)
-            {
                 RemoveNodeFromExpandedSet(child);
-            }
         }
-        
-        /// <summary>
-        /// Expand to the target node by expanding all parent nodes
-        /// </summary>
+
         private void ExpandToNode(Node targetNode)
         {
             if (targetNode == null) return;
-            
-            // Traverse from target node up to root, expanding all parent nodes
             var current = targetNode;
             while (current != null && current != _sceneTree.Root)
             {
                 if (current.Parent != null)
-                {
                     _expandedNodes.Add(current.Parent);
-                }
                 current = current.Parent;
             }
         }
-        
-        /// <summary>
-        /// 生成唯一的节点名称
-        /// </summary>
+
         private string GenerateUniqueNodeName(Node parent, string baseName)
         {
             var existingNames = new HashSet<string>();
             if (parent != null)
             {
                 foreach (var child in parent.Children)
-                {
                     existingNames.Add(child.Name);
-                }
             }
             else if (_sceneTree.Root != null)
             {
                 existingNames.Add(_sceneTree.Root.Name);
             }
-            
+
             string name = baseName;
             int counter = 1;
             while (existingNames.Contains(name))
@@ -89,15 +105,64 @@ namespace Astora.Editor.UI
                 name = $"{baseName}{counter}";
                 counter++;
             }
-            
             return name;
         }
-        
+
+        /// <summary>
+        /// 执行搜索
+        /// </summary>
+        private void UpdateSearch()
+        {
+            _searchMatchNodes.Clear();
+            if (string.IsNullOrWhiteSpace(_searchQuery) || _sceneTree.Root == null)
+                return;
+
+            CollectMatchingNodes(_sceneTree.Root);
+        }
+
+        private bool CollectMatchingNodes(Node node)
+        {
+            bool nameMatch = node.Name.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase);
+            bool childMatch = false;
+
+            foreach (var child in node.Children)
+            {
+                if (CollectMatchingNodes(child))
+                    childMatch = true;
+            }
+
+            if (nameMatch || childMatch)
+            {
+                _searchMatchNodes.Add(node);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 获取节点类型的图标和颜色
+        /// </summary>
+        private (string Icon, Vector4 Color) GetNodeIcon(Node node)
+        {
+            var typeName = node.GetType().Name;
+            if (NodeTypeIcons.TryGetValue(typeName, out var info))
+                return info;
+            return ("[?]", new Vector4(0.6f, 0.6f, 0.6f, 1f));
+        }
+
         public void Render(ref Node? selectedNode)
         {
             ImGui.Begin("Hierarchy");
-            
-            // If selected node changed, expand to that node
+
+            // === 工具栏区域 ===
+            RenderToolbar(ref selectedNode);
+
+            ImGui.Separator();
+
+            // === 可滚动的节点树区域 ===
+            ImGui.BeginChild("HierarchyTree", new Vector2(0, -1), ImGuiChildFlags.None);
+
+            // 同步选中节点展开
             if (selectedNode != _lastSelectedNode && selectedNode != null)
             {
                 ExpandToNode(selectedNode);
@@ -107,25 +172,21 @@ namespace Astora.Editor.UI
             {
                 _lastSelectedNode = null;
             }
-            
+
             if (_sceneTree.Root != null)
             {
-                RenderNode(_sceneTree.Root, ref selectedNode);
+                bool isSearching = !string.IsNullOrWhiteSpace(_searchQuery);
+                RenderNode(_sceneTree.Root, ref selectedNode, isSearching);
             }
             else
             {
-                ImGui.Text("Scene is empty");
-                if (ImGui.Button("Create Root Node"))
-                {
-                    _sceneTree.ChangeScene(new Node2D("Root"));
-                }
+                // 空场景引导
+                RenderEmptyState(ref selectedNode);
             }
-            
-            // Right-click context menu for window background (only shows when clicking on empty area)
-            // Use NoOpenOverItems flag to ensure window menu doesn't show when hovering over nodes
+
+            // 空白区域右键菜单
             if (ImGui.BeginPopupContextWindow("", ImGuiPopupFlags.MouseButtonRight | ImGuiPopupFlags.NoOpenOverItems))
             {
-                // Window-level menu: create nodes at root or selected node
                 if (ImGui.BeginMenu("Create"))
                 {
                     RenderNodeCreationMenu(selectedNode ?? _sceneTree.Root, ref selectedNode);
@@ -133,184 +194,323 @@ namespace Astora.Editor.UI
                 }
                 ImGui.EndPopup();
             }
-            
-            // Process all pending node deletions after rendering is complete
-            // This prevents "Collection was modified during enumeration" exceptions
+
+            ImGui.EndChild();
+
+            // 延迟删除
             while (_nodesToDelete.Count > 0)
             {
                 var nodeToDelete = _nodesToDelete.Dequeue();
-                
-                // Perform the actual deletion
                 if (nodeToDelete.Parent != null)
                 {
                     nodeToDelete.Parent.RemoveChild(nodeToDelete);
                 }
                 else if (nodeToDelete == _sceneTree.Root)
                 {
-                    // If it's the root node, clear the scene
                     _sceneTree.ChangeScene(null);
-                    _expandedNodes.Clear(); // Clear expanded set
+                    _expandedNodes.Clear();
                 }
+                _hiddenNodes.Remove(nodeToDelete);
+                _lockedNodes.Remove(nodeToDelete);
             }
-            
+
             ImGui.End();
         }
-        
-        private void RenderNode(Node node, ref Node? selectedNode)
+
+        /// <summary>
+        /// 渲染工具栏（搜索框 + 操作按钮）
+        /// </summary>
+        private void RenderToolbar(ref Node? selectedNode)
         {
-            // 使用 PushID 确保 ID 作用域正确
+            // 搜索框
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 32);
+            var prevQuery = _searchQuery;
+            if (ImGui.InputTextWithHint("##HierarchySearch", "Search nodes...", ref _searchQuery, 256))
+            {
+                if (_searchQuery != prevQuery)
+                    UpdateSearch();
+            }
+
+            ImGui.SameLine();
+
+            // 添加节点按钮
+            if (ImGui.Button("+", new Vector2(24, 0)))
+            {
+                ImGui.OpenPopup("AddNodePopup");
+            }
+
+            if (ImGui.BeginPopup("AddNodePopup"))
+            {
+                RenderNodeCreationMenu(selectedNode ?? _sceneTree.Root, ref selectedNode);
+                ImGui.EndPopup();
+            }
+        }
+
+        /// <summary>
+        /// 空场景时的引导提示
+        /// </summary>
+        private void RenderEmptyState(ref Node? selectedNode)
+        {
+            ImGui.Dummy(new Vector2(0, 20));
+
+            var emptyMsg = "Scene is empty";
+            var textSize = ImGui.CalcTextSize(emptyMsg);
+            float textIndent = (ImGui.GetContentRegionAvail().X - textSize.X) * 0.5f;
+            if (textIndent > 0) ImGui.Indent(textIndent);
+            ImGui.TextColored(ImGuiStyleManager.GetTextDisabledColor(), emptyMsg);
+            if (textIndent > 0) ImGui.Unindent(textIndent);
+
+            ImGui.Spacing();
+
+            var btnText = "Create Root Node";
+            var btnSize = ImGui.CalcTextSize(btnText);
+            float btnIndent = (ImGui.GetContentRegionAvail().X - btnSize.X - 20) * 0.5f;
+            if (btnIndent > 0) ImGui.Indent(btnIndent);
+            if (ImGui.Button(btnText))
+            {
+                _sceneTree.ChangeScene(new Node2D("Root"));
+            }
+            if (btnIndent > 0) ImGui.Unindent(btnIndent);
+        }
+
+        private void RenderNode(Node node, ref Node? selectedNode, bool isSearching)
+        {
+            // 搜索过滤：不在匹配集中的节点跳过
+            if (isSearching && !_searchMatchNodes.Contains(node))
+                return;
+
             ImGui.PushID(node.GetHashCode());
-            
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags.OpenOnArrow;
+
+            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.SpanAvailWidth;
             if (selectedNode == node)
                 flags |= ImGuiTreeNodeFlags.Selected;
             if (node.Children.Count == 0)
                 flags |= ImGuiTreeNodeFlags.Leaf;
-            
-            // 如果节点在展开集合中，设置为默认展开
             if (_expandedNodes.Contains(node))
-            {
                 flags |= ImGuiTreeNodeFlags.DefaultOpen;
-            }
-            
-            // 只使用节点名称作为标签，ID 由 PushID 管理
+            // 搜索时默认全部展开
+            if (isSearching)
+                flags |= ImGuiTreeNodeFlags.DefaultOpen;
+
+            // --- 节点行渲染 ---
+            // 判断是否隐藏/锁定，调整透明度
+            bool isHidden = _hiddenNodes.Contains(node);
+            bool isLocked = _lockedNodes.Contains(node);
+            if (isHidden)
+                ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.4f);
+
+            // 图标 + 名称
+            var (icon, iconColor) = GetNodeIcon(node);
+            ImGui.TextColored(iconColor, icon);
+            ImGui.SameLine(0, 4);
+
             bool isOpen = ImGui.TreeNodeEx(node.Name, flags);
-            
-            // 跟踪展开状态
+
+            if (isHidden)
+                ImGui.PopStyleVar();
+
+            // 展开状态跟踪
             if (isOpen)
-            {
                 _expandedNodes.Add(node);
-            }
             else
-            {
                 _expandedNodes.Remove(node);
-            }
-            
-            if (ImGui.IsItemClicked())
-            {
+
+            // 点击选中
+            if (ImGui.IsItemClicked() && !isLocked)
                 selectedNode = node;
+
+            // --- 拖拽源 ---
+            if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.None))
+            {
+                _dragSourceNode = node;
+                unsafe
+                {
+                    var hash = node.GetHashCode();
+                    ImGui.SetDragDropPayload("HIERARCHY_NODE", new IntPtr(&hash), sizeof(int));
+                }
+                ImGui.Text($"Move: {node.Name}");
+                ImGui.EndDragDropSource();
             }
-            
-            // 检测右键释放事件（现代游戏引擎的标准行为：点击松开后才显示菜单）
+
+            // --- 拖拽目标 ---
+            if (ImGui.BeginDragDropTarget())
+            {
+                var payload = ImGui.AcceptDragDropPayload("HIERARCHY_NODE");
+                unsafe
+                {
+                    if (payload.NativePtr != null && _dragSourceNode != null)
+                    {
+                        // 防止循环：不能把父节点拖到自己的子节点下
+                        if (!IsDescendantOf(_dragSourceNode, node) && _dragSourceNode != node)
+                        {
+                            // 从旧父节点移除
+                            _dragSourceNode.Parent?.RemoveChild(_dragSourceNode);
+                            // 添加到新父节点
+                            node.AddChild(_dragSourceNode);
+                            _expandedNodes.Add(node);
+                            _dragSourceNode = null;
+                        }
+                    }
+                }
+                ImGui.EndDragDropTarget();
+            }
+
+            // --- 行尾的可见性/锁定按钮 ---
+            RenderNodeButtons(node);
+
+            // --- 右键菜单 ---
             if (ImGui.IsItemHovered() && ImGui.IsMouseReleased(ImGuiMouseButton.Right))
+                ImGui.OpenPopup($"##ctx_{node.GetHashCode()}");
+
+            if (ImGui.BeginPopup($"##ctx_{node.GetHashCode()}"))
             {
-                ImGui.OpenPopup($"##node_context_{node.GetHashCode()}");
-            }
-            
-            // 显示右键菜单（菜单会保持打开直到用户点击其他地方或选择菜单项）
-            if (ImGui.BeginPopup($"##node_context_{node.GetHashCode()}"))
-            {
-                // Create 子菜单
                 if (ImGui.BeginMenu("Create"))
                 {
                     RenderNodeCreationMenu(node, ref selectedNode);
                     ImGui.EndMenu();
                 }
-                
-                // Separator
                 ImGui.Separator();
-                
-                // Delete 菜单项 - 确保总是显示
-                bool deleteClicked = ImGui.MenuItem("Delete");
-                if (deleteClicked)
+
+                if (ImGui.MenuItem("Delete"))
                 {
-                    // 将节点添加到删除队列，延迟到渲染完成后删除
-                    // 这样可以避免在遍历集合时修改集合导致的异常
                     _nodesToDelete.Enqueue(node);
-                    
-                    // 从展开集合中移除该节点及其所有子节点（立即执行，不影响遍历）
                     RemoveNodeFromExpandedSet(node);
-                    
-                    // 如果删除的是选中的节点，清除选择（立即执行）
                     if (selectedNode == node)
-                    {
                         selectedNode = null;
-                    }
-                    
                     ImGui.CloseCurrentPopup();
                 }
-                
-                // Copy 菜单项 - 确保总是显示
-                bool copyClicked = ImGui.MenuItem("Copy");
-                if (copyClicked)
+                if (ImGui.MenuItem("Copy"))
                 {
-                    // Implement copy functionality
                     ImGui.CloseCurrentPopup();
                 }
-                
+                if (ImGui.MenuItem("Rename"))
+                {
+                    // TODO: 内联重命名
+                    ImGui.CloseCurrentPopup();
+                }
                 ImGui.EndPopup();
             }
-            
+
             if (isOpen)
             {
                 foreach (var child in node.Children)
-                {
-                    RenderNode(child, ref selectedNode);
-                }
+                    RenderNode(child, ref selectedNode, isSearching);
                 ImGui.TreePop();
             }
-            
+
             ImGui.PopID();
         }
-        
+
         /// <summary>
-        /// 渲染节点创建菜单
+        /// 在节点行末尾渲染可见性和锁定按钮
         /// </summary>
+        private void RenderNodeButtons(Node node)
+        {
+            // 计算按钮位置（行末，相对于窗口内容区域）
+            float buttonWidth = 18;
+            float availWidth = ImGui.GetContentRegionAvail().X;
+            // SameLine 参数是相对于窗口内容区域左边的偏移
+            float xOffset = ImGui.GetWindowWidth() - ImGui.GetStyle().WindowPadding.X - buttonWidth * 2 - 8;
+
+            ImGui.SameLine(xOffset);
+
+            // 可见性按钮
+            bool isHidden = _hiddenNodes.Contains(node);
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0, 0, 0, 0));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(1, 1, 1, 0.1f));
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(1, 1, 1, 0.15f));
+
+            var eyeColor = isHidden ? ImGuiStyleManager.GetTextDisabledColor() : ImGuiStyleManager.GetTextColor();
+            ImGui.PushStyleColor(ImGuiCol.Text, eyeColor);
+            if (ImGui.SmallButton(isHidden ? "x##vis" : "o##vis"))
+            {
+                if (isHidden)
+                    _hiddenNodes.Remove(node);
+                else
+                    _hiddenNodes.Add(node);
+            }
+            ImGui.PopStyleColor();
+
+            ImGui.SameLine(0, 2);
+
+            // 锁定按钮
+            bool isLocked = _lockedNodes.Contains(node);
+            var lockColor = isLocked ? new Vector4(1f, 0.6f, 0.2f, 1f) : ImGuiStyleManager.GetTextDisabledColor();
+            ImGui.PushStyleColor(ImGuiCol.Text, lockColor);
+            if (ImGui.SmallButton(isLocked ? "L##lck" : "-##lck"))
+            {
+                if (isLocked)
+                    _lockedNodes.Remove(node);
+                else
+                    _lockedNodes.Add(node);
+            }
+            ImGui.PopStyleColor();
+            ImGui.PopStyleColor(3);
+        }
+
+        /// <summary>
+        /// 检查 potentialChild 是否是 node 的后代
+        /// </summary>
+        private bool IsDescendantOf(Node potentialParent, Node potentialChild)
+        {
+            var current = potentialChild;
+            while (current != null)
+            {
+                if (current == potentialParent)
+                    return true;
+                current = current.Parent;
+            }
+            return false;
+        }
+
         private void RenderNodeCreationMenu(Node? parentNode, ref Node? selectedNode)
         {
             if (_nodeTypeRegistry == null)
             {
-                // 如果没有注册表，显示错误提示
-                ImGui.TextDisabled("节点类型注册表未初始化");
-                ImGui.Separator();
-                if (ImGui.MenuItem("重新初始化注册表"))
-                {
-                    System.Console.WriteLine("警告: NodeTypeRegistry 为 null，无法重新初始化");
-                }
+                ImGui.TextDisabled("Node type registry not initialized");
                 return;
             }
-            
+
             var nodeTypesByCategory = _nodeTypeRegistry.GetNodeTypesByCategory();
-            
-            // 检查是否有可用的节点类型
+
             if (nodeTypesByCategory.Count == 0 || nodeTypesByCategory.All(kvp => kvp.Value.Count == 0))
             {
-                ImGui.TextDisabled("未发现可用的节点类型");
+                ImGui.TextDisabled("No node types found");
                 ImGui.Separator();
-                if (ImGui.MenuItem("刷新节点列表"))
+                if (ImGui.MenuItem("Refresh"))
                 {
                     _nodeTypeRegistry.MarkDirty();
                     _nodeTypeRegistry.DiscoverNodeTypes();
                 }
                 return;
             }
-            
-            // 优先显示 Core 分类的节点
+
+            // Core 节点优先
             if (nodeTypesByCategory.TryGetValue("Core", out var coreNodes))
             {
                 foreach (var nodeTypeInfo in coreNodes)
                 {
-                    if (ImGui.MenuItem(nodeTypeInfo.DisplayName))
+                    // 显示带图标的菜单项
+                    var typeName = nodeTypeInfo.DisplayName;
+                    if (NodeTypeIcons.TryGetValue(typeName, out var iconInfo))
                     {
-                        CreateNodeFromType(nodeTypeInfo, parentNode, ref selectedNode);
+                        ImGui.TextColored(iconInfo.Color, iconInfo.Icon);
+                        ImGui.SameLine(0, 4);
                     }
+                    if (ImGui.MenuItem(typeName))
+                        CreateNodeFromType(nodeTypeInfo, parentNode, ref selectedNode);
                 }
-                
+
                 if (coreNodes.Count > 0 && nodeTypesByCategory.Count > 1)
-                {
                     ImGui.Separator();
-                }
             }
-            
-            // 显示其他分类的节点
+
             foreach (var category in nodeTypesByCategory.Keys)
             {
                 if (category == "Core") continue;
-                
                 var nodeTypes = nodeTypesByCategory[category];
                 if (nodeTypes.Count == 0) continue;
-                
-                // 如果有命名空间，可以按命名空间分组
+
                 if (!string.IsNullOrEmpty(category) && category != "Other")
                 {
                     if (ImGui.BeginMenu(category))
@@ -318,73 +518,57 @@ namespace Astora.Editor.UI
                         foreach (var nodeTypeInfo in nodeTypes)
                         {
                             if (ImGui.MenuItem(nodeTypeInfo.DisplayName))
-                            {
                                 CreateNodeFromType(nodeTypeInfo, parentNode, ref selectedNode);
-                            }
                         }
                         ImGui.EndMenu();
                     }
                 }
                 else
                 {
-                    // 直接显示节点
                     foreach (var nodeTypeInfo in nodeTypes)
                     {
                         if (ImGui.MenuItem(nodeTypeInfo.DisplayName))
-                        {
                             CreateNodeFromType(nodeTypeInfo, parentNode, ref selectedNode);
-                        }
                     }
                 }
             }
-            
-            // 在菜单底部添加刷新选项
+
             ImGui.Separator();
-            if (ImGui.MenuItem("刷新节点列表"))
+            if (ImGui.MenuItem("Refresh"))
             {
                 _nodeTypeRegistry.MarkDirty();
                 _nodeTypeRegistry.DiscoverNodeTypes();
             }
         }
-        
-        /// <summary>
-        /// 从类型信息创建节点
-        /// </summary>
+
         private void CreateNodeFromType(NodeTypeInfo nodeTypeInfo, Node? parentNode, ref Node? selectedNode)
         {
             if (_nodeTypeRegistry == null) return;
-            
+
             var baseName = $"New{nodeTypeInfo.DisplayName}";
             var name = GenerateUniqueNodeName(parentNode, baseName);
             var newNode = _nodeTypeRegistry.CreateNode(nodeTypeInfo.TypeName, name);
-            
+
             if (newNode != null)
             {
                 CreateNodeInternal(newNode, parentNode, ref selectedNode);
-                
-                // 特殊处理：如果是 Camera2D，设置为活动摄像机
                 if (newNode is Camera2D camera && parentNode == _sceneTree.Root)
-                {
                     _sceneTree.SetCurrentCamera(camera);
-                }
             }
         }
-        
-        /// <summary>
-        /// 创建节点的内部逻辑
-        /// </summary>
+
         private void CreateNodeInternal(Node newNode, Node? parentNode, ref Node? selectedNode)
         {
             if (parentNode != null)
             {
                 parentNode.AddChild(newNode);
-                _expandedNodes.Add(parentNode); // 自动展开父节点以显示新子节点
+                _expandedNodes.Add(parentNode);
             }
             else
             {
                 _sceneTree.ChangeScene(newNode);
             }
-            selectedNode = newNode; // 自动选中新节点
+            selectedNode = newNode;
         }
     }
 }

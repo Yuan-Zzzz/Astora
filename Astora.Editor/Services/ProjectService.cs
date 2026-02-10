@@ -1,18 +1,25 @@
 using Astora.Core.Utils;
 using Astora.Editor.Project;
+using Astora.Editor.Core;
 using Astora.Core;
 
 namespace Astora.Editor.Services;
 
 /// <summary>
-/// 项目服务 - 封装项目相关功能
+/// 项目服务 - 封装项目相关功能（支持异步加载）
 /// </summary>
 public class ProjectService
 {
     private readonly ProjectManager _projectManager;
     private readonly SceneManager _sceneManager;
     private readonly NodeTypeRegistry _nodeTypeRegistry;
-    
+
+    // 异步加载状态
+    private Task? _loadTask;
+    private volatile bool _loadCompleted;
+    private Action? _pendingMainThreadWork;
+    private readonly object _lock = new();
+
     public ProjectService()
     {
         _projectManager = new ProjectManager();
@@ -20,24 +27,140 @@ public class ProjectService
         _nodeTypeRegistry = new NodeTypeRegistry();
         _nodeTypeRegistry.DiscoverNodeTypes();
     }
-    
-    /// <summary>
-    /// 项目管理器
-    /// </summary>
+
     public ProjectManager ProjectManager => _projectManager;
-    
-    /// <summary>
-    /// 场景管理器
-    /// </summary>
     public SceneManager SceneManager => _sceneManager;
-    
-    /// <summary>
-    /// 节点类型注册表
-    /// </summary>
     public NodeTypeRegistry NodeTypeRegistry => _nodeTypeRegistry;
-    
+
     /// <summary>
-    /// 加载项目
+    /// 异步加载项目（不阻塞主线程）
+    /// </summary>
+    public void LoadProjectAsync(string csprojPath, EditorState state)
+    {
+        if (state.IsLoadingProject)
+            return;
+
+        state.LoadState = ProjectLoadState.Loading;
+        state.LoadMessage = "Loading project file...";
+        state.LoadProgress = 0f;
+        state.LoadError = null;
+
+        _loadCompleted = false;
+
+        _loadTask = Task.Run(() =>
+        {
+            try
+            {
+                // 阶段 1：加载项目文件（快速）
+                state.LoadMessage = "Loading project file...";
+                state.LoadProgress = 0.1f;
+
+                var projectInfo = _projectManager.LoadProject(csprojPath);
+
+                // 阶段 2：设置 Content 路径
+                state.LoadMessage = "Configuring content directory...";
+                state.LoadProgress = 0.2f;
+
+                var contentRoot = projectInfo.GameConfig?.ContentRootDirectory ?? "Content";
+                var projectContentDir = Path.Combine(projectInfo.ProjectRoot, contentRoot);
+
+                // Content 路径设置需要在主线程执行（MonoGame 线程安全问题）
+                // 这里先记录下来
+                string? contentDir = null;
+                if (Directory.Exists(projectContentDir))
+                    contentDir = projectContentDir;
+
+                // 阶段 3：初始化和扫描场景
+                state.LoadMessage = "Scanning scenes...";
+                state.LoadProgress = 0.3f;
+                state.LoadState = ProjectLoadState.Loading;
+
+                _sceneManager.Initialize();
+                _sceneManager.ScanScenes();
+
+                // 阶段 4：编译项目
+                state.LoadMessage = "Compiling project...";
+                state.LoadProgress = 0.5f;
+                state.LoadState = ProjectLoadState.Compiling;
+
+                var compileResult = _projectManager.CompileProject();
+
+                if (compileResult.Success)
+                {
+                    // 阶段 5：加载程序集
+                    state.LoadMessage = "Loading assembly...";
+                    state.LoadProgress = 0.7f;
+                    state.LoadState = ProjectLoadState.LoadingAssembly;
+
+                    _projectManager.LoadProjectAssembly();
+                    var loadedAssembly = _projectManager.GetLoadedAssembly();
+
+                    // 阶段 6：发现节点类型
+                    state.LoadMessage = "Discovering node types...";
+                    state.LoadProgress = 0.85f;
+                    state.LoadState = ProjectLoadState.DiscoveringNodes;
+
+                    _nodeTypeRegistry.SetPriorityAssembly(loadedAssembly);
+                    YamlSceneSerializer.SetPriorityAssembly(loadedAssembly);
+                    _nodeTypeRegistry.MarkDirty();
+                    _nodeTypeRegistry.DiscoverNodeTypes();
+                }
+                else
+                {
+                    System.Console.WriteLine($"编译警告: {compileResult.ErrorMessage}");
+                }
+
+                // 把需要在主线程执行的工作排队
+                lock (_lock)
+                {
+                    _pendingMainThreadWork = () =>
+                    {
+                        if (contentDir != null && Engine.Content != null)
+                        {
+                            Engine.Content.RootDirectory = contentDir;
+                            System.Console.WriteLine($"[ProjectService] Content.RootDirectory => {contentDir}");
+                        }
+                    };
+                }
+
+                state.LoadMessage = "Ready";
+                state.LoadProgress = 1.0f;
+                state.LoadState = ProjectLoadState.Ready;
+                _loadCompleted = true;
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"加载项目失败: {ex.Message}");
+                state.LoadState = ProjectLoadState.Error;
+                state.LoadError = ex.Message;
+                state.LoadMessage = $"Error: {ex.Message}";
+            }
+        });
+    }
+
+    /// <summary>
+    /// 在主线程中调用，完成需要在主线程执行的工作
+    /// </summary>
+    public bool TryFinishLoadOnMainThread(EditorState state)
+    {
+        if (!_loadCompleted)
+            return false;
+
+        lock (_lock)
+        {
+            _pendingMainThreadWork?.Invoke();
+            _pendingMainThreadWork = null;
+        }
+
+        _loadCompleted = false;
+        _loadTask = null;
+
+        state.IsProjectLoaded = true;
+        return true;
+    }
+
+    /// <summary>
+    /// 同步加载项目（回退方案）
     /// </summary>
     public bool LoadProject(string csprojPath)
     {
@@ -45,8 +168,6 @@ public class ProjectService
         {
             var projectInfo = _projectManager.LoadProject(csprojPath);
 
-            // 关键：让引擎资源根目录指向“项目的 Content 目录”
-            // 否则场景反序列化时会把相对路径错误地解析到 Editor 自己的 Content 下。
             var contentRoot = projectInfo.GameConfig?.ContentRootDirectory ?? "Content";
             var projectContentDir = Path.Combine(projectInfo.ProjectRoot, contentRoot);
             if (Directory.Exists(projectContentDir) && Engine.Content != null)
@@ -54,31 +175,17 @@ public class ProjectService
                 Engine.Content.RootDirectory = projectContentDir;
                 System.Console.WriteLine($"[ProjectService] Content.RootDirectory => {Engine.Content.RootDirectory}");
             }
-            else
-            {
-                System.Console.WriteLine($"[ProjectService] 警告：项目 Content 目录不存在: {projectContentDir}");
-            }
-            
-            // 初始化场景管理器
+
             _sceneManager.Initialize();
-            
-            // 扫描场景
             _sceneManager.ScanScenes();
-            
-            // 编译并加载程序集
+
             var compileResult = _projectManager.CompileProject();
             if (compileResult.Success)
             {
                 _projectManager.LoadProjectAssembly();
-                
-                // 获取已加载的程序集
                 var loadedAssembly = _projectManager.GetLoadedAssembly();
-                
-                // 设置优先程序集，确保优先使用项目程序集中的类型
                 _nodeTypeRegistry.SetPriorityAssembly(loadedAssembly);
                 YamlSceneSerializer.SetPriorityAssembly(loadedAssembly);
-                
-                // 重新发现节点类型（包括项目中的自定义节点）
                 _nodeTypeRegistry.MarkDirty();
                 _nodeTypeRegistry.DiscoverNodeTypes();
             }
@@ -86,7 +193,7 @@ public class ProjectService
             {
                 System.Console.WriteLine($"编译警告: {compileResult.ErrorMessage}");
             }
-            
+
             return true;
         }
         catch (Exception ex)
@@ -95,10 +202,7 @@ public class ProjectService
             return false;
         }
     }
-    
-    /// <summary>
-    /// 关闭当前项目
-    /// </summary>
+
     public void CloseProject()
     {
         _projectManager.ClearProject();
@@ -107,14 +211,10 @@ public class ProjectService
         _nodeTypeRegistry.MarkDirty();
         _nodeTypeRegistry.DiscoverNodeTypes();
 
-        // 恢复默认 Content 根目录（Editor 自身）
         if (Engine.Content != null)
             Engine.Content.RootDirectory = "Content";
     }
-    
-    /// <summary>
-    /// 重新编译项目
-    /// </summary>
+
     public bool RebuildProject()
     {
         if (!_projectManager.HasProject)
@@ -122,37 +222,28 @@ public class ProjectService
             System.Console.WriteLine("没有加载的项目");
             return false;
         }
-        
+
         System.Console.WriteLine("开始重新加载程序集...");
-        
-        // 先清除优先程序集，确保不会扫描到旧程序集的类型
+
         _nodeTypeRegistry.SetPriorityAssembly(null);
         YamlSceneSerializer.SetPriorityAssembly(null);
-        
+
         var result = _projectManager.ReloadAssembly();
-        
+
         if (result)
         {
-            // 获取新加载的程序集
             var loadedAssembly = _projectManager.GetLoadedAssembly();
-            
-            // 设置优先程序集，确保优先使用新程序集中的类型
             _nodeTypeRegistry.SetPriorityAssembly(loadedAssembly);
-            
-            // 重新发现节点类型（只扫描 Core 和项目程序集，忽略其他程序集）
             _nodeTypeRegistry.MarkDirty();
             _nodeTypeRegistry.DiscoverNodeTypes();
-            
-            // 更新序列化器的优先程序集，确保使用最新的类型
             YamlSceneSerializer.SetPriorityAssembly(loadedAssembly);
-            
             System.Console.WriteLine("程序集重新加载成功");
         }
         else
         {
-            System.Console.WriteLine("程序集重新加载失败，请查看上方的错误信息");
+            System.Console.WriteLine("程序集重新加载失败");
         }
-        
+
         return result;
     }
 }

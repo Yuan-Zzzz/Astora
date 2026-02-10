@@ -10,6 +10,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace Astora.Editor;
 
@@ -63,18 +64,27 @@ public sealed class Editor : Game
 
         _imGuiRenderer = new ImGuiRenderer(this);
 
-        // 字体：优先尝试加载 Fonts/msyh.ttc（微软雅黑）用于中文。
+        // 1) 检测 DPI 缩放
+        float uiScale = DetectUiScale();
+
+        // 2) 加载字体（按缩放后的字号）
         var io = ImGui.GetIO();
         var fontPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Fonts", "msyh.ttc");
+        float fontSize = _config.BaseFontSize * uiScale;
+
         if (File.Exists(fontPath))
         {
-            io.Fonts.AddFontFromFileTTF(fontPath, 18.0f, null, io.Fonts.GetGlyphRangesChineseFull());
+            io.Fonts.AddFontFromFileTTF(fontPath, fontSize, null, io.Fonts.GetGlyphRangesChineseFull());
         }
         else
         {
             System.Console.WriteLine($"警告：未找到字体文件 {fontPath}，将使用默认字体");
         }
         _imGuiRenderer.RebuildFontAtlas();
+
+        // 3) 应用主题 + 缩放
+        ImGuiStyleManager.ApplyModernDarkTheme();
+        ImGuiStyleManager.ApplyScale(uiScale);
 
         _ui = new EditorUi(_ctx, _imGuiRenderer);
     }
@@ -88,6 +98,10 @@ public sealed class Editor : Game
 
     protected override void Update(GameTime gameTime)
     {
+        // 轮询异步项目加载是否完成
+        if (_actions is EditorActions editorActions)
+            editorActions.PollAsyncLoad();
+
         if (_editorService.State.IsPlaying)
             Engine.Update(gameTime);
 
@@ -118,4 +132,50 @@ public sealed class Editor : Game
         _graphics.PreferredBackBufferHeight = Window.ClientBounds.Height;
         _graphics.ApplyChanges();
     }
+
+    /// <summary>
+    /// 检测 UI 缩放因子：如果用户手动设置了 UiScale > 0 则使用用户值，
+    /// 否则尝试通过 SDL 获取显示器 DPI 自动计算。
+    /// </summary>
+    private float DetectUiScale()
+    {
+        // 手动覆盖
+        if (_config.UiScale > 0f)
+            return _config.UiScale;
+
+        try
+        {
+            // MonoGame DesktopGL 使用 SDL2 后端，尝试通过 P/Invoke 获取 DPI
+            float dpi = GetDisplayDpi();
+            float scale = dpi / 96f;
+
+            // 限制在合理范围内
+            scale = Math.Clamp(scale, 0.75f, 3.0f);
+
+            System.Console.WriteLine($"[DPI] 检测到显示器 DPI: {dpi:F0}, 缩放因子: {scale:F2}");
+            return scale;
+        }
+        catch (Exception ex)
+        {
+            System.Console.WriteLine($"[DPI] 无法检测 DPI ({ex.Message})，使用默认缩放 1.0");
+            return 1.0f;
+        }
+    }
+
+    /// <summary>
+    /// 通过 SDL2 获取主显示器 DPI
+    /// </summary>
+    private static float GetDisplayDpi()
+    {
+        // MonoGame DesktopGL 依赖 SDL2
+        // SDL_GetDisplayDPI(int displayIndex, float* ddpi, float* hdpi, float* vdpi)
+        int result = SDL_GetDisplayDPI(0, out float ddpi, out _, out _);
+        if (result == 0 && ddpi > 0)
+            return ddpi;
+
+        return 96f; // 默认 96 DPI
+    }
+
+    [DllImport("SDL2", CallingConvention = CallingConvention.Cdecl, EntryPoint = "SDL_GetDisplayDPI")]
+    private static extern int SDL_GetDisplayDPI(int displayIndex, out float ddpi, out float hdpi, out float vdpi);
 }

@@ -17,7 +17,6 @@ public sealed class ProjectModule : IEditorModule
     private readonly ProjectPanel _projectPanel;
     private readonly AssetPanel _assetPanel;
 
-    // 复用 CoreModule 的对话框/菜单触发方式：这里直接弹出“Open Project”由菜单内部处理。
     public ProjectModule(IEditorContext ctx, MenuBar menuBar, CreateProjectDialog createProjectDialog)
     {
         _ctx = ctx;
@@ -33,6 +32,7 @@ public sealed class ProjectModule : IEditorModule
 
     private void Render()
     {
+        // 项目未加载或正在加载：显示启动器
         if (!_ctx.EditorService.State.IsProjectLoaded)
         {
             _launcher.Render();
@@ -47,4 +47,3 @@ public sealed class ProjectModule : IEditorModule
         _assetPanel.Render();
     }
 }
-

@@ -146,6 +146,17 @@ namespace Astora.Editor.UI
                 // Ctrl+Shift+Z（常见 redo）
                 if (io.KeyCtrl && io.KeyShift && ImGui.IsKeyPressed(ImGuiKey.Z))
                     _ctx.Commands.TryRedo();
+
+                // Ctrl+S 保存场景
+                if (io.KeyCtrl && !io.KeyShift && ImGui.IsKeyPressed(ImGuiKey.S))
+                    _ctx.Actions.SaveScene();
+
+                // Ctrl+N 新建场景
+                if (io.KeyCtrl && !io.KeyShift && ImGui.IsKeyPressed(ImGuiKey.N))
+                {
+                    _newSceneNameInput = "NewScene";
+                    ImGui.OpenPopup("NewSceneDialog");
+                }
             }
 
             // 打开项目对话框

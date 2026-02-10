@@ -33,19 +33,28 @@ namespace Astora.Editor.UI
             
             if (node == null)
             {
-                ImGui.Text("No node selected");
+                ImGui.Spacing();
+                ImGui.Spacing();
+                var msg = "No node selected";
+                var msgSize = ImGui.CalcTextSize(msg);
+                float msgIndent = (ImGui.GetContentRegionAvail().X - msgSize.X) * 0.5f;
+                if (msgIndent > 0) ImGui.Indent(msgIndent);
+                ImGui.TextColored(ImGuiStyleManager.GetTextDisabledColor(), msg);
+                if (msgIndent > 0) ImGui.Unindent(msgIndent);
                 ImGui.End();
                 return;
             }
             
-            // Display node type
-            ImGui.Text("Type:");
+            // 节点类型标题（带颜色标记）
+            var typeName = node.GetType().Name;
+            ImGui.TextColored(ImGuiStyleManager.GetAccentColor(), typeName);
             ImGui.SameLine();
-            ImGui.Text(node.GetType().Name);
+            ImGui.TextColored(ImGuiStyleManager.GetTextDisabledColor(), $"({node.Name})");
             
             ImGui.Separator();
+            ImGui.Spacing();
             
-            // Automatically render all serializable fields using reflection
+            // 自动渲染所有可序列化字段
             RenderSerializableFields(node);
             
             ImGui.End();
@@ -382,15 +391,18 @@ namespace Astora.Editor.UI
                     }
                 }
                 
-                // 如果有可显示的字段，显示分组标题和字段
+                // 如果有可显示的字段，使用 CollapsingHeader 分组
                 if (displayableFields.Count > 0)
                 {
-                    ImGui.Separator();
-                    ImGui.Text(declaringType.Name);
-                    
-                    foreach (var field in displayableFields)
+                    ImGui.Spacing();
+                    if (ImGui.CollapsingHeader(declaringType.Name, ImGuiTreeNodeFlags.DefaultOpen))
                     {
-                        RenderField(node, field);
+                        ImGui.Indent(4);
+                        foreach (var field in displayableFields)
+                        {
+                            RenderField(node, field);
+                        }
+                        ImGui.Unindent(4);
                     }
                 }
             }
@@ -718,7 +730,7 @@ namespace Astora.Editor.UI
                     color.B / 255f,
                     color.A / 255f
                 );
-                if (ImGui.ColorEdit4(fieldName, ref colorVec))
+                if (ImGui.ColorEdit4(fieldName, ref colorVec, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreviewHalf))
                 {
                     field.SetValue(node, new Color(
                         (byte)(colorVec.X * 255),

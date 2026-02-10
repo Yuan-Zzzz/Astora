@@ -21,7 +21,17 @@ public class EditorConfig
     public bool AllowWindowResizing { get; set; } = true;
     
     /// <summary>
-    /// 背景颜色
+    /// 背景颜色（Godot 黑灰主题背景）
     /// </summary>
-    public Microsoft.Xna.Framework.Color BackgroundColor { get; set; } = new Microsoft.Xna.Framework.Color(46, 46, 46);
+    public Microsoft.Xna.Framework.Color BackgroundColor { get; set; } = new Microsoft.Xna.Framework.Color(35, 35, 35);
+
+    /// <summary>
+    /// UI 缩放因子（0 = 自动检测 DPI，> 0 = 手动覆盖）
+    /// </summary>
+    public float UiScale { get; set; } = 0f;
+
+    /// <summary>
+    /// 基础字号（会乘以 UiScale）
+    /// </summary>
+    public float BaseFontSize { get; set; } = 18.0f;
 }

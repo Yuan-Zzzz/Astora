@@ -6,6 +6,14 @@ children:
 - type: Camera2D
   name: MainCamera
   properties:
+    _name: MainCamera
+    _position:
+      x: 0
+      y: 0
+    _rotation: 0
+    _scale:
+      x: 1
+      y: 1
     _zoom: 1
     _origin:
       x: 960
@@ -14,6 +22,14 @@ children:
 - type: CPUParticles2D
   name: ParticleEffects
   properties:
+    _name: ParticleEffects
+    _position:
+      x: 0
+      y: 0
+    _rotation: 0
+    _scale:
+      x: 1
+      y: 1
     _emissionBoxExtents:
       x: 10
       y: 10
@@ -50,17 +66,25 @@ children:
 - type: Sprite
   name: SampleSprite
   properties:
+    _name: SampleSprite
+    _position:
+      x: 314
+      y: 360
+    _rotation: 1.012291
+    _scale:
+      x: 1
+      y: 1
     _texturePath: Test.png
     _origin:
       x: 70
       y: 70
     _modulate:
       r: 255
-      g: 255
-      b: 255
+      g: 163
+      b: 163
       a: 255
     _offset:
-      x: 0
+      x: -270
       y: 0
     _pixelDensity: 1
   children: 

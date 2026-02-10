@@ -218,28 +218,69 @@ public class SceneViewPanel
     }
     
     /// <summary>
-    /// 渲染工具栏
+    /// 渲染 toggle 风格的工具按钮
+    /// </summary>
+    private bool ToolToggleButton(string label, bool isActive, Vector2 size)
+    {
+        if (isActive)
+        {
+            ImGui.PushStyleColor(ImGuiCol.Button, ImGuiStyleManager.GetAccentDarkColor());
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ImGuiStyleManager.GetAccentColor());
+        }
+
+        bool clicked = ImGui.Button(label, size);
+
+        if (isActive)
+            ImGui.PopStyleColor(2);
+
+        return clicked;
+    }
+
+    /// <summary>
+    /// 渲染工具栏 - Godot 风格 toggle 按钮 + 覆盖层开关
     /// </summary>
     private void RenderToolbar()
     {
-        if (ImGui.Button("Select"))
-        {
+        var btnSize = new Vector2(60, 0);
+
+        // === 工具选择组 ===
+        if (ToolToggleButton("Select", _inputHandler.CurrentTool == ToolMode.Select, btnSize))
             _inputHandler.CurrentTool = ToolMode.Select;
-        }
-        ImGui.SameLine();
-        if (ImGui.Button("Move"))
-        {
+
+        ImGui.SameLine(0, 2);
+        if (ToolToggleButton("Move", _inputHandler.CurrentTool == ToolMode.Move, btnSize))
             _inputHandler.CurrentTool = ToolMode.Move;
-        }
-        ImGui.SameLine();
-        if (ImGui.Button("Rotate"))
-        {
+
+        ImGui.SameLine(0, 2);
+        if (ToolToggleButton("Rotate", _inputHandler.CurrentTool == ToolMode.Rotate, btnSize))
             _inputHandler.CurrentTool = ToolMode.Rotate;
+
+        // === 分隔 ===
+        ImGui.SameLine(0, 12);
+        ImGui.TextColored(ImGuiStyleManager.GetTextDisabledColor(), "|");
+        ImGui.SameLine(0, 12);
+
+        // === 覆盖层开关（Grid / Axis） ===
+        var gridOverlay = _overlays.OfType<GridOverlay>().FirstOrDefault();
+        var axisOverlay = _overlays.OfType<AxisOverlay>().FirstOrDefault();
+
+        if (gridOverlay != null)
+        {
+            if (ToolToggleButton("Grid", gridOverlay.Enabled, new Vector2(44, 0)))
+                gridOverlay.Enabled = !gridOverlay.Enabled;
+            ImGui.SameLine(0, 2);
         }
-        
-        // 显示当前工具
+
+        if (axisOverlay != null)
+        {
+            if (ToolToggleButton("Axis", axisOverlay.Enabled, new Vector2(44, 0)))
+                axisOverlay.Enabled = !axisOverlay.Enabled;
+        }
+
+        // === 右侧信息 ===
         ImGui.SameLine();
-        ImGui.Text($"Tool: {_inputHandler.CurrentTool}");
+        var zoomText = $"Zoom: {_camera.Zoom:F1}x";
+        ImGui.TextColored(ImGuiStyleManager.GetTextDisabledColor(), zoomText);
     }
     
     /// <summary>

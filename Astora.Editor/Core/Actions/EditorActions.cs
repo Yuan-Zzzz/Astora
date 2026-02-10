@@ -19,10 +19,9 @@ public sealed class EditorActions : IEditorActions
 
     public bool LoadProject(string csprojPath)
     {
-        var ok = _projectService.LoadProject(csprojPath);
-        if (ok)
-            _editorService.State.IsProjectLoaded = true;
-        return ok;
+        // 使用异步加载
+        _projectService.LoadProjectAsync(csprojPath, _editorService.State);
+        return true; // 立即返回，加载在后台进行
     }
 
     public void CloseProject()
@@ -51,6 +50,21 @@ public sealed class EditorActions : IEditorActions
         return ok;
     }
 
+    /// <summary>
+    /// 在主线程 Update 中检查异步加载是否完成
+    /// </summary>
+    public void PollAsyncLoad()
+    {
+        if (_editorService.State.IsLoadingProject || _editorService.State.LoadState == ProjectLoadState.Ready)
+        {
+            if (_projectService.TryFinishLoadOnMainThread(_editorService.State))
+            {
+                _editorService.State.LoadState = ProjectLoadState.Idle;
+                _editorService.State.NotificationManager.ShowSuccess("Project loaded successfully");
+            }
+        }
+    }
+
     public void LoadScene(string path) => _editorService.LoadScene(path);
     public void SaveScene(string? path = null) => _editorService.SaveScene(path);
     public void CreateNewScene(string sceneName) => _editorService.CreateNewScene(sceneName);
@@ -60,4 +74,3 @@ public sealed class EditorActions : IEditorActions
     public Node? GetSelectedNode() => _editorService.GetSelectedNode();
     public void SetSelectedNode(Node? node) => _editorService.SetSelectedNode(node);
 }
-
