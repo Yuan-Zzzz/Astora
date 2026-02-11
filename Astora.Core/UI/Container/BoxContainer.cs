@@ -1,4 +1,5 @@
 using System.Linq;
+using Astora.Core.Attributes;
 using Astora.Core.Nodes;
 using Astora.Core.UI.Layout;
 using Microsoft.Xna.Framework;
@@ -10,8 +11,8 @@ namespace Astora.Core.UI.Container;
 /// </summary>
 public class BoxContainer : Control
 {
-    private bool _vertical = true;
-    private int _spacing = 4;
+    [SerializeField] private bool _vertical = true;
+    [SerializeField] private int _spacing = 4;
 
     /// <summary>
     /// True for vertical (column), false for horizontal (row).

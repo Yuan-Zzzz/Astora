@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Astora.Core;
+using Astora.Core.Attributes;
 using Astora.Core.Inputs;
 using Astora.Core.Nodes;
 using Astora.Core.Rendering.RenderPipeline;
@@ -22,9 +23,9 @@ public class Control : Node, ILayoutable
 {
     #region Geometry and layout
 
-    private Vector2 _size;
-    private Vector2 _position;
-    private Vector2 _pivotOffset = new Vector2(0.5f, 0.5f);
+    [SerializeField] private Vector2 _size;
+    [SerializeField] private Vector2 _position;
+    [SerializeField] private Vector2 _pivotOffset = new Vector2(0.5f, 0.5f);
 
     /// <summary>
     /// Desired size from Pass 1 (ComputeDesiredSize). Read-only; set by layout or self in ComputeDesiredSize.
@@ -73,29 +74,33 @@ public class Control : Node, ILayoutable
         set => _pivotOffset = value;
     }
 
+    [SerializeField] private bool _clipContent;
     /// <summary>
     /// When true, clip children to this control's FinalRect when drawing.
     /// </summary>
-    public bool ClipContent { get; set; }
+    public bool ClipContent { get => _clipContent; set => _clipContent = value; }
 
+    [SerializeField] private Vector2 _minSize;
     /// <summary>
     /// Minimum size constraint for layout. Containers (e.g. BoxContainer) use this as lower bound when allocating space.
     /// </summary>
-    public Vector2 MinSize { get; set; }
+    public Vector2 MinSize { get => _minSize; set => _minSize = value; }
 
+    [SerializeField] private float _stretchRatio;
     /// <summary>
     /// Stretch ratio in container layout. When parent has extra space, children with StretchRatio &gt; 0 share it proportionally.
     /// </summary>
-    public float StretchRatio { get; set; }
+    public float StretchRatio { get => _stretchRatio; set => _stretchRatio = value; }
 
+    [SerializeField] private bool _useAnchorLayout;
     /// <summary>
     /// When true, this control's FinalRect is computed from anchor and offset relative to parent (Godot-style).
     /// Used by UI root when arranging direct children.
     /// </summary>
-    public bool UseAnchorLayout { get; set; }
+    public bool UseAnchorLayout { get => _useAnchorLayout; set => _useAnchorLayout = value; }
 
-    private float _anchorLeft = 0f, _anchorTop = 0f, _anchorRight = 0f, _anchorBottom = 0f;
-    private int _offsetLeft, _offsetTop, _offsetRight, _offsetBottom;
+    [SerializeField] private float _anchorLeft = 0f, _anchorTop = 0f, _anchorRight = 0f, _anchorBottom = 0f;
+    [SerializeField] private int _offsetLeft, _offsetTop, _offsetRight, _offsetBottom;
 
     public float AnchorLeft { get => _anchorLeft; set { _anchorLeft = value; InvalidateLayout(); } }
     public float AnchorTop { get => _anchorTop; set { _anchorTop = value; InvalidateLayout(); } }
@@ -214,9 +219,9 @@ public class Control : Node, ILayoutable
 
     #region Visibility and interaction
 
-    private bool _visible = true;
-    private MouseFilter _mouseFilter = MouseFilter.Pass;
-    private FocusMode _focusMode = FocusMode.None;
+    [SerializeField] private bool _visible = true;
+    [SerializeField] private MouseFilter _mouseFilter = MouseFilter.Pass;
+    [SerializeField] private FocusMode _focusMode = FocusMode.None;
 
     /// <summary>
     /// When false, control is not laid out, drawn, or hit-tested.
@@ -268,8 +273,8 @@ public class Control : Node, ILayoutable
 
     #region Visual
 
-    private Color _modulate = Color.White;
-    private int _zIndex;
+    [SerializeField] private Color _modulate = Color.White;
+    [SerializeField] private int _zIndex;
 
     /// <summary>
     /// Multiply color for rendering. Default White.

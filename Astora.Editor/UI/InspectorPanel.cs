@@ -347,7 +347,9 @@ namespace Astora.Editor.UI
                 "_defaultWhiteTexture",
                 "_texture",          // Sprite runtime field
                 "_effect",           // Sprite runtime field
-                "_blendState"        // Sprite runtime field
+                "_blendState",       // Sprite runtime field
+                "_isLayoutDirty",    // Control internal state
+                "_isVisualDirty"     // Control internal state
             };
             
             // 收集所有类型的字段（从基类到派生类）
@@ -413,13 +415,21 @@ namespace Astora.Editor.UI
         /// </summary>
         private bool IsDisplayableType(Type fieldType)
         {
+            // Unwrap nullable and check underlying type
+            var underlying = Nullable.GetUnderlyingType(fieldType);
+            if (underlying != null)
+                fieldType = underlying;
+
             if (fieldType == typeof(Microsoft.Xna.Framework.Vector2))
                 return true;
             
             if (fieldType == typeof(Color))
                 return true;
                 
-            if (fieldType == typeof(Rectangle) || fieldType == typeof(Rectangle?))
+            if (fieldType == typeof(Rectangle))
+                return true;
+
+            if (fieldType.IsEnum)
                 return true;
             
             // Don't display runtime objects
@@ -674,6 +684,53 @@ namespace Astora.Editor.UI
                     RenderTexturePathField(node, field, fieldName);
                     return;
                 }
+            }
+
+            // Enum: render as Combo
+            if (fieldType.IsEnum)
+            {
+                var names = Enum.GetNames(fieldType);
+                var values = Enum.GetValues(fieldType);
+                var currentIndex = 0;
+                if (value != null)
+                {
+                    var idx = Array.IndexOf(values, value);
+                    if (idx >= 0) currentIndex = idx;
+                }
+                currentIndex = Math.Clamp(currentIndex, 0, Math.Max(0, names.Length - 1));
+                if (ImGui.Combo(fieldName, ref currentIndex, names, names.Length))
+                {
+                    var newValue = Enum.ToObject(fieldType, Convert.ToInt32(values.GetValue(currentIndex)));
+                    field.SetValue(node, newValue);
+                }
+                return;
+            }
+
+            // Nullable Color: None or ColorEdit4
+            if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(Nullable<>) && Nullable.GetUnderlyingType(fieldType) == typeof(Color))
+            {
+                var nullableColor = (Color?)value;
+                if (nullableColor.HasValue)
+                {
+                    var color = nullableColor.Value;
+                    var colorVec = new Vector4(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);
+                    if (ImGui.ColorEdit4(fieldName, ref colorVec, ImGuiColorEditFlags.AlphaBar | ImGuiColorEditFlags.AlphaPreviewHalf))
+                    {
+                        field.SetValue(node, (Color?)new Color(
+                            (byte)(colorVec.X * 255), (byte)(colorVec.Y * 255),
+                            (byte)(colorVec.Z * 255), (byte)(colorVec.W * 255)));
+                    }
+                    ImGui.SameLine();
+                    if (ImGui.Button($"Clear##{field.Name}"))
+                        field.SetValue(node, (Color?)null);
+                }
+                else
+                {
+                    ImGui.TextColored(ImGuiStyleManager.GetTextDisabledColor(), $"{fieldName}: None");
+                    if (ImGui.Button($"Set##{field.Name}"))
+                        field.SetValue(node, (Color?)Color.White);
+                }
+                return;
             }
             
             // 根据类型渲染不同的控件

@@ -1,3 +1,4 @@
+using Astora.Core.Attributes;
 using Astora.Core.Nodes;
 using Astora.Core.Rendering.RenderPipeline;
 using Astora.Core.Resources;
@@ -14,9 +15,9 @@ namespace Astora.Core.UI;
 /// </summary>
 public class Label : Control
 {
-    private string _text = "";
+    [SerializeField] private string _text = "";
     private FontResource? _fontResource;
-    private float _fontSize = 16f;
+    [SerializeField] private float _fontSize = 16f;
 
     public string Text
     {
@@ -56,8 +57,8 @@ public class Label : Control
         }
     }
 
-    private Vector2 _shadowOffset;
-    private Color? _shadowColor;
+    [SerializeField] private Vector2 _shadowOffset;
+    [SerializeField] private Color? _shadowColor;
 
     /// <summary>Offset for shadow. Used when ShadowColor is set.</summary>
     public Vector2 ShadowOffset
@@ -73,10 +74,10 @@ public class Label : Control
         set => _shadowColor = value;
     }
 
-    private Color? _outlineColor;
-    private int _outlineThickness;
+    [SerializeField] private Color? _outlineColor;
+    [SerializeField] private int _outlineThickness;
 
-    private bool _richText;
+    [SerializeField] private bool _richText;
 
     /// <summary>When true, Text is interpreted as FSS rich text commands (/c[color], /n, etc.).</summary>
     public bool RichText
@@ -90,7 +91,7 @@ public class Label : Control
         }
     }
 
-    private bool _useBBCode;
+    [SerializeField] private bool _useBBCode;
 
     /// <summary>When true and RichText is true, Text is parsed as BBCode ([color=], [b], etc.) and converted to FSS commands.</summary>
     public bool UseBBCode
@@ -104,7 +105,7 @@ public class Label : Control
         }
     }
 
-    private HorizontalAlignment _horizontalAlignment = HorizontalAlignment.Left;
+    [SerializeField] private HorizontalAlignment _horizontalAlignment = HorizontalAlignment.Left;
 
     /// <summary>Horizontal alignment of text within the label's bounds.</summary>
     public HorizontalAlignment HorizontalAlignment
@@ -113,8 +114,8 @@ public class Label : Control
         set => _horizontalAlignment = value;
     }
 
-    private bool _autoEllipsis;
-    private string _ellipsisString = "…";
+    [SerializeField] private bool _autoEllipsis;
+    [SerializeField] private string _ellipsisString = "…";
 
     /// <summary>When true and RichText and Width/Height are set, overflow is abbreviated with EllipsisString.</summary>
     public bool AutoEllipsis

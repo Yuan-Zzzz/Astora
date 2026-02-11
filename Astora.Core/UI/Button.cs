@@ -1,3 +1,4 @@
+using Astora.Core.Attributes;
 using Astora.Core.Nodes;
 using Astora.Core.Rendering.RenderPipeline;
 using Astora.Core.UI.Events;
@@ -13,7 +14,7 @@ namespace Astora.Core.UI;
 public class Button : Control
 {
     private bool _pressed;
-    private bool _disabled;
+    [SerializeField] private bool _disabled;
 
     /// <summary>When true, the button does not respond to clicks and can be drawn with a disabled style.</summary>
     public bool Disabled

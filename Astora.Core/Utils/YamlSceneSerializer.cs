@@ -146,7 +146,10 @@ public class SerializedNode
                 return null;
 
             var fieldType = fieldInfo.FieldType;
-            
+            // Unwrap nullable for serialization (value is already the non-null inner value when we get here)
+            if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                fieldType = Nullable.GetUnderlyingType(fieldType)!;
+
             // Check the ContentRelativePathAttribute to translate the full path to relative path by Content.RootDirectory
             if (fieldType == typeof(string) && fieldInfo != null && fieldInfo.IsDefined(typeof(ContentRelativePathAttribute), false) && value is string pathValue)
             {
@@ -209,6 +212,9 @@ public class SerializedNode
                 return null;
             }
 
+            if (fieldType.IsEnum)
+                return value.ToString();
+
             if (fieldType.IsPrimitive ||
                 fieldType == typeof(string) ||
                 fieldType == typeof(float) ||
@@ -237,6 +243,13 @@ public class SerializedNode
                 {
                     if (!serialized.Properties.TryGetValue(field.Name, out var value))
                         continue;
+
+                    // Explicitly set nullable fields to null when serialized value is null
+                    if (value == null && field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                    {
+                        field.SetValue(node, null);
+                        continue;
+                    }
 
                     try
                     {
@@ -303,6 +316,10 @@ public class SerializedNode
         private object? DeserializeField(FieldInfo fieldInfo, object value)
         {
             var fieldType = fieldInfo.FieldType;
+            // Unwrap nullable so we deserialize to the underlying type; result is then assigned to the nullable field
+            if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                fieldType = Nullable.GetUnderlyingType(fieldType)!;
+
             // Translate ContentRelativePathAttribute filed to absolute path
             if (fieldType == typeof(string) && fieldInfo.IsDefined(typeof(ContentRelativePathAttribute), false) && value is string pathValue)
             {
@@ -369,13 +386,22 @@ public class SerializedNode
                 return new Color(r, g, b, a);
             }
             
-            if ((fieldType == typeof(Rectangle) || fieldType == typeof(Rectangle?)) && value is IDictionary rectDict)
+            if (fieldType == typeof(Rectangle) && value is IDictionary rectDict)
             {
                 var x = GetDictValue<int>(rectDict, "x") ?? 0;
                 var y = GetDictValue<int>(rectDict, "y") ?? 0;
                 var width = GetDictValue<int>(rectDict, "width") ?? 0;
                 var height = GetDictValue<int>(rectDict, "height") ?? 0;
                 return new Rectangle(x, y, width, height);
+            }
+
+            // Enum: support string (name) or integer
+            if (fieldType.IsEnum)
+            {
+                if (value is string enumStr && !string.IsNullOrEmpty(enumStr))
+                    return Enum.Parse(fieldType, enumStr, true);
+                if (value is int or long)
+                    return Enum.ToObject(fieldType, value);
             }
 
             if (fieldType == typeof(Texture2D) && value is string texturePath)

@@ -1,3 +1,4 @@
+using Astora.Core.Attributes;
 using Astora.Core.Nodes;
 
 namespace Astora.Core.UI;
@@ -8,7 +9,7 @@ namespace Astora.Core.UI;
 /// </summary>
 public class CanvasLayer : Node
 {
-    private int _layer;
+    [SerializeField] private int _layer;
 
     /// <summary>
     /// Layer index for draw and hit-test order. Higher layer is drawn and hit-tested on top.

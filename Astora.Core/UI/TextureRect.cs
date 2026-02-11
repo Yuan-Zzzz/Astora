@@ -1,3 +1,4 @@
+using Astora.Core.Attributes;
 using Astora.Core.Nodes;
 using Astora.Core.Rendering.RenderPipeline;
 using Microsoft.Xna.Framework;
@@ -26,8 +27,8 @@ public enum StretchMode
 public class TextureRect : Control
 {
     private Texture2D? _texture;
-    private Rectangle? _textureRegion;
-    private StretchMode _stretchMode = StretchMode.Scale;
+    [SerializeField] private Rectangle? _textureRegion;
+    [SerializeField] private StretchMode _stretchMode = StretchMode.Scale;
 
     public Texture2D? Texture
     {

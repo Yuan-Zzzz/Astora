@@ -1,4 +1,5 @@
 using System.Linq;
+using Astora.Core.Attributes;
 using Astora.Core.Nodes;
 using Microsoft.Xna.Framework;
 
@@ -9,10 +10,10 @@ namespace Astora.Core.UI.Container;
 /// </summary>
 public class MarginContainer : Control
 {
-    private int _marginLeft;
-    private int _marginTop;
-    private int _marginRight;
-    private int _marginBottom;
+    [SerializeField] private int _marginLeft;
+    [SerializeField] private int _marginTop;
+    [SerializeField] private int _marginRight;
+    [SerializeField] private int _marginBottom;
 
     public int MarginLeft
     {
