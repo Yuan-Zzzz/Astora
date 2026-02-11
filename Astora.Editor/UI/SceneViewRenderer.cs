@@ -7,7 +7,7 @@ using Microsoft.Xna.Framework.Graphics;
 namespace Astora.Editor.UI;
 
 /// <summary>
-/// 场景视图渲染器，负责将场景渲染到 RenderTarget
+/// 场景视图渲染器，RT 为面板视口尺寸，场景用编辑器相机，UI 用 design→viewport 缩放。
 /// </summary>
 public class SceneViewRenderer
 {
@@ -87,31 +87,35 @@ public class SceneViewRenderer
     }
     
     /// <summary>
-    /// 渲染场景到 RenderTarget
-    /// 注意：此方法会设置 RenderTarget，但不会恢复，由调用者负责恢复
+    /// 渲染场景与 UI 到 RenderTarget。RT 为视口尺寸，世界用编辑器相机，UI 用 design→viewport 缩放。
     /// </summary>
-    public void Draw(SceneViewCamera camera, SpriteBatch spriteBatch)
+    public void Draw(SceneViewCamera camera, SpriteBatch spriteBatch, int designWidth, int designHeight)
     {
-        if (camera == null || spriteBatch == null)
+        if (camera == null || spriteBatch == null || !IsReady || Engine.GDM?.GraphicsDevice == null || _renderTarget == null)
             return;
-        
-        if (!IsReady)
-            return;
-        
-        if (Engine.GDM == null || Engine.GDM.GraphicsDevice == null)
-            return;
-        
-        // 设置 RenderTarget
+
+        int w = _renderTarget.Width, h = _renderTarget.Height;
+        if (designWidth <= 0 || designHeight <= 0) { designWidth = w; designHeight = h; }
+
         Engine.GDM.GraphicsDevice.SetRenderTarget(_renderTarget);
         Engine.GDM.GraphicsDevice.Clear(Color.Black);
-        
-        // 获取视图矩阵
-        Matrix viewMatrix = camera.GetViewMatrix();
-        
-        // 使用 RenderBatcher 渲染场景
-        _renderBatcher.Begin(viewMatrix, SamplerState.PointClamp);
-        _sceneTree.Draw(_renderBatcher);
-        _renderBatcher.End();
+        var vp = Engine.GDM.GraphicsDevice.Viewport;
+        Engine.GDM.GraphicsDevice.Viewport = new Viewport(0, 0, w, h);
+
+        var uiScale = Matrix.CreateScale((float)w / designWidth, (float)h / designHeight, 1f);
+        var context = new RenderContext
+        {
+            GraphicsDevice = Engine.GDM.GraphicsDevice,
+            RenderBatcher = _renderBatcher,
+            CurrentScene = _sceneTree,
+            ActiveCamera = null,
+            ViewMatrix = camera.GetViewMatrix(),
+            UIMatrix = uiScale,
+            WhiteTextureProvider = null
+        };
+        _sceneTree.Draw(context);
+
+        Engine.GDM.GraphicsDevice.Viewport = vp;
     }
     
     /// <summary>

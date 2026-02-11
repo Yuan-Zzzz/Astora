@@ -1,5 +1,7 @@
 using Astora.Core;
+using Astora.Core.Game;
 using Astora.Core.Nodes;
+using Astora.Core.Project;
 using Astora.Core.Scene;
 using Astora.Core.Utils;
 using Astora.Editor.Core;
@@ -28,6 +30,11 @@ public class EditorService
     /// 场景树
     /// </summary>
     public SceneTree SceneTree => _sceneTree;
+
+    /// <summary>
+    /// 项目 IGameRuntime 实例（播放时创建，与独立运行共用同一套逻辑）
+    /// </summary>
+    public IGameRuntime? GameRuntime { get; private set; }
     
     /// <summary>
     /// 编辑器状态
@@ -57,16 +64,39 @@ public class EditorService
     {
         if (playing && !_state.IsPlaying)
         {
-            // 开始播放：保存当前场景状态
             SaveSceneSnapshot();
+            CreateGameRuntimeIfAvailable();
         }
         else if (!playing && _state.IsPlaying)
         {
-            // 停止播放：恢复场景到初始状态
+            GameRuntime = null;
             RestoreSceneSnapshot();
         }
         
         _state.IsPlaying = playing;
+    }
+
+    private void CreateGameRuntimeIfAvailable()
+    {
+        var projectInfo = _projectService.ProjectManager.CurrentProject;
+        var runtimeType = projectInfo?.GameRuntimeType;
+        if (runtimeType == null || Engine.Content == null)
+            return;
+
+        try
+        {
+            var runtime = (IGameRuntime?)Activator.CreateInstance(runtimeType);
+            if (runtime != null)
+            {
+                var config = projectInfo.GameConfig ?? GameProjectConfig.CreateDefault();
+                runtime.Initialize(Engine.Content, config, _sceneTree, skipInitialSceneLoad: true);
+                GameRuntime = runtime;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Console.WriteLine($"创建 IGameRuntime 失败: {ex.Message}");
+        }
     }
     
     /// <summary>
@@ -209,6 +239,7 @@ public class EditorService
     /// </summary>
     public void OnProjectClosed()
     {
+        GameRuntime = null;
         if (_state.IsPlaying)
             SetPlaying(false);
         

@@ -92,13 +92,19 @@ public static class Engine
         ResourceLoader.Initialize(content);
     }
 
-    public static void LoadProjectConfig()
+    /// <summary>
+    /// Load project.yaml and apply design resolution, window size, and content root. Returns the config for use by IGameRuntime, or null if not found.
+    /// </summary>
+    public static GameProjectConfig? LoadProjectConfig()
     {
         var configPath = "project.yaml";
         if (!File.Exists(configPath))
         {
             configPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "project.yaml");
         }
+
+        if (!File.Exists(configPath))
+            return null;
 
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
@@ -114,6 +120,8 @@ public static class Engine
             GDM.ApplyChanges();
             Content.RootDirectory = config.ContentRootDirectory;
         }
+
+        return config;
     }
 
     /// <summary>

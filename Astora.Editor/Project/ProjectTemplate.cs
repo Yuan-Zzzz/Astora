@@ -67,96 +67,68 @@ class Program
             if (templateType == ProjectTemplateType.Empty)
             {
                 return $@"using Astora.Core;
+using Astora.Core.Game;
 using Astora.Core.Project;
-using Astora.Core.Scene;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace {projectName}
 {{
     public class Game1 : Game
     {{
-        private GraphicsDeviceManager _graphics;
-        private SpriteBatch _spriteBatch;
-        private SceneTree _sceneTree;
+        private readonly GraphicsDeviceManager _graphics;
+        private IGameRuntime _runtime = null!;
 
         public Game1()
         {{
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = ""Content"";
             IsMouseVisible = true;
-            
-            _sceneTree = new SceneTree();
-            Engine.CurrentScene = _sceneTree;
         }}
 
         protected override void Initialize()
         {{
             base.Initialize();
+            Engine.Initialize(Content, _graphics);
+            var config = Engine.LoadProjectConfig() ?? GameProjectConfig.CreateDefault();
+            _runtime = new DefaultGameRuntime();
+            _runtime.Initialize(Engine.Content, config, Engine.CurrentScene, skipInitialSceneLoad: false);
         }}
 
         protected override void LoadContent()
         {{
-            _spriteBatch = new SpriteBatch(GraphicsDevice);
-            Engine.Initialize(Content, _graphics);
-            Engine.CurrentScene = _sceneTree;
-            
-            // 加载项目配置并应用设计分辨率
-            LoadAndApplyProjectConfig();
-        }}
-        
-        /// <summary>
-        /// 加载并应用项目配置
-        /// </summary>
-        private void LoadAndApplyProjectConfig()
-        {{
-            try
-            {{
-                // 尝试从当前目录或上级目录查找 project.yaml
-                var configPath = ""project.yaml"";
-                if (!File.Exists(configPath))
-                {{
-                    // 尝试在上级目录查找（适用于从 bin/Debug/net8.0 运行的情况）
-                    configPath = Path.Combine("".."", "".."", "".."", "".."", ""project.yaml"");
-                    if (!File.Exists(configPath))
-                    {{
-                        // 使用默认配置
-                        System.Console.WriteLine(""未找到 project.yaml，使用默认设计分辨率"");
-                        return;
-                    }}
-                }}
-                
-                var deserializer = new DeserializerBuilder()
-                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                    .Build();
-                
-                var yaml = File.ReadAllText(configPath);
-                var config = deserializer.Deserialize<GameProjectConfig>(yaml);
-                
-                if (config != null)
-                {{
-                    Engine.SetDesignResolution(config);
-                    System.Console.WriteLine($""已加载设计分辨率: {{config.DesignWidth}}x{{config.DesignHeight}}, 缩放模式: {{config.ScalingMode}}"");
-                }}
-            }}
-            catch (Exception ex)
-            {{
-                System.Console.WriteLine($""加载项目配置失败: {{ex.Message}}，使用默认设计分辨率"");
-            }}
+            base.LoadContent();
         }}
 
         protected override void Update(GameTime gameTime)
         {{
+            _runtime.Update(gameTime);
             Engine.Update(gameTime);
             base.Update(gameTime);
         }}
 
         protected override void Draw(GameTime gameTime)
         {{
-            Engine.Render();
+            Engine.Render(gameTime, Color.Black);
             base.Draw(gameTime);
+        }}
+    }}
+
+    /// <summary>
+    /// 默认游戏逻辑入口，与 Editor 播放共用。可在此添加场景加载与输入逻辑。
+    /// </summary>
+    public class DefaultGameRuntime : IGameRuntime
+    {{
+        public void Initialize(Microsoft.Xna.Framework.Content.ContentManager content, GameProjectConfig config, Astora.Core.Scene.SceneTree sceneTree, bool skipInitialSceneLoad)
+        {{
+            if (!skipInitialSceneLoad)
+            {{
+                // 可在此加载默认场景，例如: sceneTree.AttachScene(myRoot);
+            }}
+        }}
+
+        public void Update(GameTime gameTime)
+        {{
         }}
     }}
 }}";

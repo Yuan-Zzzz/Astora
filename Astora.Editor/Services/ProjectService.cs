@@ -1,3 +1,6 @@
+using System.Reflection;
+using Astora.Core.Game;
+using Astora.Core.Project;
 using Astora.Core.Utils;
 using Astora.Editor.Project;
 using Astora.Editor.Core;
@@ -106,6 +109,17 @@ public class ProjectService
                     state.LoadMessage = "Scanning scenes...";
                     state.LoadProgress = 0.9f;
                     _sceneManager.ScanScenes();
+
+                    // 阶段 8：扫描 IGameRuntime 实现（用于 Editor 播放时统一游戏逻辑）
+                    if (loadedAssembly != null)
+                    {
+                        var runtimeType = FindGameRuntimeType(loadedAssembly);
+                        if (runtimeType != null)
+                        {
+                            projectInfo.GameRuntimeType = runtimeType;
+                            System.Console.WriteLine($"[ProjectService] IGameRuntime: {runtimeType.FullName}");
+                        }
+                    }
                 }
                 else
                 {
@@ -122,6 +136,8 @@ public class ProjectService
                             Engine.Content.RootDirectory = contentDir;
                             System.Console.WriteLine($"[ProjectService] Content.RootDirectory => {contentDir}");
                         }
+                        if (_projectManager.CurrentProject?.GameConfig is { } cfg)
+                            Engine.SetDesignResolution(cfg);
                     };
                 }
 
@@ -192,6 +208,13 @@ public class ProjectService
 
                 // 扫描 IScene 实现（必须在程序集加载之后）
                 _sceneManager.ScanScenes();
+
+                if (loadedAssembly != null)
+                {
+                    var runtimeType = FindGameRuntimeType(loadedAssembly);
+                    if (runtimeType != null)
+                        projectInfo.GameRuntimeType = runtimeType;
+                }
             }
             else
             {
@@ -217,6 +240,8 @@ public class ProjectService
 
         if (Engine.Content != null)
             Engine.Content.RootDirectory = "Content";
+        var defaultConfig = GameProjectConfig.CreateDefault();
+        Engine.SetDesignResolution(defaultConfig.DesignWidth, defaultConfig.DesignHeight, defaultConfig.ScalingMode);
     }
 
     public bool RebuildProject()
@@ -244,6 +269,14 @@ public class ProjectService
 
             // 重新扫描 IScene 实现
             _sceneManager.ScanScenes();
+
+            var projectInfo = _projectManager.CurrentProject;
+            if (projectInfo != null && loadedAssembly != null)
+            {
+                var runtimeType = FindGameRuntimeType(loadedAssembly);
+                projectInfo.GameRuntimeType = runtimeType;
+            }
+
             System.Console.WriteLine("程序集重新加载成功");
         }
         else
@@ -252,5 +285,14 @@ public class ProjectService
         }
 
         return result;
+    }
+
+    private static Type? FindGameRuntimeType(Assembly assembly)
+    {
+        var iface = typeof(IGameRuntime);
+        var types = assembly.GetTypes()
+            .Where(t => iface.IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)
+            .ToList();
+        return types.Count > 0 ? types[0] : null;
     }
 }

@@ -1,4 +1,5 @@
 using Astora.Core;
+using Astora.Core.Inputs;
 using Astora.Editor.Core;
 using Astora.Editor.Core.Actions;
 using Astora.Editor.Core.Commands;
@@ -98,12 +99,27 @@ public sealed class Editor : Game
 
     protected override void Update(GameTime gameTime)
     {
-        // 轮询异步项目加载是否完成
         if (_actions is EditorActions editorActions)
             editorActions.PollAsyncLoad();
 
-        if (_editorService.State.IsPlaying)
+        var state = _editorService.State;
+        if (!state.IsPlaying)
+        {
+            Input.SetMouseScreenPositionOverride(null);
+            // 未播放时也驱动 UI 布局与交互，使 Scene 视图中 UI 行为正确
+            _editorService.SceneTree.DriveUILayoutAndInput(
+                state.LastSceneViewHovered ? state.LastSceneViewMouseInDesign : null);
+        }
+        else
+        {
+            // 播放时仅以 Game 窗口为输入基准：悬停 Game 时用设计空间坐标，否则用设计空间外一点，避免使用 Editor 窗口坐标
+            var pos = state.LastGameViewHovered && state.LastGameViewMouseInDesign is { } p
+                ? p
+                : new Microsoft.Xna.Framework.Vector2(-10000f, -10000f);
+            Input.SetMouseScreenPositionOverride(pos);
+            _editorService.GameRuntime?.Update(gameTime);
             Engine.Update(gameTime);
+        }
 
         base.Update(gameTime);
     }

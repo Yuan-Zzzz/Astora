@@ -1,5 +1,6 @@
 using Astora.Core.Nodes;
 using Astora.Editor.Project;
+using Microsoft.Xna.Framework;
 
 namespace Astora.Editor.Core;
 
@@ -105,4 +106,11 @@ public class EditorState
         or ProjectLoadState.Compiling
         or ProjectLoadState.LoadingAssembly
         or ProjectLoadState.DiscoveringNodes;
+
+    // === 视口内鼠标（设计空间），由 Scene/Game 面板在 RenderUI 中写入，下一帧 Update 用于 UI 交互 ===
+
+    public bool LastSceneViewHovered { get; set; }
+    public Vector2? LastSceneViewMouseInDesign { get; set; }
+    public bool LastGameViewHovered { get; set; }
+    public Vector2? LastGameViewMouseInDesign { get; set; }
 }

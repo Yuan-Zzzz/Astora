@@ -103,24 +103,15 @@ public class SceneViewPanel
     /// </summary>
     public void Draw(SpriteBatch spriteBatch)
     {
-        if (spriteBatch == null)
+        if (spriteBatch == null || _renderer == null || !_renderer.IsReady || _camera == null)
             return;
-        
-        if (_renderer == null || !_renderer.IsReady)
-            return;
-        
-        if (_camera == null)
-            return;
-        
         var graphicsDevice = spriteBatch.GraphicsDevice;
         if (graphicsDevice == null)
             return;
-        
-        // 保存原始 RenderTarget
+        int designW = _ctx.ProjectService.ProjectManager.CurrentProject?.GameConfig?.DesignWidth ?? 1920;
+        int designH = _ctx.ProjectService.ProjectManager.CurrentProject?.GameConfig?.DesignHeight ?? 1080;
         var originalRenderTargets = graphicsDevice.GetRenderTargets();
-        
-        // 渲染场景（这会设置 RenderTarget）
-        _renderer.Draw(_camera, spriteBatch);
+        _renderer.Draw(_camera, spriteBatch, designW, designH);
         
         // 获取视图矩阵
         Matrix viewMatrix = _camera.GetViewMatrix();
@@ -173,38 +164,26 @@ public class SceneViewPanel
         _inputHandler.HandleInput(isWindowHovered);
         
         // 渲染场景视图（先获取可用空间，考虑标尺占用的空间）
-        const float rulerSize = 30f; // 增加标尺宽度以容纳文字
+        const float rulerSize = 30f;
         var availableSize = ImGui.GetContentRegionAvail();
-        
-        // 为标尺预留空间
         var viewportSize = new Vector2(
-            Math.Max(0, availableSize.X - rulerSize * 2), // 左右各一个标尺
-            Math.Max(0, availableSize.Y - rulerSize * 2)  // 上下各一个标尺
+            Math.Max(0, availableSize.X - rulerSize * 2),
+            Math.Max(0, availableSize.Y - rulerSize * 2)
         );
-        
+
         if (viewportSize.X > 0 && viewportSize.Y > 0)
         {
-            // 先设置光标位置，为左侧和顶部标尺留出空间
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + rulerSize);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + rulerSize);
-            
-            // 获取场景视图的实际屏幕位置（用于绘制标尺）
             var viewportScreenPos = ImGui.GetCursorScreenPos();
-            
-            // 更新 RenderTarget 大小（关键：在 Draw 之前更新）
+
+            var designW = _ctx.ProjectService.ProjectManager.CurrentProject?.GameConfig?.DesignWidth ?? 1920;
+            var designH = _ctx.ProjectService.ProjectManager.CurrentProject?.GameConfig?.DesignHeight ?? 1080;
             _renderer.UpdateRenderTarget((int)viewportSize.X, (int)viewportSize.Y);
-            
-            // 绘制标尺（在场景视图周围）
             DrawRulers(viewportScreenPos, viewportSize, rulerSize);
-            
-            // 绘制场景和覆盖层
             var spriteBatch = _ctx.RenderService.GetSpriteBatch();
             if (spriteBatch != null)
-            {
                 Draw(spriteBatch);
-            }
-            
-            // 显示渲染结果
             ImGui.Image(
                 _renderer.TextureId,
                 viewportSize,
@@ -212,6 +191,27 @@ public class SceneViewPanel
                 Vector2.One,
                 Vector4.One
             );
+
+            var state = _ctx.EditorService.State;
+            state.LastSceneViewHovered = ImGui.IsItemHovered();
+            if (state.LastSceneViewHovered)
+            {
+                var mouse = ImGui.GetMousePos();
+                var itemMin = ImGui.GetItemRectMin();
+                var itemMax = ImGui.GetItemRectMax();
+                var itemSize = new Vector2(itemMax.X - itemMin.X, itemMax.Y - itemMin.Y);
+                if (itemSize.X > 0 && itemSize.Y > 0)
+                {
+                    state.LastSceneViewMouseInDesign = new Microsoft.Xna.Framework.Vector2(
+                        (float)((mouse.X - itemMin.X) / itemSize.X * designW),
+                        (float)((mouse.Y - itemMin.Y) / itemSize.Y * designH)
+                    );
+                }
+                else
+                    state.LastSceneViewMouseInDesign = null;
+            }
+            else
+                state.LastSceneViewMouseInDesign = null;
         }
         
         ImGui.End();

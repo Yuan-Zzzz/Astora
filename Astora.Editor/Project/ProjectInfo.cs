@@ -19,6 +19,11 @@ namespace Astora.Editor.Project
         /// 游戏项目配置
         /// </summary>
         public GameProjectConfig GameConfig { get; set; } = GameProjectConfig.CreateDefault();
+
+        /// <summary>
+        /// IGameRuntime 实现类型（从项目程序集扫描得到，用于 Editor 播放时驱动同一套游戏逻辑）
+        /// </summary>
+        public Type? GameRuntimeType { get; set; }
     }
 }
 

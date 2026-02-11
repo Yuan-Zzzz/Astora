@@ -29,7 +29,7 @@ public sealed class SceneModule : IEditorModule
         _hierarchy = new HierarchyPanel(_ctx.EditorService.SceneTree, _ctx.ProjectService.NodeTypeRegistry);
         _inspector = new InspectorPanel(_ctx.ProjectService.ProjectManager, _imGuiRenderer);
         _sceneView = new SceneViewPanel(_ctx.EditorService.SceneTree, _imGuiRenderer, _ctx);
-        _gameView = new GameViewPanel(_ctx.EditorService.SceneTree, _imGuiRenderer, _ctx.ProjectService.ProjectManager);
+        _gameView = new GameViewPanel(_ctx.EditorService.SceneTree, _imGuiRenderer, _ctx.ProjectService.ProjectManager, _ctx);
     }
 
     public void Register(EditorModuleRegistry registry)

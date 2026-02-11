@@ -45,6 +45,14 @@ public class SceneViewCamera
     }
     
     /// <summary>
+    /// Viewport-local pixel (0,0)=top-left of viewport → design/world position.
+    /// </summary>
+    public XnaVector2 ViewportLocalToDesign(float viewportX, float viewportY)
+    {
+        return new XnaVector2(viewportX / _zoom + _position.X, viewportY / _zoom + _position.Y);
+    }
+
+    /// <summary>
     /// 将屏幕坐标转换为世界坐标
     /// 注意：此方法只能在ImGui窗口打开时调用（即在RenderUI中，ImGui.Begin()之后）
     /// </summary>

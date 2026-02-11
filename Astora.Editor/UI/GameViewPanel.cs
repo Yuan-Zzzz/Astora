@@ -2,6 +2,7 @@ using Astora.Core;
 using Astora.Core.Project;
 using Astora.Core.Scene;
 using Astora.Core.Rendering.RenderPipeline;
+using Astora.Editor.Core;
 using Astora.Editor.Project;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -17,18 +18,20 @@ namespace Astora.Editor.UI
     /// </summary>
     public class GameViewPanel
     {
-        private SceneTree _sceneTree;
-        private ProjectManager? _projectManager;
+        private readonly SceneTree _sceneTree;
+        private readonly ProjectManager? _projectManager;
+        private readonly IEditorContext? _ctx;
         private RenderTarget2D _gameRenderTarget;
         private IntPtr _renderTargetTextureId;
-        private ImGuiRenderer _imGuiRenderer;
-        private RenderBatcher _renderBatcher;
-        
-        public GameViewPanel(SceneTree sceneTree, ImGuiRenderer imGuiRenderer, ProjectManager? projectManager = null)
+        private readonly ImGuiRenderer _imGuiRenderer;
+        private readonly RenderBatcher _renderBatcher;
+
+        public GameViewPanel(SceneTree sceneTree, ImGuiRenderer imGuiRenderer, ProjectManager? projectManager = null, IEditorContext? ctx = null)
         {
             _sceneTree = sceneTree;
             _imGuiRenderer = imGuiRenderer;
             _projectManager = projectManager;
+            _ctx = ctx;
             _renderBatcher = new RenderBatcher(Engine.GDM.GraphicsDevice);
         }
         
@@ -54,39 +57,36 @@ namespace Astora.Editor.UI
             // 设置视口以匹配RenderTarget大小
             Engine.GDM.GraphicsDevice.Viewport = new Viewport(0, 0, _gameRenderTarget.Width, _gameRenderTarget.Height);
             
-            // 如果使用设计分辨率，设置引擎的设计分辨率（用于后续可能的缩放计算）
+            // 设置设计分辨率，使 GetScaleMatrix 等与独立运行一致（此处 RT 即设计分辨率时 scale=1）
             if (config != null)
             {
                 Engine.SetDesignResolution(config);
             }
             
-            // 使用与 Engine.Render() 完全相同的渲染逻辑
-            // 计算变换矩阵：先应用缩放，再应用相机视图
-            Matrix scaleMatrix = Engine.GetScaleMatrix();
             Matrix viewMatrix = Matrix.Identity;
             if (_sceneTree.ActiveCamera != null)
             {
-                // 临时保存并设置相机的Origin以匹配当前RenderTarget
-                var originalOrigin = _sceneTree.ActiveCamera.Origin;
-                var expectedOrigin = new Microsoft.Xna.Framework.Vector2(
-                    _gameRenderTarget.Width / 2f, 
+                var cam = _sceneTree.ActiveCamera;
+                var originalOrigin = cam.Origin;
+                cam.Origin = new Microsoft.Xna.Framework.Vector2(
+                    _gameRenderTarget.Width / 2f,
                     _gameRenderTarget.Height / 2f
                 );
-                _sceneTree.ActiveCamera.Origin = expectedOrigin;
-                
-                viewMatrix = _sceneTree.ActiveCamera.GetViewMatrix();
-                
-                // 恢复原始Origin
-                _sceneTree.ActiveCamera.Origin = originalOrigin;
+                viewMatrix = cam.GetViewMatrix();
+                cam.Origin = originalOrigin;
             }
-            
-            // 组合变换矩阵：缩放 * 视图（与实际运行时一致）
-            Matrix transformMatrix = scaleMatrix * viewMatrix;
-            
-            // 使用RenderBatcher渲染场景（与实际运行时一致）
-            _renderBatcher.Begin(transformMatrix, SamplerState.PointClamp);
-            _sceneTree.Draw(_renderBatcher);
-            _renderBatcher.End();
+
+            var context = new RenderContext
+            {
+                GraphicsDevice = Engine.GDM.GraphicsDevice,
+                RenderBatcher = _renderBatcher,
+                CurrentScene = _sceneTree,
+                ActiveCamera = _sceneTree.ActiveCamera,
+                ViewMatrix = viewMatrix,
+                UIMatrix = null,
+                WhiteTextureProvider = null
+            };
+            _sceneTree.Draw(context);
             
             // 恢复原始状态
             Engine.GDM.GraphicsDevice.Viewport = originalViewport;
@@ -170,6 +170,30 @@ namespace Astora.Editor.UI
                     Vector2.One,
                     Vector4.One
                 );
+
+                if (_ctx != null)
+                {
+                    var state = _ctx.EditorService.State;
+                    state.LastGameViewHovered = ImGui.IsItemHovered();
+                    if (state.LastGameViewHovered)
+                    {
+                        var mouse = ImGui.GetMousePos();
+                        var itemMin = ImGui.GetItemRectMin();
+                        var itemMax = ImGui.GetItemRectMax();
+                        var itemSize = new Vector2(itemMax.X - itemMin.X, itemMax.Y - itemMin.Y);
+                        if (itemSize.X > 0 && itemSize.Y > 0)
+                        {
+                            state.LastGameViewMouseInDesign = new Microsoft.Xna.Framework.Vector2(
+                                (float)((mouse.X - itemMin.X) / itemSize.X * designWidth),
+                                (float)((mouse.Y - itemMin.Y) / itemSize.Y * designHeight)
+                            );
+                        }
+                        else
+                            state.LastGameViewMouseInDesign = null;
+                    }
+                    else
+                        state.LastGameViewMouseInDesign = null;
+                }
             }
             
             ImGui.End();

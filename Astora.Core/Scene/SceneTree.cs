@@ -5,6 +5,7 @@ using Astora.Core.Inputs;
 using Astora.Core.Nodes;
 using Astora.Core.Rendering.RenderPipeline;
 using Astora.Core.UI;
+using Astora.Core.UI.Rendering;
 using Astora.Core.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -96,7 +97,7 @@ public class SceneTree
         if (Root != null)
         {
             Root.InternalUpdate(gameTime);
-            ProcessUILayoutAndInput();
+            ProcessUILayoutAndInput(null);
         }
     }
 
@@ -151,9 +152,18 @@ public class SceneTree
     }
 
     /// <summary>
+    /// Run layout and UI input (hit-test + route). Call every frame for correct UI behavior (standalone or in Editor).
+    /// When <paramref name="mouseInDesign"/> is null, uses Input.MouseScreenPosition.
+    /// </summary>
+    public void DriveUILayoutAndInput(Vector2? mouseInDesign = null)
+    {
+        ProcessUILayoutAndInput(mouseInDesign);
+    }
+
+    /// <summary>
     /// Run layout for each UI root, then hit-test and route input (Godot-style driver).
     /// </summary>
-    private void ProcessUILayoutAndInput()
+    private void ProcessUILayoutAndInput(Vector2? mouseInDesign = null)
     {
         var roots = GetUIRoots().ToList();
         if (roots.Count == 0) return;
@@ -162,7 +172,7 @@ public class SceneTree
         foreach (var (_, root) in roots)
             root.DoLayout(canvasRect);
 
-        var pos = Input.MouseScreenPosition;
+        var pos = mouseInDesign ?? Input.MouseScreenPosition;
         Control? hitControl = null;
         Control? hitRoot = null;
         foreach (var (_, root) in roots.OrderByDescending(x => x.Layer))
@@ -194,14 +204,44 @@ public class SceneTree
     }
 
     /// <summary>
-    /// Draw Nodes
+    /// Draw world nodes then UI roots using context.ViewMatrix and context.UIMatrix.
     /// </summary>
-    public void Draw(IRenderBatcher renderBatcher)
+    public void Draw(RenderContext context)
     {
-        if (Root != null)
+        if (context?.RenderBatcher == null || Root == null) return;
+
+        var batcher = context.RenderBatcher;
+        var viewMatrix = context.ViewMatrix;
+        var uiMatrix = context.UIMatrix ?? Matrix.Identity;
+        var provider = context.WhiteTextureProvider ?? new WhiteTextureProvider(context.GraphicsDevice);
+
+        batcher.Begin(viewMatrix, SamplerState.PointClamp);
+        DrawWorldRecursive(Root, batcher);
+        batcher.End();
+
+        foreach (var (_, controlRoot) in GetUIRoots())
         {
-            Root.InternalDraw(renderBatcher);
+            UIDrawContext.SetCurrent(provider);
+            try
+            {
+                batcher.Begin(uiMatrix, SamplerState.PointClamp);
+                controlRoot.InternalDraw(batcher);
+                batcher.End();
+            }
+            finally
+            {
+                UIDrawContext.SetCurrent(null);
+            }
         }
+    }
+
+    private static void DrawWorldRecursive(Node node, IRenderBatcher batcher)
+    {
+        if (node is CanvasLayer) return;
+        if (node is Control c && c.Parent is not Control) return;
+        node.Draw(batcher);
+        foreach (var child in node.Children)
+            DrawWorldRecursive(child, batcher);
     }
     
     /// <summary>

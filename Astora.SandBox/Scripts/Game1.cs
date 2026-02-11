@@ -1,36 +1,18 @@
 using Astora.Core;
-using Astora.Core.Inputs;
-using Astora.Core.Nodes;
-using Astora.Core.Scene;
-using Astora.SandBox.Scenes;
+using Astora.Core.Game;
+using Astora.Core.Project;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace Astora.SandBox.Scripts;
 
 /// <summary>
-/// UI interactive test host: initializes engine and cycles through IScene demos.
-/// Press F1 to cycle through scenes.
+/// Host Game: initializes engine and drives SandBoxGameRuntime. Same runtime runs in-editor when playing.
 /// </summary>
 public class Game1 : Game
 {
     private readonly GraphicsDeviceManager _graphics;
-
-    /// <summary>All demo scenes registered as IScene.Build delegates.</summary>
-    private readonly Func<Node>[] _scenes =
-    {
-        SampleScene.Build,
-        LabelFontSizesScene.Build,
-        LabelButtonScene.Build,
-        LabelEffectsScene.Build,
-        ButtonClickScene.Build,
-        MultipleButtonsScene.Build,
-        BoxContainerScene.Build,
-        MarginContainerScene.Build,
-        LayeringScene.Build,
-    };
-
-    private int _sceneIndex;
+    private IGameRuntime _runtime = null!;
 
     public Game1()
     {
@@ -44,17 +26,14 @@ public class Game1 : Game
     {
         base.Initialize();
         Engine.Initialize(Content, _graphics);
-        Engine.LoadProjectConfig();
-        LoadCurrentScene();
+        var config = Engine.LoadProjectConfig() ?? GameProjectConfig.CreateDefault();
+        _runtime = new SandBoxGameRuntime();
+        _runtime.Initialize(Engine.Content, config, Engine.CurrentScene, skipInitialSceneLoad: false);
     }
 
     protected override void Update(GameTime gameTime)
     {
-        if (Input.IsKeyPressed(Keys.F1))
-        {
-            _sceneIndex = (_sceneIndex + 1) % _scenes.Length;
-            LoadCurrentScene();
-        }
+        _runtime.Update(gameTime);
         Engine.Update(gameTime);
         base.Update(gameTime);
     }
@@ -68,12 +47,6 @@ public class Game1 : Game
     {
         Engine.Render(gameTime, Color.White);
         base.Draw(gameTime);
-    }
-
-    private void LoadCurrentScene()
-    {
-        var sceneRoot = _scenes[_sceneIndex]();
-        Engine.CurrentScene.AttachScene(sceneRoot);
     }
 
     private void OnClientSizeChanged(object? sender, EventArgs e)

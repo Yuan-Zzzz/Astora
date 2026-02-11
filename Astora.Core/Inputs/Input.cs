@@ -24,15 +24,28 @@ public static class Input
     private static MouseState _previousMouse;
 
     /// <summary>
+    /// When set, MouseScreenPosition returns this value for the current frame instead of deriving from window.
+    /// Caller is responsible for clearing when not needed (e.g. each frame before or after use).
+    /// </summary>
+    private static Vector2? _mouseScreenPositionOverride;
+
+    /// <summary>
     /// Tick Update Input States
     /// </summary>
     public static void Update()
     {
         _previousKey = _currentKey;
         _currentKey = Keyboard.GetState();
-        
         _previousMouse = _currentMouse;
         _currentMouse = Mouse.GetState();
+    }
+
+    /// <summary>
+    /// Set design-space mouse position for this frame; MouseScreenPosition will return it until cleared or next set.
+    /// </summary>
+    public static void SetMouseScreenPositionOverride(Vector2? positionInDesign)
+    {
+        _mouseScreenPositionOverride = positionInDesign;
     }
     
     #region Keyboard methods
@@ -109,14 +122,17 @@ public static class Input
     public static Vector2 RawMousePosition => new Vector2(_currentMouse.X, _currentMouse.Y);
     
     /// <summary>
-    /// Mouse position in design resolution coordinates.
-    /// Use this for UI interactions and screen-space calculations.
-    /// Applies inverse ScaleMatrix to convert from window to design resolution.
+    /// Mouse position in design resolution coordinates. Use for UI and screen-space.
+    /// Returns override when set; otherwise RawMousePosition transformed by inverse ScaleMatrix.
     /// </summary>
     public static Vector2 MouseScreenPosition
     {
         get
         {
+            if (_mouseScreenPositionOverride is { } v)
+                return v;
+            if (Engine.CurrentContext == null)
+                return RawMousePosition;
             var scaleMatrix = Engine.GetScaleMatrix();
             var invScaleMatrix = Matrix.Invert(scaleMatrix);
             return Vector2.Transform(RawMousePosition, invScaleMatrix);
